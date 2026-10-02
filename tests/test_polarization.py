@@ -10,19 +10,35 @@ import matplotlib
 matplotlib.use("Agg")
 import numpy as np
 import pytest
-import AtomSpect as A
+import AtomSpect
 
+# Zero-field He I fine-structure energies, in cm^-1, copied from the
+# E_ground / E_excited inputs in Examples/He_ex1/He_Example.py (lines 88-89).
+# EG: lower 1s2p triplet P term (L=1, S=1), ordered by J=0,1,2.
+# EE: upper 1s4d triplet D term (L=2, S=1), ordered by J=1,2,3.
+# These are the repository's example data, not independently validated here.
 EG = np.array([169087.8308131, 169086.8428979, 169086.7664725])
 EE = np.array([191444.49804915, 191444.47952984, 191444.47832914])
+
+# Numerical crossing field (tesla) for the lower term with the EG inputs above
+# and AtomSpect's existing g_L, g_S and muBcm constants. In the coupled basis,
+# build H(B) = E0 + B*muBcm*Psi @ diag(g_L*mL + g_S*mS) @ Psi.T,
+# where Psi = stateprocess(1, 1, EG, 0)[0]. Diagonalize each fixed-M block.
+# The second-lowest eigenvalue of M=-1 crosses the lowest of M=+1 here.
+# Reproduce by subtracting EG[-1]*identity from E0 for numerical stability,
+# then use scipy.optimize.brentq on their energy difference over [0.05, 0.065]
+# tesla (xtol=1e-15). This gives 0.05784143464329161 with the current inputs.
+# The decimal places specify a regression location, not experimental precision;
+# tests probe this location and its neighborhood to exercise crossing behavior.
 CROSSING = .05784143464329161
 GEOMETRIES = [dict(Bangle=90), dict(Bangle=45), dict(Bangle=0),
               dict(Bangle=37, gamma=23, Filter=True, T_Alpha=.65, T_Beta=.35)]
 
 
 def he_levels(field, sort=False):
-    g = A.stateprocess(1, 1, EG, field, sortE=sort)
-    e = A.stateprocess(2, 1, EE, field, sortE=sort)
-    return g, A.Zeeman_func(g, field), e, A.Zeeman_func(e, field)
+    g = AtomSpect.stateprocess(1, 1, EG, field, sortE=sort)
+    e = AtomSpect.stateprocess(2, 1, EE, field, sortE=sort)
+    return g, AtomSpect.Zeeman_func(g, field), e, AtomSpect.Zeeman_func(e, field)
 
 
 def assert_e1_labels(g, e, result, geometry=None):
@@ -47,11 +63,11 @@ def assert_e1_labels(g, e, result, geometry=None):
     # Build three dipole operators independently of the signal's basis factors.
     raw = np.zeros(len(expected))
     for q in [-1, 0, 1]:
-        operator = np.array([[A.dipolestr(u, l) if u[1] - l[1] == q else 0
+        operator = np.array([[AtomSpect.dipolestr(u, l) if u[1] - l[1] == q else 0
                               for l in g[-1]] for u in e[-1]])
         amplitude = transform.T @ operator.ravel()
         assert np.max(np.abs(amplitude[expected != q]), initial=0) < 1e-12
-        factor = A.polarization(q, 0, geometry.get("Bangle", 90),
+        factor = AtomSpect.polarization(q, 0, geometry.get("Bangle", 90),
                                 geometry.get("gamma", 0),
                                 Pol_Filter=geometry.get("Filter", False),
                                 TAlpha=geometry.get("T_Alpha", 1),
@@ -65,7 +81,7 @@ def assert_e1_labels(g, e, result, geometry=None):
 @pytest.mark.parametrize("geometry", GEOMETRIES)
 def test_he_labels_follow_input_eigenpairs(field, sort, geometry):
     g, zg, e, ze = he_levels(field, sort)
-    result = A.Zeeman_signal(g, zg, e, ze, **geometry)
+    result = AtomSpect.Zeeman_signal(g, zg, e, ze, **geometry)
     mg = np.array([s[1] for s in g[-1]]) @ np.abs(np.asarray(zg[1]))**2
     me = np.array([s[1] for s in e[-1]]) @ np.abs(np.asarray(ze[1]))**2
     expected = np.rint((me[:, None] - mg).ravel()).astype(int)
@@ -79,22 +95,22 @@ def test_he_labels_follow_input_eigenpairs(field, sort, geometry):
 @pytest.mark.parametrize("sort", [False, True])
 def test_crossing_and_small_field_spherical_channels(field, sort):
     g, zg, e, ze = he_levels(field, sort)
-    assert_e1_labels(g, e, A.Zeeman_signal(g, zg, e, ze))
+    assert_e1_labels(g, e, AtomSpect.Zeeman_signal(g, zg, e, ze))
 
 
 def test_nondegenerate_eigenpair_and_basis_permutations():
     g, zg, e, ze = he_levels(.5)
-    original = A.Zeeman_signal(g, zg, e, ze)
+    original = AtomSpect.Zeeman_signal(g, zg, e, ze)
     rng = np.random.default_rng(42)
     pg, pe = rng.permutation(len(zg[0])), rng.permutation(len(ze[0]))
-    reordered = A.Zeeman_signal(g, [zg[0][pg], np.asarray(zg[1])[:, pg]],
+    reordered = AtomSpect.Zeeman_signal(g, [zg[0][pg], np.asarray(zg[1])[:, pg]],
                                e, [ze[0][pe], np.asarray(ze[1])[:, pe]])
     indices = (pe[:, None] * len(pg) + pg).ravel()
     np.testing.assert_array_equal(reordered[2], np.asarray(original[2])[indices])
     np.testing.assert_allclose(reordered[0], original[0][indices], rtol=0, atol=1e-11)
     gp, ep = list(g), list(e)
     gp[-1], ep[-1] = [g[-1][i] for i in pg], [e[-1][i] for i in pe]
-    rows = A.Zeeman_signal(gp, [zg[0], np.asarray(zg[1])[pg]],
+    rows = AtomSpect.Zeeman_signal(gp, [zg[0], np.asarray(zg[1])[pg]],
                           ep, [ze[0], np.asarray(ze[1])[pe]])
     np.testing.assert_array_equal(rows[2], original[2])
     np.testing.assert_allclose(rows[0], original[0], rtol=0, atol=1e-11)
@@ -102,21 +118,21 @@ def test_nondegenerate_eigenpair_and_basis_permutations():
 
 @pytest.mark.parametrize("field", [0., 1e-9, .5])
 def test_j_zero_to_one_ratio(field):
-    g = A.stateprocess(0, 0, np.array([0.]), field)
-    e = A.stateprocess(1, 0, np.array([20000.]), field)
-    result = A.Zeeman_signal(g, A.Zeeman_func(g, field), e, A.Zeeman_func(e, field))
+    g = AtomSpect.stateprocess(0, 0, np.array([0.]), field)
+    e = AtomSpect.stateprocess(1, 0, np.array([20000.]), field)
+    result = AtomSpect.Zeeman_signal(g, AtomSpect.Zeeman_func(g, field), e, AtomSpect.Zeeman_func(e, field))
     by_q = {int(r[1]): s for r, s in zip(result[2], result[0])}
     np.testing.assert_allclose([by_q[-1], by_q[0], by_q[1]], [.25, .5, .25], atol=1e-14)
 
 
 def test_degenerate_subspace_is_resolved_without_mutating_input():
-    g = A.stateprocess(0, 0, np.array([0.]), 0.)
-    e = A.stateprocess(1, 0, np.array([20000.]), 0.)
-    zg, ze = A.Zeeman_func(g, 0.), A.Zeeman_func(e, 0.)
+    g = AtomSpect.stateprocess(0, 0, np.array([0.]), 0.)
+    e = AtomSpect.stateprocess(1, 0, np.array([20000.]), 0.)
+    zg, ze = AtomSpect.Zeeman_func(g, 0.), AtomSpect.Zeeman_func(e, 0.)
     rotation = np.linalg.qr(np.random.default_rng(42).normal(size=(3, 3)))[0]
     for vectors in [np.asarray(ze[1])[:, [2, 0, 1]], np.asarray(ze[1]) @ rotation]:
         supplied = [ze[0].copy(), vectors.copy()]
-        result = A.Zeeman_signal(g, zg, e, supplied)
+        result = AtomSpect.Zeeman_signal(g, zg, e, supplied)
         assert_e1_labels(g, e, result)
         np.testing.assert_array_equal(supplied[0], ze[0])
         np.testing.assert_array_equal(supplied[1], vectors)
@@ -134,7 +150,7 @@ def test_film_partition_and_exported_sigma_signs():
                 TAlpha=.65, TBeta=.35, amu=4, Temp=300,
                 Convfxn="GaussianInstrum", specstep=.005,
                 spec_window=[446., 448.], fxnwindow=.1)
-    result = A.AtomSpect_Main(deck)
+    result = AtomSpect.AtomSpect_Main(deck)
     labels = np.asarray(result["rad"])[:, 1]
     for key, q, total in [("pi_sticks", 0, .65), ("sigmaplus_sticks", -1, .175),
                           ("sigmaminus_sticks", 1, .175), ("other_sticks", 3, 0.)]:
@@ -148,13 +164,13 @@ def test_film_partition_and_exported_sigma_signs():
     dict(Bangle=37, Filter=True, gamma=23, T_Alpha=.65, T_Beta=.35)])
 def test_zero_field_he_preserves_strength_at_each_degenerate_line(geometry):
     g, zg, e, ze = he_levels(0.)
-    result = A.Zeeman_signal(g, zg, e, ze, **geometry)
+    result = AtomSpect.Zeeman_signal(g, zg, e, ze, **geometry)
     reference = np.zeros(len(result[0]))
     for q in [-1, 0, 1]:
-        operator = np.array([[A.dipolestr(u, l) if u[1]-l[1] == q else 0
+        operator = np.array([[AtomSpect.dipolestr(u, l) if u[1]-l[1] == q else 0
                               for l in g[-1]] for u in e[-1]])
         amplitude = np.asarray(ze[1]).T @ operator @ np.asarray(zg[1])
-        factor = A.polarization(q, 0, geometry["Bangle"], geometry.get("gamma", 0),
+        factor = AtomSpect.polarization(q, 0, geometry["Bangle"], geometry.get("gamma", 0),
                                 Pol_Filter=geometry.get("Filter", False),
                                 TAlpha=geometry.get("T_Alpha", 1),
                                 TBeta=geometry.get("T_Beta", 1))[0]

@@ -108,7 +108,7 @@ if doHePol2 == True:
 
         if i == 0:
             taxs = PlotFunction(HePol, HePol_PlotObj, NormalizeSig=True,
-                                Shape=[1,len(polangles)], makefig=True,
+                                Shape=[1,len(polangles)], makefig=True, show=False,
                                 plotlabel=r'$\gamma$' + f'={angles}' + r'$^o$', plotnondip=True , fig_size = (19.5,9))
         else:
             PlotFunction(HePol, HePol_PlotObj,  NormalizeSig=True, axsin=taxs, position=[0, i],
@@ -126,14 +126,14 @@ if doHePol2 == True:
 
     if savepdf:
 
-        plt.savefig('He_Pol2.pdf', dpi=savedpi)
+        taxs[0][0].get_figure().savefig(example_dir / 'He_Pol2.pdf', dpi=savedpi)
     if savepng:    
             plt.tight_layout(rect=[0, 0, 1, .9])
             plt.rcParams['axes.titlepad'] = 315
             plt.title(f'{InputdeckHePol['plottitle']}')
             
 
-            plt.savefig('He_Pol2.png', dpi=savedpi)
+            taxs[0][0].get_figure().savefig(example_dir / 'He_Pol2.png', dpi=savedpi)
 
         
     plt.show()
@@ -189,7 +189,7 @@ if doHePol == True:
 
         if i == 0:  # In the future, automate this process of the plotting.
             taxs = PlotFunction(HePol, HePol_PlotObj, NormalizeSig=True,
-                                Shape=[len(polangles), 1], makefig=True,
+                                Shape=[len(polangles), 1], makefig=True, show=False,
                                 plotlabel=r'$\gamma$' + f'={angles}' + r'$^o$',marker_count=5)
         else:
             PlotFunction(HePol, HePol_PlotObj,  NormalizeSig=True, axsin=taxs[i][0], position=[0, i],
@@ -200,12 +200,13 @@ if doHePol == True:
 
     # savepdf = 1
     if savepdf:
-        plt.savefig('He_Pol.pdf', dpi=savedpi)
+        taxs[0][0].get_figure().savefig(example_dir / 'He_Pol.pdf', dpi=savedpi)
     if savepng:      
         plt.tight_layout(rect=[0, 0, 1, .9])
         plt.rcParams['axes.titlepad'] = 450
         plt.title(f'{InputdeckHePol['plottitle']}')
-        plt.savefig('He_PolB.png', dpi=savedpi)
+        taxs[0][0].get_figure().savefig(example_dir / 'He_PolB.png', dpi=savedpi)
+    plt.show()
         
         #%%
 
@@ -303,7 +304,7 @@ if doHePol3 == True:
 
         if i == 0:  # In the future, automate this process of the plotting.
             taxs = PlotFunction(HePol3b, HePol_PlotVar3b, NormalizeSig=True,
-                                Shape=[len(polangles), 1], makefig=True,
+                                Shape=[len(polangles), 1], makefig=True, show=False,
                                 plotlabel=r'$\gamma$' + f'={angles}' + r'$^o$',marker_count=15,plotpol=0)
             
             PlotFunction(HePol3, HePol_PlotVar3,  NormalizeSig=True, axsin=taxs[i][0], position=[0, i],
@@ -319,12 +320,13 @@ if doHePol3 == True:
 
     # savepdf = 1
     if savepdf:
-        plt.savefig('He_Pol3.pdf', dpi=savedpi)
+        taxs[0][0].get_figure().savefig(example_dir / 'He_Pol3.pdf', dpi=savedpi)
     if savepng:      
         plt.tight_layout(rect=[0, 0, 1, .9])
         plt.rcParams['axes.titlepad'] = 450
         plt.title(f'{InputdeckHePol['plottitle']}')
-        plt.savefig('He_Pol3B.png', dpi=savedpi)
+        taxs[0][0].get_figure().savefig(example_dir / 'He_Pol3B.png', dpi=savedpi)
+    plt.show()
 # %%For the paper
 if doHeNonPol == True: 
     pathfil = str(example_dir)
@@ -377,7 +379,7 @@ if doHeNonPol == True:
 
         if i == 0:  # In the future, automate this process of the plotting.
             taxs = PlotFunction(HeNonPol, HeNonPol_PlotVar[0], NormalizeSig=True,
-                                Shape=[1,len(Bmags)], makefig=True,
+                                Shape=[1,len(Bmags)], makefig=True, show=False,
                                 plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0 , fig_size = (19.5,9))
             PlotFunction(HeNonPol['SpecOutLow'], HeNonPol_PlotVar[1],  NormalizeSig=True, axsin=taxs, position=[i,0],
                          makefig=False,plotwind = InputdeckHeNonPol['plot_window'],  plotnondip=0,plotpol=0)
@@ -398,12 +400,13 @@ if doHeNonPol == True:
     #     plt.tight_layout(rect=[0, 0, 0.75, .95])
     #     plt.suptitle(f'{InputdeckHeNonPol['plottitle']}')
     if savepdf:
-        plt.savefig('He_NonPolRegime.pdf', format='pdf')
+        taxs[0][0].get_figure().savefig(example_dir / 'He_NonPolRegime.pdf', format='pdf')
     if savepng:      
         plt.tight_layout(rect=[0, 0, 1, .9])
         plt.rcParams['axes.titlepad'] = 405
         plt.title(f'{InputdeckHeNonPol['plottitle']}')
-        plt.savefig('He_NonPolRegimeB.png', dpi=savedpi)
+        taxs[0][0].get_figure().savefig(example_dir / 'He_NonPolRegimeB.png', dpi=savedpi)
+    plt.show()
 #%%
 if doHeNonPol2 == True: 
     pathfil = str(example_dir)
@@ -480,7 +483,7 @@ if doHeNonPol2 == True:
 
         if i == 0:  # In the future, automate this process of the plotting.
             taxs = PlotFunction(HeNonPol2, HeNonPol_PlotVar, NormalizeSig=True,
-                                Shape=[len(Bmags), 1], makefig=True,
+                                Shape=[len(Bmags), 1], makefig=True, show=False,
                                 plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0)
             PlotFunction(HeNonPol2b, HeNonPol_PlotVar2,  NormalizeSig=True, axsin=taxs[i][0], position=[0, i],
                             makefig=False,  plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0)   
@@ -494,12 +497,13 @@ if doHeNonPol2 == True:
     #     plt.tight_layout(rect=[0, 0, 0.75, .95])
     #     plt.suptitle(f'{InputdeckHeNonPol2['plottitle']}')
     if savepdf:
-        plt.savefig('He_NonPol2.pdf', format='pdf')
+        taxs[0][0].get_figure().savefig(example_dir / 'He_NonPol2.pdf', format='pdf')
     if savepng:      
         plt.tight_layout(rect=[0, 0, 1, .9])
         plt.rcParams['axes.titlepad'] = 405
         plt.title(f'{InputdeckHeNonPol2['plottitle']}')
-        plt.savefig('He_NonPol2B.png', dpi=savedpi)   
+        taxs[0][0].get_figure().savefig(example_dir / 'He_NonPol2B.png', dpi=savedpi)
+    plt.show()
 
 #%%
 if doHeNonPol3 == True:
@@ -542,19 +546,20 @@ if doHeNonPol3 == True:
     HeNonPol_PlotObj = [colorlist[0], 2.5, 'solid', 'Intermediate']
     
     taxs = PlotFunction(HeNonPol3, HeNonPol_PlotObj, NormalizeSig=True,
-                        makefig=True,  plotlabel=f'B={Bmags}T', plotpol=1, plotnondip=1)
+                        makefig=True, show=False,  plotlabel=f'B={Bmags}T', plotpol=1, plotnondip=1)
 
 
     # if do_title:      
     #     plt.tight_layout(rect=[0, 0, 0.75, .95])
     #     plt.suptitle(f'{InputdeckHeNonPol3['plottitle']}')
     if savepdf:
-        plt.savefig('He_NonPol3.pdf', format='pdf')
+        taxs[0][0].get_figure().savefig(example_dir / 'He_NonPol3.pdf', format='pdf')
     if savepng:      
         plt.tight_layout(rect=[0, 0, 1, 0.9])
         plt.rcParams['axes.titlepad'] = 315
         plt.title(f'{InputdeckHeNonPol3['plottitle']}')
-        plt.savefig('He_NonPol3B.png', dpi=savedpi)
+        taxs[0][0].get_figure().savefig(example_dir / 'He_NonPol3B.png', dpi=savedpi)
+    plt.show()
 
     # %%
 if fanplot == True:
@@ -592,21 +597,21 @@ if fanplot == True:
     flags = 'HGL'
     Zfantest = plotZfan(InputdeckHeNonPolFan, flags=flags,markercount = 35)
     # plt.ylim(169083.4, 169090)
-    plt.show()
     # plt.tight_layout()
     if savepdf:
-        plt.savefig('He_Fan.pdf', format='pdf')
+        plt.savefig(example_dir / 'He_Fan.pdf', format='pdf')
     if savepng:
-        plt.savefig('He_Fan.png', dpi=savedpi)
+        plt.savefig(example_dir / 'He_Fan.png', dpi=savedpi)
+    plt.show()
     flags_ = 'G'
     Zfantest = plotZfan(InputdeckHeNonPolFan, flags=flags_,markercount = 0)
     # plt.xlim(0,1)
-    plt.show()
     # plt.tight_layout()
     if savepdf:
-        plt.savefig('He_Fan_Int.pdf', format='pdf')
+        plt.savefig(example_dir / 'He_Fan_Int.pdf', format='pdf')
     if savepng:
-        plt.savefig('He_Fan_Int.png', dpi=savedpi)
+        plt.savefig(example_dir / 'He_Fan_Int.png', dpi=savedpi)
+    plt.show()
         
         #%%
 # fanplot2 = 1
@@ -646,9 +651,10 @@ if fanplot2 == True:
     # plt.ylim(169083.4, 169090)
     savepdf=1
     if savepdf:
-        plt.savefig('He_FanE.pdf',format='pdf')
+        plt.savefig(example_dir / 'He_FanE.pdf',format='pdf')
     if savepng:
-        plt.savefig('He_FanE.png', dpi=savedpi)
+        plt.savefig(example_dir / 'He_FanE.png', dpi=savedpi)
+    plt.show()
 
 #%%
 

@@ -481,7 +481,7 @@ def PlotFunction(Plotobject, plot_vars, plottitle='', plotwind=None, SpectrumPlo
                  fig_size=(10, 8), plotpol=True, plotlabel='', plotnondip=False, dotwin=False,  
                  marker=None, marker_count=None, marker_size = None, fontsize=None, ScaleSpectrometer=None,  
                  SpectrometerLabel='Spectrometer', SpectrometerMarker=None, SpectrometerColor='black', 
-                 SpectrometerLS='solid', legcols=None): 
+                 SpectrometerLS='solid', legcols=None, show=True):
          
     '''
     Author note: This function was refactored by Gemini AI from a previous iteration. The changes add a pre-processing step
@@ -521,6 +521,9 @@ def PlotFunction(Plotobject, plot_vars, plottitle='', plotwind=None, SpectrumPlo
     makefig : BOOL, optional
         Whether a figure object should be created. Need Shape unless 1x1 plot is desired. The default is True.
         Set to FALSE 
+    show : BOOL, optional
+        Display a new figure immediately. Default True. Set False when adding
+        overlays or saving the completed figure before displaying it.
     fig_size : tuple (Width, Height)
         Plot size in inches for the resulting figure. The default is (10, 8).
     plotpol : BOOL, optional
@@ -675,7 +678,8 @@ def PlotFunction(Plotobject, plot_vars, plottitle='', plotwind=None, SpectrumPlo
      
     if makefig: 
         plt.subplots_adjust(hspace=0, wspace=0) 
-        plt.show() 
+        if show:
+            plt.show()
 
     return taxs
 
