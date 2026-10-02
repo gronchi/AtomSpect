@@ -135,8 +135,8 @@ def nm_to_Hz(Ediff):
     return 2.99792458E17 / Ediff
 
 
-def ev_to_Hz(Ediff):
-    # Converts from eV to Mz
+def ev_to_MHz(Ediff):
+    # Converts from eV to MHz
     return (1e-6)*Ediff*2.41804e14
 
 
