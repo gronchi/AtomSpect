@@ -25,25 +25,26 @@ The standard zeeman fan plots are additionally included here.
 
 """
 
-import os
+from pathlib import Path
 import sys
 import numpy as np
 from matplotlib import pyplot as plt
 
 
-sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.path.pardir, os.path.pardir)))
+example_dir = Path(__file__).resolve().parent
+sys.path.insert(0, str(example_dir.parent.parent))
 
 from AtomSpect import AtomSpect_Main, Normalize, PlotFunction, read_Spectra,  MakeSlider,  plotZfan
 
 
 # Flags for doing polarized or not
 doHePol = 1  # Shows all pols - inability to remove all of one pol
-doHePol2 = 1 # Shows non-dipole component and inability to fully filter polarizations (Paschen Back)
+doHePol2 = 1 # Shows polarization-resolved components and filter orientation
 doHePol3 = 1 # Same as hePol, but show the difference the film makes
 
 doHeNonPol = 1# Shows multiple B fields with all three regimes
 doHeNonPol2 = 1  # All 3 B fields, show sticks (dipole only)
-doHeNonPol3 =  1# Single B - show non-dipole required to match
+doHeNonPol3 =  1# Single B - show all polarization-resolved components
 
 # savepdf = 0
 
@@ -61,7 +62,7 @@ closeplots = 0
 if doHePol2 == True:
 
     plt.close('all')
-    pathfil = os.getcwd()
+    pathfil = str(example_dir)
     filname = '/He_Spectra_1.5T_Polarized.csv'
     fil = pathfil + filname
 
@@ -140,7 +141,7 @@ if doHePol2 == True:
 
 if doHePol == True:
     plt.close('all')
-    pathfil = os.getcwd()
+    pathfil = str(example_dir)
     filname = '/He_Spectra_1.5T_Polarized.csv'
     fil = pathfil + filname
 
@@ -210,7 +211,7 @@ if doHePol == True:
 
 if doHePol3 == True:
     # plt.close('all')
-    pathfil = os.getcwd()
+    pathfil = str(example_dir)
     filname = '/He_Spectra_1.5T_Polarized.csv'
     fil = pathfil + filname
 
@@ -326,7 +327,7 @@ if doHePol3 == True:
         plt.savefig('He_Pol3B.png', dpi=savedpi)
 # %%For the paper
 if doHeNonPol == True: 
-    pathfil = os.getcwd()
+    pathfil = str(example_dir)
     plt.close('all')
     fil = pathfil + '/He_Spectra_NonPolarized.csv'
     He_NonPol_Spec = read_Spectra(fil, scalewave=0.1, headercount=1)  # Need to scale the wavelengths from angstrom to nm.
@@ -405,7 +406,7 @@ if doHeNonPol == True:
         plt.savefig('He_NonPolRegimeB.png', dpi=savedpi)
 #%%
 if doHeNonPol2 == True: 
-    pathfil = os.getcwd()
+    pathfil = str(example_dir)
     plt.close('all')
     fil = pathfil + '/He_Spectra_NonPolarized.csv'
     He_NonPol_Spec = read_Spectra(fil, scalewave=0.1, headercount=1)  # Need to scale the wavelengths from angstrom to nm.
@@ -502,7 +503,7 @@ if doHeNonPol2 == True:
 
 #%%
 if doHeNonPol3 == True:
-    pathfil = os.getcwd()
+    pathfil = str(example_dir)
     plt.close('all')
     fil = pathfil + '/He_Spectra_NonPolarized.csv'
     He_NonPol_Spec = read_Spectra(fil, scalewave=0.1, headercount=1)  # Need to scale the wavelengths from angstrom to nm.
@@ -652,7 +653,7 @@ if fanplot2 == True:
 #%%
 
 if do_HeSlider:
-    pathfil = os.getcwd()
+    pathfil = str(example_dir)
     # plt.close('all')
     fil = pathfil + '/He_Spectra_NonPolarized.csv'
     He_NonPol_Spec = read_Spectra(fil, scalewave=0.1, headercount=1)  # Need to scale the wavelengths from angstrom to nm.
@@ -687,7 +688,7 @@ if do_HeSlider:
 
 
 if do_Hepolslider:
-    pathfil = os.getcwd()
+    pathfil = str(example_dir)
     filname = '/He_Spectra_1.5T_Polarized.csv'
     fil = pathfil + filname
 
