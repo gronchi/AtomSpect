@@ -95,6 +95,8 @@ Max Value
                       
 
 
+For non-HFS high-field spectra, provide both `EtermG` and `EtermE` in cm^-1; zero is a valid term energy. This electronic Paschen-Back approximation neglects fine-structure splitting and uses the existing ideal factors g_L=1 and g_S=2. Eigenvectors are returned in the coupled basis used by the transition-strength calculation. Missing term energies raise a clear error.
+
 # Plotting Zfans
 AtomSpect can do typical Zeeman Fan plots with a dedicated set of functions which has been optimized for significant speed.
 Compared to a normal InputDictionary, 'Bmag' needs to be an array of magnetic field values. The flags refer to:
