@@ -1544,7 +1544,7 @@ def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
     eigZ, eigvecZ = np.linalg.eigh(scaledMat)  # , driver = "evx") #Using driver="evx" seems to change some of the signs of the resulting matricies. In the 0-field case, the eigenvectors should all be +1 I believe.
 
     if Highfield and not Lowfield:
-        eigvecZ = Psi @ eigvecZ
+        eigvecZ = np.dot(Psi, eigvecZ)
 
     return [eigZ, eigvecZ]
 
