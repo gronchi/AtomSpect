@@ -96,6 +96,15 @@ Max Value
 
 
 # Plotting Zfans
+
+`DoLowSig` and `DoHighSig` enable approximation spectra when True and skip
+them when False or omitted. Legacy yes/no strings are also accepted,
+case-insensitively (`Y`/`Yes`/`True` and `N`/`No`/`False`), as are 1 and 0.
+Disabled approximations add no output keys and need no term-energy inputs.
+HFS approximation spectra are not implemented: enabling these flags with
+`I_spin` raises `NotImplementedError`. These spectrum flags are separate
+from the `L`/`H` flags used by the fan functions.
+
 AtomSpect can do typical Zeeman Fan plots with a dedicated set of functions which has been optimized for significant speed.
 Compared to a normal InputDictionary, 'Bmag' needs to be an array of magnetic field values. The flags refer to:
 "G" - Ground

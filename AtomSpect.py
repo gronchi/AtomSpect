@@ -795,31 +795,19 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
     #                  Normalize(Mycalc0['SpecOut'][1]),color="tab:brown" ,
     #                  lw=1, label="Exact",marker = '.' , alpha = 0.75)
     numcols = 5
-    if 'DoLowSig' in Inputdict:
-        possibleanswers = ['Y', 'True', True, 1, 'YES', 'y', 'yes', 'Yes']
-        if Inputdict['DoLowSig'] in possibleanswers:
-
-            line2, = axs.plot(Mycalc0['SpecOutLow'][0],
-                              Normalize(Mycalc0['SpecOutLow'][1]),
-                              lw=2, alpha=.9, label="Lowfield", linestyle=(5, (5, 2, 1, 2)), marker='D', markevery=25, markersize=5)
-            numcols = 4
-    else:
-        line2 = None
-
-    if 'DoHighSig' in Inputdict:
-        possibleanswers = ['Y', 'True', True, 1, 'YES', 'y', 'yes', 'Yes']
-        if Inputdict['DoHighSig'] in possibleanswers:
-
-            line3, = axs.plot(Mycalc0['SpecOutHigh'][0],
-                              Normalize(Mycalc0['SpecOutHigh'][1]),
-                              lw=2, alpha=.9, label="Highfield", linestyle=(5, (5, 2, 1, 2)), marker='x', markevery=25, markersize=5)
-            numcols = 4
-            if 'DoLowSig' in Inputdict:  # This changes the number of colums if BOTH high and low are in the inputflags.
-                if Inputdict['DoLowSig'] in possibleanswers:
-                    numcols = 3
-
-    else:
-        line3 = None
+    line2 = line3 = None
+    if _approximation_enabled(Inputdict.get('DoLowSig', False)):
+        line2, = axs.plot(Mycalc0['SpecOutLow'][0],
+                         Normalize(Mycalc0['SpecOutLow'][1]),
+                         lw=2, alpha=.9, label="Lowfield", linestyle=(5, (5, 2, 1, 2)),
+                         marker='D', markevery=25, markersize=5)
+        numcols = 4
+    if _approximation_enabled(Inputdict.get('DoHighSig', False)):
+        line3, = axs.plot(Mycalc0['SpecOutHigh'][0],
+                         Normalize(Mycalc0['SpecOutHigh'][1]),
+                         lw=2, alpha=.9, label="Highfield", linestyle=(5, (5, 2, 1, 2)),
+                         marker='x', markevery=25, markersize=5)
+        numcols = 3 if line2 is not None else 4
 
     if plotwind == None:
         try:
@@ -2289,6 +2277,22 @@ def plotZfan(Inputdeck, flags='', savefig=False, figname='placeholder',markercou
 # %%Main
 
 
+def _approximation_enabled(value):
+    """Read Boolean flags and legacy yes/no strings consistently."""
+    if value is None:
+        return False
+    if isinstance(value, str):
+        answer = value.strip().lower()
+        if answer in ('y', 'yes', 'true', '1'):
+            return True
+        if answer in ('n', 'no', 'false', '0', ''):
+            return False
+        raise ValueError('Approximation flags require Boolean or yes/no values')
+    if np.isscalar(value) and value in (0, 1):
+        return bool(value)
+    raise ValueError('Approximation flags require Boolean or yes/no values')
+
+
 def AtomSpect_Main(Inputdeck):
     '''
     This is the main zeeman function. THe input is a dictionary with many optional keywords for more modular functionaly. These optional keywords are checked for to branch the function.
@@ -2343,6 +2347,11 @@ def AtomSpect_Main(Inputdeck):
     '''
 
     # Define local variables from the inputdeck
+    do_low = _approximation_enabled(Inputdeck.get('DoLowSig', False))
+    do_high = _approximation_enabled(Inputdeck.get('DoHighSig', False))
+    if 'I_spin' in Inputdeck and (do_low or do_high):
+        raise NotImplementedError('HFS approximation spectra are not implemented; omit or disable DoLowSig/DoHighSig')
+
     S_ground = Inputdeck['s_ground']
     S_excited = Inputdeck['s_excited']
     L_ground = Inputdeck['l_ground']
@@ -2476,37 +2485,31 @@ def AtomSpect_Main(Inputdeck):
         Z_sig = Zeeman_signal(Ground_Level, Ground_Zeeman, Excited_Level, Excited_Zeeman, Bangle=Bext_angle, gamma=Polangle, Filter=Polfilter,T_Alpha = Talpha, T_Beta = Tbeta)
         Z_sig_norad = Zeeman_sig_norad(Ground_Level, Ground_Zeeman, Excited_Level, Excited_Zeeman)
 
-        if 'DoLowSig' in Inputdeck:
-            if Inputdeck['DoLowSig'] == 'N' or Inputdeck['DoLowSig'] == 'No':
-                pass
-            else:
-                Ground_Level = stateprocess(L_ground, S_ground, E_ground, Bfield_ext, sortE=sortE)
-                Excited_Level = stateprocess(L_excited, S_excited, E_excited, Bfield_ext, sortE=sortE)
-                Ground_Zeeman_Low = Zeeman_func(Ground_Level, Bfield_ext, Lowfield=True)
-                Excited_Zeeman_Low = Zeeman_func(Excited_Level, Bfield_ext, Lowfield=True)
-                Z_sig_Low = Zeeman_signal(Ground_Level, Ground_Zeeman_Low, Excited_Level, Excited_Zeeman_Low, Bangle=Bext_angle, gamma=Polangle, Filter=Polfilter,T_Alpha = Talpha, T_Beta = Tbeta)
-                # Z_sig_Low = Zeemansig_Low(Ground_Level,Excited_Level,Bangle=Bext_angle,gamma=Polangle, Filter=Polfilter)
-                data['signal_low'] = Z_sig_Low[0]
-                data['wave_vac_low'] = Z_sig_Low[6]
-                data['wave_air_low'] = Z_sig_Low[1]
-                data['EigGround_low'] = Ground_Zeeman_Low
-                data['EigExcited_low'] = Excited_Zeeman_Low
-        if 'DoHighSig' in Inputdeck:
-            if Inputdeck['DoHighSig'] == 'N' or Inputdeck['DoHighSig'] == 'No':
-                pass
-            else:
-                Ground_Level = stateprocess(L_ground, S_ground, E_ground, Bfield_ext, sortE=sortE)
-                Excited_Level = stateprocess(L_excited, S_excited, E_excited, Bfield_ext, sortE=sortE)
-                Ground_Zeeman_High = Zeeman_func(Ground_Level, Bfield_ext, Highfield=True, Eterm=EtermG)
-                Excited_Zeeman_High = Zeeman_func(Excited_Level, Bfield_ext, Highfield=True,Eterm=EtermE)
-                Z_sig_High = Zeeman_signal(Ground_Level, Ground_Zeeman_High, Excited_Level, Excited_Zeeman_High, Bangle=Bext_angle, gamma=Polangle, Filter=Polfilter,T_Alpha = Talpha, T_Beta = Tbeta)
-                # Z_sig_Low = Zeemansig_Low(Ground_Level,Excited_Level,Bangle=Bext_angle,gamma=Polangle, Filter=Polfilter)
+        if do_low:
+            Ground_Level = stateprocess(L_ground, S_ground, E_ground, Bfield_ext, sortE=sortE)
+            Excited_Level = stateprocess(L_excited, S_excited, E_excited, Bfield_ext, sortE=sortE)
+            Ground_Zeeman_Low = Zeeman_func(Ground_Level, Bfield_ext, Lowfield=True)
+            Excited_Zeeman_Low = Zeeman_func(Excited_Level, Bfield_ext, Lowfield=True)
+            Z_sig_Low = Zeeman_signal(Ground_Level, Ground_Zeeman_Low, Excited_Level, Excited_Zeeman_Low, Bangle=Bext_angle, gamma=Polangle, Filter=Polfilter,T_Alpha = Talpha, T_Beta = Tbeta)
+            # Z_sig_Low = Zeemansig_Low(Ground_Level,Excited_Level,Bangle=Bext_angle,gamma=Polangle, Filter=Polfilter)
+            data['signal_low'] = Z_sig_Low[0]
+            data['wave_vac_low'] = Z_sig_Low[6]
+            data['wave_air_low'] = Z_sig_Low[1]
+            data['EigGround_low'] = Ground_Zeeman_Low
+            data['EigExcited_low'] = Excited_Zeeman_Low
+        if do_high:
+            Ground_Level = stateprocess(L_ground, S_ground, E_ground, Bfield_ext, sortE=sortE)
+            Excited_Level = stateprocess(L_excited, S_excited, E_excited, Bfield_ext, sortE=sortE)
+            Ground_Zeeman_High = Zeeman_func(Ground_Level, Bfield_ext, Highfield=True, Eterm=EtermG)
+            Excited_Zeeman_High = Zeeman_func(Excited_Level, Bfield_ext, Highfield=True,Eterm=EtermE)
+            Z_sig_High = Zeeman_signal(Ground_Level, Ground_Zeeman_High, Excited_Level, Excited_Zeeman_High, Bangle=Bext_angle, gamma=Polangle, Filter=Polfilter,T_Alpha = Talpha, T_Beta = Tbeta)
+            # Z_sig_Low = Zeemansig_Low(Ground_Level,Excited_Level,Bangle=Bext_angle,gamma=Polangle, Filter=Polfilter)
 
-                data['signal_high'] = Z_sig_High[0]
-                data['wave_vac_high'] = Z_sig_High[6]
-                data['wave_air_high'] = Z_sig_High[1]
-                data['EigGround_high'] = Ground_Zeeman_High
-                data['EigExcited_high'] = Excited_Zeeman_High
+            data['signal_high'] = Z_sig_High[0]
+            data['wave_vac_high'] = Z_sig_High[6]
+            data['wave_air_high'] = Z_sig_High[1]
+            data['EigGround_high'] = Ground_Zeeman_High
+            data['EigExcited_high'] = Excited_Zeeman_High
         data['EigGround'] = Ground_Zeeman
         data['EigExcited'] = Excited_Zeeman
         data['ZeemanSplits_G'] = Ground_Zeeman[-1]
@@ -2625,7 +2628,7 @@ def AtomSpect_Main(Inputdeck):
     data['sigmaminus_sticks'] = [data['wave_air'][sigmaminus], data['signal'][sigmaminus]]
     data['other_sticks'] = [data['wave_air'][otherlists], data['signal'][otherlists]]
 
-    if 'DoLowSig' in Inputdeck:
+    if do_low:
         ConvolvedSpectLow, redsticksLow, binwindsLow = Convol_Spect(data['wave_air_low'], data['signal_low'],
                                                                     specwindow, plotwindow,  Inputdeck['amu'], stepsize,
                                                                     Temperature_in=convtemp, functiontype=Convtype,
@@ -2635,7 +2638,7 @@ def AtomSpect_Main(Inputdeck):
         data['reduced_sticksLow'] = redsticksLow
         # data['bin_windows'] = binwindsLow
 
-    if 'DoHighSig' in Inputdeck:
+    if do_high:
         ConvolvedSpectHigh, redsticksHigh, binwindsHigh = Convol_Spect(data['wave_air_high'], data['signal_high'],
                                                                     specwindow, plotwindow,  Inputdeck['amu'], stepsize,
                                                                     Temperature_in=convtemp, functiontype=Convtype,
