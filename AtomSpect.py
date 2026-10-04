@@ -1249,11 +1249,24 @@ def ZeemanHigh(ms, ml, B):
     return muBcm*B*(2*ms + ml)
 
 
-def ZeemanhighHFS(state_in, Ahfs, g_I, Bmag):
-    # This is the high field approximation for zeeman splitting (with HFS). E_high = A*m_i*m_j + uB(gjmj + gimi)B
-    # For high field, can't use J, and must use s and L. Keep limited to diagonal though.
-    EPB_temp = Ahfs*state_in[3]*state_in[5] + mu_B*(state_in[5] + 2*state_in[7] + g_I*state_in[5])*Bmag
-    return EPB_temp
+def ZeemanhighHFS(state_in, Ahfs, g_I, Bmag, Bhfs=0):
+    """Hyperfine Paschen-Back shift in cm^-1, with A and B in Hz.
+
+    The basis is |J,mJ;I,mI>: I and J decouple, but L and S remain
+    coupled. This approximation requires Zeeman energies above the HFS
+    splitting and below the fine-structure splitting. See Steck, Rb85
+    D Line Data, Eq. (25), https://steck.us/alkalidata/rubidium85numbers.pdf.
+    g_I follows lande_gi's magnetic-moment convention, hence the minus sign.
+    """
+    J, mJ, I, mI = state_in[2:6]
+    L, S = state_in[6], state_in[8]
+    hyperfine_hz = Ahfs*mJ*mI
+    if I >= 1 and J >= 1:
+        quadrupole = ((3*mJ**2 - J*(J+1))*(3*mI**2 - I*(I+1))
+                      / (4*J*(2*J-1)*I*(2*I-1)))
+        hyperfine_hz += Bhfs*quadrupole
+    return (hyperfine_hz/(100*c_light)
+            + muBcm*Bmag*(lande_gj2(J, L, S)*mJ - g_I*mI))
 
 
 def CGw3(j1, m1, j2, m2, j3, m3):
@@ -1993,7 +2006,7 @@ def HZeeman_HFS(Level_in, gI):
 #        stateprocces HFS return [w3cgprod,E0_cm_Mat,E_HFSFlat,E_low,bigstatelist]
 
 
-def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=0):
+def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=None, B_HFS=0):
     
     # This is a supporting function which is for streamlining the diagonalization process which makes it much faster
     # Only the required calculation steps are taken for each magnetic field as the E0 and wavefunctions for zero-field don't change.
@@ -2001,8 +2014,22 @@ def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=0):
     # Make a large list of [F,mF,J,mJ,I,mI,L,mL,S,mS] HFS or [J,mJ,L,mL,S,mS] no HFS
     ZfansLow = []
     ZfansHigh = []
+    is_hfs = len(States_in[-1][0]) == 10
+    if is_hfs:
+        if A_HFS is None:
+            raise ValueError('HFS fan approximations require A_HFS in Hz')
+        j_values = sorted({state[2] for state in States_in[-1]})
+        def constants_by_j(values):
+            values = np.asarray(values, dtype=float).reshape(-1)
+            if values.size == 1:
+                values = np.repeat(values, len(j_values))
+            if values.size != len(j_values):
+                raise ValueError('HFS fan constants need one value per J, lowest J first')
+            return dict(zip(j_values, values))
+        a_by_j = constants_by_j(A_HFS)
+        b_by_j = constants_by_j(B_HFS)
     for i, states in enumerate(States_in[-1]):
-        if g_I == 0:
+        if not is_hfs:
             thislandegF = lande_gj(states[0], states[2], states[4])
             thisZeemanEnergyL = Zeemanlow(thislandegF, states[1], Bfield) + States_in[1][i][i]
             thisZeemanEnergyH = ZeemanHigh(states[5], states[3], Bfield) + Eterm_
@@ -2011,7 +2038,11 @@ def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=0):
 
             thislandegF = lande_gf(states[0], states[4], states[2], states[6], states[8], g_I)  # Calculate lande gf factor for the given transition
             thisZeemanEnergyL = Zeemanlow(thislandegF, states[1], Bfield) + States_in[2][i] + States_in[1][i][i]
-            thisZeemanEnergyH = ZeemanhighHFS(states, A_HFS, g_I, Bfield) + States_in[2][i] + States_in[1][i][i]
+            # Do not add the F-dependent zero-field HFS shift again: the
+            # Paschen-Back expression already contains its diagonal HFS term.
+            thisZeemanEnergyH = (ZeemanhighHFS(states, a_by_j[states[2]], g_I,
+                                             Bfield, b_by_j[states[2]])
+                                + States_in[1][i][i])
 
         ZfansLow.append(thisZeemanEnergyL)
         ZfansHigh.append(thisZeemanEnergyH)
@@ -2029,7 +2060,8 @@ def ZeemanFan(Inputdeck, flags=''):
         G: Fan plot Ground
         E: Fan Plot of Excited
         L: Include Lowfield Approx
-        H: Include Highfield Approx (Only with HFS)
+        H: Include Highfield Approx. With HFS, this is the hyperfine
+           Paschen-Back approximation (J remains a good quantum number).
     '''
 
     S_ground = Inputdeck['s_ground']
@@ -2093,13 +2125,15 @@ def ZeemanFan(Inputdeck, flags=''):
             if 'L' in flags:
                 LowG = []
                 for Bvals in Bfield_ext:
-                    LowG.append(FastZfan(Ground_Level_HFS, Bvals, g_I=thisg_I, )[0])
+                    LowG.append(FastZfan(Ground_Level_HFS, Bvals, g_I=thisg_I,
+                                        A_HFS=HFSConstsG['HFSA'], B_HFS=HFSConstsG['HFSB'])[0])
 
                 output['LowG'] = np.array(LowG).T
             if 'H' in flags:
                 HighG = []
                 for Bvals in Bfield_ext:
-                    HighG.append(FastZfan(Ground_Level_HFS, Bvals)[1])
+                    HighG.append(FastZfan(Ground_Level_HFS, Bvals, g_I=thisg_I,
+                                         A_HFS=HFSConstsG['HFSA'], B_HFS=HFSConstsG['HFSB'])[1])
 
                 output['HighG'] = np.array(HighG).T
         if 'E' in flags:
@@ -2120,13 +2154,15 @@ def ZeemanFan(Inputdeck, flags=''):
             if 'L' in flags:
                 LowE = []
                 for Bvals in Bfield_ext:
-                    LowE.append(FastZfan(Excited_Level_HFS, Bvals, g_I=thisg_I, )[0])
+                    LowE.append(FastZfan(Excited_Level_HFS, Bvals, g_I=thisg_I,
+                                        A_HFS=HFSConstsE['HFSA'], B_HFS=HFSConstsE['HFSB'])[0])
 
                 output['LowE'] = np.array(LowE).T
             if 'H' in flags:
                 HighE = []
                 for Bvals in Bfield_ext:
-                    HighE.append(FastZfan(Excited_Level_HFS, Bvals)[1])
+                    HighE.append(FastZfan(Excited_Level_HFS, Bvals, g_I=thisg_I,
+                                         A_HFS=HFSConstsE['HFSA'], B_HFS=HFSConstsE['HFSB'])[1])
 
                 output['HighE'] = np.array(HighE).T
 
@@ -2202,7 +2238,7 @@ def plotZfan(Inputdeck, flags='', savefig=False, figname='placeholder',markercou
         G: Fan plot Ground
         E: Fan Plot of Excited
         L: Include Lowfield Approx
-        H: Include Highfield Approx (Only with HFS)
+        H: Include Highfield Approx (hyperfine Paschen-Back for HFS).
 
     figname : String, optional
         DESCRIPTION. The default is 'placeholder'.

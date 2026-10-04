@@ -100,10 +100,20 @@ AtomSpect can do typical Zeeman Fan plots with a dedicated set of functions whic
 Compared to a normal InputDictionary, 'Bmag' needs to be an array of magnetic field values. The flags refer to:
 "G" - Ground
 "E" - Excited
-"H" - Add High-field approximation. This requires Term Energy!
+"H" - Add High-field approximation. Without HFS, this requires Term Energy.
 "L" - Add Low-field approximation (no diagonalization)
 
 At least "G" or "E" are required, otherwise, any combination of the flags, in any order, may be passed into plotZfan.
+
+For HFS, "H" uses the hyperfine Paschen–Back approximation in the
+`|J,mJ;I,mI>` basis, with the A/B constants in Hz and energies in cm^-1.
+It includes the diagonal dipole and quadrupole shifts and the nuclear
+Zeeman contribution. It uses each J level's supplied fine-structure energy;
+`EtermG`/`EtermE` are not needed. This approximation applies when the Zeeman
+interaction dominates hyperfine splitting while remaining small relative
+to fine-structure splitting. It does not describe the electronic
+Paschen–Back regime where J levels mix. See
+[Steck's Rb85 data, Eq. (25)](https://steck.us/alkalidata/rubidium85numbers.pdf).
 
 <img width="888" height="465" alt="image" src="https://github.com/user-attachments/assets/26f8bbbd-3fc0-449f-9250-d2a3c377518c" />
 
