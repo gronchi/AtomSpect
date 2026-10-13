@@ -89,7 +89,8 @@ def lande_gj(J, L, S):
     if J == 0: #There is no lande effect if J=0 due to a singularity (1/J)
         return 0
     else:
-        return 1 + (J*(J+1) + S*(S+1) - L*(L+1))/(2*J*(J+1))
+        # Use the same electron g factors as the exact Hamiltonian (g_S = 2.002319).
+        return lande_gj2(J, L, S)
 
 
 def lande_gf(F, I, J, L, S, g_I):
@@ -990,7 +991,8 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
 # =============================================================================
 # The lineshapes here are all built the same way, so a custom lineshape can be defined.
 # The code uses these functions to take a "stick" with a given height and perform the convolution.
-# The resulting function is scaled such that the peak of the function matches the stick height.
+# Every lineshape is normalized to unit area (in metres), so the total strength of a stick is independent of the profile.
+# Instrument widths (pixel_size) are FWHM for every function.
 # All of the inputs here expect wavelengths in meters and temperature in Kelvin
 # Atomic mass is in mass number. ie Rb = 85, Ar = 40, etc
 # The inputs should be func(wave_range, peak, Temp, atomic mass, pixel_size = 0.005, ion_velocity=0, bidir=False)
@@ -1072,13 +1074,14 @@ def Voigt(x, x0, Temp_in, amu, pixel_size=1, v_ion=0, bidir=False):
         except:  # If not an array, just do plus and minus the same velocity
             mean1 = x0*(1 + v_ion/c_light)
             mean2 = x0*(1 - v_ion/c_light)
-        V1 = scp.special.voigt_profile(x-mean1, tdop, pixel_size)
-        V2 = scp.special.voigt_profile(x-mean2, tdop, pixel_size)
+        V1 = scp.special.voigt_profile(x-mean1, tdop, pixel_size/2)
+        V2 = scp.special.voigt_profile(x-mean2, tdop, pixel_size/2)
         V = (V1 + V2)/2
     else:  # If bidir is False, do normal doppler shifted.
         mean = x0*(1 + v_ion/c_light)
-        V = scp.special.voigt_profile(x-mean, tdop, pixel_size)
-    return Normalize(V)
+        V = scp.special.voigt_profile(x-mean, tdop, pixel_size/2)
+    # pixel_size is the Lorentzian FWHM; scipy takes the HWHM. Area-normalized like Gaussian.
+    return V
 
 
 def Lorrentzian(xrange, peak, pixel_size=0.002222, Skewness=[1, 1], v_ion=0, bidir=False):
@@ -1095,6 +1098,7 @@ def Lorrentzian(xrange, peak, pixel_size=0.002222, Skewness=[1, 1], v_ion=0, bid
         DESCRIPTION. The default is 0.002222.
     Skewness : TYPE, List [Left,Right]
         Controls how skewed the left and right tapers are, respectively. Based on the drop off ratio and pixel_size. The default is [1,1].
+    pixel_size : the full width at half maximum (FWHM) of the symmetric profile.
 
     Returns
     -------
@@ -1104,25 +1108,27 @@ def Lorrentzian(xrange, peak, pixel_size=0.002222, Skewness=[1, 1], v_ion=0, bid
     '''
     # The Skewness is the left and right constants [left,right], and change the skewness of the lorrentzian. If both are 1, it is a normal lorrentzian. These values can be modified to fit the instrument profile.
 
-    l_w = Skewness[0]*pixel_size
-    r_w = Skewness[1]*pixel_size
+    # pixel_size is the FWHM; the half-widths on each side are therefore half of it.
+    l_w = Skewness[0]*pixel_size/2
+    r_w = Skewness[1]*pixel_size/2
+
+    def _lorentz(mean):
+        dx = xrange - mean
+        # Unit-area (split) Lorentzian: the area is pi*(l_w + r_w)/2 at unit peak.
+        w = np.where(dx < 0, l_w, r_w)
+        return w**2/(dx**2 + w**2)*2/(np.pi*(l_w + r_w))
 
     if bidir == True:
         try:  # First try having v_ion be an array, so that the counter-streaming velocities can be different.
             mean1 = peak*(1 + v_ion[0]/c_light)
             mean2 = peak*(1 - v_ion[1]/c_light)
-            SL1 = (((l_w)**2 / (((xrange-mean1)**2 + (l_w)**2))) * np.heaviside(mean1-xrange, 1) + ((r_w)**2 / (((xrange-mean1)**2 + (r_w)**2))) * np.heaviside(xrange-mean1, 1))
-            SL2 = (((l_w)**2 / (((xrange-mean2)**2 + (l_w)**2))) * np.heaviside(mean2-xrange, 1) + ((r_w)**2 / (((xrange-mean2)**2 + (r_w)**2))) * np.heaviside(xrange-mean2, 1))
-            SL = (SL1+SL2)/2
         except:  # If not an array, just do plus and minus the same velocity
             mean1 = peak*(1 + v_ion/c_light)
             mean2 = peak*(1 - v_ion/c_light)
-            SL1 = (((l_w)**2 / (((xrange-mean1)**2 + (l_w)**2))) * np.heaviside(mean1-xrange, 1) + ((r_w)**2 / (((xrange-mean1)**2 + (r_w)**2))) * np.heaviside(xrange-mean1, 1))
-            SL2 = (((l_w)**2 / (((xrange-mean2)**2 + (l_w)**2))) * np.heaviside(mean2-xrange, 1) + ((r_w)**2 / (((xrange-mean2)**2 + (r_w)**2))) * np.heaviside(xrange-mean2, 1))
-            SL = (SL1+SL2)/2
+        SL = (_lorentz(mean1) + _lorentz(mean2))/2
     else:  # If bidir is False, do normal doppler shifted.
         mean = peak*(1 + v_ion/c_light)  # Doppler shift to peak
-        SL = (((l_w)**2 / (((xrange-mean)**2 + (l_w)**2))) * np.heaviside(mean-xrange, 1) + ((r_w)**2 / (((xrange-mean)**2 + (r_w)**2))) * np.heaviside(xrange-mean, 1))
+        SL = _lorentz(mean)
     return SL
 
 def Normalize(list_in, scaling=1.0):
@@ -2872,12 +2878,10 @@ def Convol_Sticks(x0, xwind, Temp_in, amu_in, stepsize_nm, function="", Skew_con
         case 'Skewed':
             # This one just does convolution over the entire range, should be fine because the range is fed by the binned stick windows.
             tlorry = Lorrentzian(1e-9*waveout, 1e-9*x0, pixel_size=1e-9*stepsize_nm, Skewness=Skew_consts, v_ion=vel_ion, bidir=bidirect)
-            tlorry[tlorry > 1] = 1  # Sometimes an odd range for the lorrentzian causes the central peak to be twice as high for a single point, this should correct for that.
             specout = tlorry
         case 'Lorrentzian':
             # This uses the skewed lorrentzian but sets to skewness such that the result is a normal lorrentzian function.
             tlorry = Lorrentzian(1e-9*waveout, 1e-9*x0, pixel_size=1e-9*stepsize_nm, Skewness=[1, 1], v_ion=vel_ion, bidir=bidirect)
-            tlorry[tlorry > 1] = 1  # Sometimes an odd range for the lorrentzian causes the central peak to be twice as high for a single point, this should correct for that.
             specout = tlorry
         case 'Gaussian':
             tlorry = Gaussian(1e-9*waveout, 1e-9*x0, Temp_in, amu_in, v_ion=vel_ion, bidir=bidirect)
@@ -2896,39 +2900,23 @@ def Convol_Sticks(x0, xwind, Temp_in, amu_in, stepsize_nm, function="", Skew_con
         case _:
             # If no function is otherwise given, default to Lorrentzian
             # This uses the skewed lorrentzian but sets to skewness such that the result is a normal lorrentzian function.
-            tlorry = Lorrentzian(1e-9*waveout, 1e-9*x0, pixel_size=stepsize_nm, Skewness=[1, 1], v_ion=vel_ion, bidir=bidirect)
-            tlorry[tlorry > 1] = 1  # Sometimes an odd range for the lorrentzian causes the central peak to be twice as high for a single point, this should correct for that.
+            tlorry = Lorrentzian(1e-9*waveout, 1e-9*x0, pixel_size=1e-9*stepsize_nm, Skewness=[1, 1], v_ion=vel_ion, bidir=bidirect)
             specout = tlorry
 
     return [waveout, np.array(specout)]
 
 def make_stickbins(sticks_in, *data_arrays, windsize=.1):
     #This function does the dynamical windowing that allows for the fast optimization. It makes the bins of "nearby" signal sticks
-    #And convolution only takes place in these windows. 
-    wavered = sticks_in
-    min0, max0 = np.min(wavered), np.max(wavered)
-    tlen = len(wavered)
-    tmax = tmin = min0
-    wavewind = []
+    #And convolution only takes place in these windows. Sticks closer than windsize to their neighbour share a bin.
+    wavered = np.asarray(sticks_in)
+    if wavered.size == 0:
+        return {'binned_waves': [], 'binned_data': [[] for _ in data_arrays], 'bin_windows': []}
+    srt = np.sort(wavered)
+    breaks = np.where(np.diff(srt) > windsize)[0]
+    firsts = np.concatenate([[0], breaks + 1])
+    lasts = np.concatenate([breaks, [len(srt) - 1]])
+    wavewind = [[srt[a] - windsize, srt[b] + windsize] for a, b in zip(firsts, lasts)]
 
-    while tmax != max0:
-        if tlen == 1:
-            wavewind.append([tmin - windsize, tmax + windsize])
-            tred1 = wavered > tmax
-            tmin = np.min(wavered[tred1])
-            tred2 = wavered < tmin + windsize
-            ttop = wavered[tred1 & tred2]
-            tmax = np.max(ttop)
-            tlen = len(ttop)
-        else:
-            tred1 = wavered >= tmax
-            tred2 = wavered <= (tmax + windsize)
-            ttop = wavered[tred1 & tred2]
-            tmax = np.max(ttop)
-            tlen = 1 if tmax == tmin else len(ttop)
-    
-    wavewind.append([tmin - windsize, tmax + windsize])
-    
     wavebins = []
     binned_data = [[] for _ in data_arrays]
     for windows in wavewind:
@@ -2958,6 +2946,11 @@ def Convol_Spect(waves_in, signal_in, spec_wind, plot_wind, atomic_weight_amu, r
     # This ensures redsticks contains ONLY what is visible on the plot
     plot_mask = (t_wav_phys >= np.min(plot_wind)) & (t_wav_phys <= np.max(plot_wind))
     redsticks = [t_wav_phys[plot_mask], t_sig_phys[plot_mask]]
+
+    # Nothing survived the filtering: return an empty (zero) spectrum instead of failing.
+    if len(t_wav_phys) == 0:
+        empty = [np.array([np.min(plot_wind), np.max(plot_wind)]), np.zeros(2)]
+        return empty, redsticks, []
 
     # 4. Binning and Convolution
     tbins = make_stickbins(t_wav_phys, t_sig_phys, t_temp_phys, t_amu_phys, windsize=wind_size)

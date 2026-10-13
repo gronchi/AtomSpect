@@ -65,8 +65,8 @@ Max Value
 
 ## Input Dictionary Keys
 
-                     's_ground': 3  , #Spin multiplicity for ground state ^(2s +1)L_J , int or half int
-                     's_excited': 3 , #Spin multiplicity for excited state ^(2s +1)L_J, int or half int
+                     's_ground': 3  , #Spin quantum number S (not the multiplicity 2S+1) of the ground state, e.g. 1 for a triplet; int or half int
+                     's_excited': 3 , #Spin quantum number S (not the multiplicity 2S+1) of the excited state, e.g. 1 for a triplet; int or half int
                      'l_ground': 0  , #Orbital Angular Momentum of ground state, int or half int
                      'l_excited': 1 , #Orbital Angular Momentum of excited state, int or half int
                      'E_ground': np.array([2951.29 ]) , #np.array of lower state, Lowest J first, cm^-1
