@@ -22,7 +22,12 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
   tests (`tests/golden_cases.py`, `tests/test_golden.py`) and a public-API name test.
 - Phase 1 done: `AtomSpect.py` is now the package `AtomSpect/`. Moved out unchanged:
   `constants`, `units`, `lineshapes`, `convolution`, `io`, `plotting/{core,slider,fan}`.
-  The physics and `AtomSpect_Main` still live in `AtomSpect/__init__.py` (phases 2-5).
+- Phase 2 done: physics moved unchanged into `angular` (Lande factors, CG, dipole strengths),
+  `hfs`, `radiative`, `polarization`, `hamiltonian`, `levels`, `transitions` and `fan`. Imports
+  are acyclic: hamiltonian -> angular; levels -> hamiltonian, hfs; transitions -> hamiltonian,
+  polarization; fan -> levels. `AtomSpect/__init__.py` (~420 lines) now holds only
+  `AtomSpect_Main`, its flag helper and the re-exports. The old HFS/non-HFS duplicates are still
+  separate functions (phase 4).
   `plotting/slider.py` and `plotting/fan.py` import the driver late (inside functions)
   until phase 3 removes that dependency.
 - Naming: the package keeps the name `AtomSpect` (not `atomspect`). On Windows/macOS a
