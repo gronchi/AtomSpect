@@ -1481,11 +1481,17 @@ def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
         DESCRIPTION.
     Binput : TYPE
         DESCRIPTION.
+    Eterm : float, optional
+        Term energy in cm^-1, required when Highfield=True. Zero is valid.
+        The non-HFS high-field approximation neglects fine-structure splitting
+        and retains ZeemanHigh's g_L=1, g_S=2 convention.
 
     Returns
     -------
     list
-        DESCRIPTION.
+        Eigenvalues and eigenvector columns in the coupled |J,mJ> basis.
+        High-field energies are diagonalized in |mL,mS>, then the vectors are
+        transformed back to the coupled basis used by Zeeman_signal.
 
     '''
     # Level=[CGmat, Eo_mat,E0_flat,bigstatelist]
@@ -1518,12 +1524,12 @@ def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
         scaledMat = np.asmatrix(Level_in[1] + Binput*H_Zeeman*(muBcm))
 
     elif Highfield == True and not Lowfield:  # Check if only High field
+        if Eterm is None:
+            raise ValueError("Non-HFS high-field calculations require Eterm in cm^-1 (zero is valid).")
         H_ZeemanH = np.array([ZeemanHigh(x[5], x[3], Binput) for x in Level_in[-1]])
-        EtermMat = Eterm*np.eye(Ldim)
-        if Eterm:
-            scaledMat = np.asmatrix(EtermMat + H_ZeemanH)
-        else:
-            scaledMat = np.asmatrix(Level_in[1] + H_ZeemanH)
+        # mL/mS occupy the columns of Psi. Both the term energy and Zeeman
+        # shifts are diagonal in this uncoupled basis, not broadcast vectors.
+        scaledMat = np.asmatrix(np.diag(Eterm + H_ZeemanH))
 
     elif Lowfield == True and not Highfield:  # Check if only Low field
         gjmat = np.array([lande_gj(x[0], x[2], x[4]) for x in Level_in[-1]])
@@ -1537,6 +1543,9 @@ def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
         # scaledMat = np.asmatrix(Level_in[1] )
 
     eigZ, eigvecZ = np.linalg.eigh(scaledMat)  # , driver = "evx") #Using driver="evx" seems to change some of the signs of the resulting matricies. In the 0-field case, the eigenvectors should all be +1 I believe.
+
+    if Highfield and not Lowfield:
+        eigvecZ = np.dot(Psi, eigvecZ)
 
     return [eigZ, eigvecZ]
 
