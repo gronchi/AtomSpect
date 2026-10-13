@@ -17,6 +17,14 @@ The InputDict can be passed to either: MakeSlider, plotZfan, or AtomSpect_Main. 
 <img width="631" height="345" alt="image" src="https://github.com/user-attachments/assets/bdba6c53-4c9c-4437-a047-57d94de96b71" />
 
 AtomSpect_Main outputs a dictionary with many results and intermediary steps. This output is passed into the PlotFunction to generate the plot. There are additional optional plot flags as well.
+
+For HFS calculations, `rad` and the polarization stick partitions follow
+eigenstate pairs, with q = mF_upper - mF_lower. The sigma stick keys retain
+their emitted-light sign convention. Equal-energy eigenvectors can be
+replaced by a definite-mF basis; only the summed intensity of coincident
+lines has a basis-independent meaning. The returned `bigstatelist` remains
+a list of basis-state pairs, rather than eigenstate labels.
+
 PlotFunction requires a PlotObject and plot_vars. The PlotObject can be either the AtomSpect_Main output or a list of [wavelength,intensity].
 The PlotFunction is robust with a lot of optional arguments. It is an array of plot axes which can be addressed via index. This gives the flexability of a generalized 2D plot array. You can feed this axis, which is the output of PlotFunction into PlotFunction.
 

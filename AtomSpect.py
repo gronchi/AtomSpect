@@ -1807,29 +1807,81 @@ def dipolestr_HFS(LG, LE):
     return tdp3
 
 
+def _hfs_magnetic_eigenvectors(level, zeeman):
+    """Resolve definite-mF columns, preserving supplied energy-rank order.
+
+    Rebuild the axial Hamiltonian and diagonalize its separate mF blocks.
+    Equal-energy input columns receive a reconstructed basis; their individual
+    identities are not preserved. The input eigensystem is not modified.
+    """
+    energies, vectors = np.asarray(zeeman[0]), np.asarray(zeeman[1])
+    magnetic_m = np.asarray([state[1] for state in level[-1]])
+    # Remove the common energy offset to avoid cancellation when small HFS
+    # splittings sit on a large optical energy. Fix summation order as well.
+    columns = np.argsort(energies, kind='stable')
+    ordered = vectors[:, columns]
+    hamiltonian = np.dot(ordered*(energies[columns]-np.min(energies)), ordered.conj().T)
+    block_energies, block_vectors, block_m = [], [], []
+    for m in np.unique(magnetic_m):
+        indices = np.flatnonzero(magnetic_m == m)
+        w, u = np.linalg.eigh(hamiltonian[np.ix_(indices, indices)])
+        full = np.zeros((len(magnetic_m), len(indices)), dtype=u.dtype)
+        full[indices, :] = u
+        block_energies.extend(w)
+        block_vectors.append(full)
+        block_m.extend([m]*len(indices))
+    ranks = np.argsort(block_energies, kind='stable')
+    resolved = np.empty_like(vectors)
+    resolved[:, columns] = np.concatenate(block_vectors, axis=1)[:, ranks]
+    resolved_m = np.empty_like(magnetic_m)
+    resolved_m[columns] = np.asarray(block_m)[ranks]
+    return resolved, resolved_m
+
+
 def Zeeman_signal_HFS(LevelG, LZG, LevelE, LZE, Bangle=90, gamma=0, Filter=False,T_Alpha = 1, T_Beta = 1):
+    """Return relative E1 strengths with eigenpair-indexed polarization labels.
+
+    rad, strengths and wavelengths share upper-then-lower eigenpair order.
+    bflist and Signalcoeffa retain their basis-pair order. Degenerate columns
+    may receive a reconstructed definite-mF basis rather than retaining their
+    individual identities. Sigma stick keys retain the emitted-light convention.
+    """
 
     # Need to make a list of all possible combinations such that each upper state is repeated by the dim of the lower level, and a second list where the opposite is true.
     # ie, each lower level is repeated by the count of upper level states. This makes two lower x upper length arrays that will be useful for wigner calcs.
     bflist = [[x, y] for y in LevelE[-1] for x in LevelG[-1]]  # This list will be [[bigstatesG], [bigstatesE]]
 
     # need to define the polarization effect from the filter.
-    rad = []
+    basis_rad = []
     for i in range(len(bflist)):
-        rad.append(polarization(bflist[i][1][1], bflist[i][0][1], Bangle, gamma, Pol_Filter=Filter,TAlpha = T_Alpha, TBeta = T_Beta))
+        basis_rad.append(polarization(bflist[i][1][1], bflist[i][0][1], Bangle, gamma, Pol_Filter=Filter,TAlpha = T_Alpha, TBeta = T_Beta))
         # Rad output is [polfactor,'polarization'] with polarization being 'sigma-','pi','sigma+' accordingly
     # Calculate signal strength coefficient as product of dipole strength and polarization component
     Signalcoeff = []
+    dipoles = []
     for i in range(len(bflist)):
-        Signalcoeff.append(rad[i][0]*dipolestr_HFS(bflist[i][0], bflist[i][1]))
+        dipoles.append(dipolestr_HFS(bflist[i][0], bflist[i][1]))
+        Signalcoeff.append(basis_rad[i][0]*dipoles[-1])
     Signalcoeffa = np.array(Signalcoeff)
 
-    afcf = np.kron(np.array(LZE[1]), np.array(LZG[1]))  # This uses the tensor product after the magnetic field is taken into account.
+    vectors_e, upper_m = _hfs_magnetic_eigenvectors(LevelE, LZE)
+    vectors_g, lower_m = _hfs_magnetic_eigenvectors(LevelG, LZG)
+    afcf = np.kron(vectors_e.conj(), vectors_g)
+    delta_m = (upper_m[:, None] - lower_m[None, :]).ravel()
+    # q is mF_upper - mF_lower, as in polarization() and dipolestr_HFS().
+    rad = [polarization(float(q), 0, Bangle, gamma, Pol_Filter=Filter,
+                        TAlpha=T_Alpha, TBeta=T_Beta) for q in delta_m]
+    basis_q = np.asarray([pair[1][1] - pair[0][1] for pair in bflist])
+    spherical = np.asarray(dipoles)[:, None]*(basis_q[:, None] == [-1, 0, 1])
+    strengths_q = np.abs(np.dot(afcf.T, spherical))**2
+    leakage = np.where(delta_m[:, None] == [-1, 0, 1], 0, strengths_q)
+    if np.max(leakage) > 1e-12*np.max(strengths_q):
+        raise ValueError('Spherical HFS E1 amplitudes disagree with eigenstate mF')
 
     # Calculate the signal. This is like the dot product of a column of the afcf reduced dipole state matrix with the row vector comprised of dipole strengths(with polarization)
     signal_out = []
     for i in range(len(bflist)):
-        signal_out.append((np.sum(afcf[:, i]*Signalcoeffa)**2))
+        signal_out.append(abs(np.sum(afcf[:, i]*Signalcoeffa))**2)
     tsigout = np.array(signal_out)
     sigsum = np.sum(tsigout)
     sigout = np.array([x/sigsum for x in tsigout])  # Make it so taht sum of intensities is 1.
