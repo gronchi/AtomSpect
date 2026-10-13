@@ -14,7 +14,13 @@ AtomSpect uses an Input Dictionary with several keyword arguments for the calcul
 
 The InputDict can be passed to either: MakeSlider, plotZfan, or AtomSpect_Main. MakeSlider and plotZfan will directly generate plots from the input file.
 
-<img width="631" height="345" alt="image" src="https://github.com/user-attachments/assets/bdba6c53-4c9c-4437-a047-57d94de96b71" />
+```mermaid
+flowchart LR
+    A[Input Dictionary] --> B[MakeSlider]
+    A --> C[AtomSpect_Main]
+    A --> D[plotZfan]
+    C --> E[Plotting]
+```
 
 AtomSpect_Main outputs a dictionary with many results and intermediary steps. This output is passed into the PlotFunction to generate the plot. There are additional optional plot flags as well.
 
@@ -31,7 +37,28 @@ The PlotFunction is robust with a lot of optional arguments. It is an array of p
 In addition to the PlotObject, several plotting parameters are set with the plot_vars = [color, linewidth,linestyle, legendlabel, markerstyle(optional)]
 
 Image showing a very simple example of operation. Additional spectra can be added but ensure to set makefig=False and axisin=thisaxs (per the Argon example shown here).
-<img width="910" height="398" alt="image" src="https://github.com/user-attachments/assets/afda7519-e135-4097-90c4-ac3717eff447" />
+```python
+InputdeckAr1 = {'s_ground': 0 ,  #Spin quantum number S of ground state (2S+1 is the multiplicity), int or half int
+                's_excited': 0 , #Spin quantum number S of excited state (2S+1 is the multiplicity), int or half int
+                'l_ground': 1 ,  #Orbital Angular Momentum of ground state, int or half int
+                'l_excited': 0 , #Orbital Angular Momentum of excited state, int or half int
+                'E_ground': np.array([95399.8276]) ,   #Lowest J first, in cm^-1
+                'E_excited': np.array([108722.6194]) , #Lowest J first, in cm^-1
+                'Bmag': 2.018 ,   #Magnetic Field [T]
+                'b_angle': 90 ,   #Angle between LoS and Bmax
+                'plottitle': 'Ar I 3p5 4s (1P) -> 3p5 4p (1S)' , #Title for plotting (optional)
+                'spec_window' : [745,755], #Min and max convolutions
+                'plot_window': [750.25,750.5], #Min and max for plot window range (nm)
+                'amu': 40  , #Weight in AMU
+                'specstep': 0.004 , #Pixel resolution of spectrometer in nm
+                'SpectrumData': [shiftedAr, Ar_Spec['signals'][0]] ,
+                }
+
+Ar1 = AtomSpect_Main(InputdeckAr1)
+
+plotvars = ['royalblue', 1.5, 'solid', 'Exact']
+thisaxs = PlotFunction(Ar1, plotvars, NormalizeSig=True, makefig=True, plotlabel='B=2.018T')
+```
 
 The versatility of the plotting function is showcased across several of the included examples.
 
@@ -76,7 +103,7 @@ Max Value
                      'Pol_angle': 0 , #Angle polarizing filter makes with max linear transmission
                      'amu' : 183 , #Weight in AMU
                      'Convfxn': 'Gaussian' , #Optional: 'Gaussian', 'GaussianInstrum'', 'Skewed' , 'Lorrentzian', 'Voigt'.
-                     'Skewness' : [0.62,0.99] #Optional, [Left,Right] constant for the skewness of the lorrentzian function. Between 0 and 1. If both are 1, it is a normal lorrentzian.
+                     'Skewness' : [1.24,1.98] #Optional, [Left,Right] constant for the skewness of the lorrentzian function. Multiples of specstep, which is the FWHM of the lorrentzian (so 1 gives FWHM = specstep). If both are 1, it is a symmetric lorrentzian.
                      'Temp' : 300, #Temperature in K. Used for Gaussian, Gaussian Instrum, Voigt convolutions
                      'TempeV' : 20 , #Temperature in eV. Can be passed instead of Temp in K. Converted as needed internally.
                      'specstep' : 0.002222 , #stepsize of linefunction [nm]
@@ -136,7 +163,34 @@ to fine-structure splitting. It does not describe the electronic
 Paschen–Back regime where J levels mix. See
 [Steck's Rb85 data, Eq. (25)](https://steck.us/alkalidata/rubidium85numbers.pdf).
 
-<img width="888" height="465" alt="image" src="https://github.com/user-attachments/assets/26f8bbbd-3fc0-449f-9250-d2a3c377518c" />
+```python
+Bfan = np.linspace(0, 1, 5000)
+InputdeckRbHFS_fan = {'s_ground': .5 ,  #Spin quantum number S of ground state (2S+1 is the multiplicity), int or half int
+                      's_excited': .5 , #Spin quantum number S of excited state (2S+1 is the multiplicity), int or half int
+                      'l_ground': 0 ,   #Orbital Angular Momentum of ground state, int or half int
+                      'l_excited': 1 ,  #Orbital Angular Momentum of excited state, int or half int
+                      'E_ground': np.array([0]) ,  #Lowest J first, in cm^-1
+                      'E_excited': np.array([12578.95, 12816.545]) ,  #Lowest J first, in cm^-1
+                      'Bmag': Bfan,    #Magnetic Field  [T]
+                      'b_angle': 90 ,  #Angle between LoS and Bmax
+                      'plottitle': 'Rb85, I = 5/2, S = 1/2, L = 1' , #Title for plotting (optional)
+                      'plot_window' : [775,799] , #Min and max for plot window range (nm)
+                      'amu' : 85 ,  #Weight in AMU
+                      'Temp' : 300,
+                      'HFS_G' : [1011e6] ,  #Optional: Hyperfine A constant for the lower level, need one entry per J level
+                      'HFS_E': [120.527e6, 25.0354e6], #Optional: Hyperfine A constants for upper level, need one entry per J level
+                      'HFSB_E': [0, 25.898e6] ,
+                      'I_spin' : 5/2, #Optional: nuclear spin, I, including parity. Tabulated by Stone et al.
+                      'mu_I' :  1.35298, #Optional: Nuclear dipole moment as tabulated by Stone.
+                      }
+
+# InputRb['Bmag'] = Bfan
+RBFanG = plotZfan(InputdeckRbHFS_fan, flags='G', markercount=0)
+plt.xlim(0, .5)
+plt.ylim(-.4, .4)
+plt.tight_layout()
+plt.show()
+```
 
 <img width="443" height="361" alt="image" src="https://github.com/user-attachments/assets/cc4a162e-5524-4922-82e0-025ab29ecf32" />
 

@@ -45,7 +45,7 @@ InputHe = {'s_ground': 1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , i
               'b_angle': 90 , #Angle between LoS and Bmax
               'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
               'specstep' : 0.002222 , #Resolution of spectrometer in nm
-              # 'Skewness' : [0.62,0.99] , #How non-symmetric the Lorrentzian is
+              # 'Skewness' : [1.24,1.98] , #How non-symmetric the Lorrentzian is
               # 'Pol_angle': 90 ,#Angle polarizing filter makes with max linear transmission, Optional
               'plottitle': 'He I 1s2p -> 1s4d: B=3.2T, UnPolarized'  , #Title for plotting (optional)     
               'plot_window' : [447.1,447.2], #Min and max for plot window range (nm), convolutions will only take place within this range

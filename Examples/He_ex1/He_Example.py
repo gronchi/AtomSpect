@@ -91,7 +91,7 @@ if doHePol2 == True:
                           'b_angle': 90,  # Angle between LoS and Bmax
                           'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                           'specstep': 0.002222,  # Resolution of spectrometer in nm
-                          'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                          'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                           'Pol_angle': angles,  # Angle polarizing filter makes with max linear transmission, Optional
                           'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarizing Filter',  # Title for plotting (optional)
                           'spec_window': [447.1, 447.2],  # Min and max for convolutions
@@ -169,7 +169,7 @@ if doHePol == True:
                           'b_angle': 90,  # Angle between LoS and Bmax
                           'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                           'specstep': 0.002222,  # Resolution of spectrometer in nm
-                          'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                          'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                           'Pol_angle': angles,  # Angle polarizing filter makes with max linear transmission, Optional
                           'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarizing Filter',  # Title for plotting (optional)
                           'spec_window': [447, 447.2],  # Min and max for convolutions
@@ -239,7 +239,7 @@ if doHePol3 == True:
                           'b_angle': 90,  # Angle between LoS and Bmax
                           'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                           'specstep': 0.002222,  # Resolution of spectrometer in nm
-                          'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                          'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                           'Pol_angle': angles,  # Angle polarizing filter makes with max linear transmission, Optional
                           'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarizing Filter',  # Title for plotting (optional)
                           'spec_window': [447, 447.2],  # Min and max for convolutions
@@ -271,7 +271,7 @@ if doHePol3 == True:
                              'b_angle': 90,  # Angle between LoS and Bmax
                              'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                              'specstep': 0.002222,  # Resolution of spectrometer in nm
-                             'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                             'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                              'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarizing Filter ' ,#    Title for plotting (optional)
                              'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                              'spec_window': [447, 447.2],  # Min and max for convolutions
@@ -350,7 +350,7 @@ if doHeNonPol == True:
                              'b_angle': 90,  # Angle between LoS and Bmax
                              'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                              'specstep': 0.002222,  # Resolution of spectrometer in nm
-                             'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                             'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                              'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Low-Int-High',  # Title for plotting (optional)
                              'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                              'spec_window': [447, 447.2],  # Min and max for convolutions
@@ -430,7 +430,7 @@ if doHeNonPol2 == True:
                              'b_angle': 90,  # Angle between LoS and Bmax
                              'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                              'specstep': 0.002222,  # Resolution of spectrometer in nm
-                             'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                             'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                              'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarization Tracking',  # Title for plotting (optional)
                              'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                              'spec_window': [447, 447.2],  # Min and max for convolutions
@@ -456,7 +456,7 @@ if doHeNonPol2 == True:
                              'b_angle': 90,  # Angle between LoS and Bmax
                              'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                              'specstep': 0.002222,  # Resolution of spectrometer in nm
-                             'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                             'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                              'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarization Tracking',  # Title for plotting (optional)
                              'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                              'spec_window': [447, 447.2],  # Min and max for convolutions
@@ -527,7 +527,7 @@ if doHeNonPol3 == True:
                       'b_angle': 90,  # Angle between LoS and Bmax
                       'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                       'specstep': 0.002222,  # Resolution of spectrometer in nm
-                      'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                      'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                       'plottitle': 'He I 1s2p -> 1s4d: B=3.2T, Non-Dipole',  # Title for plotting (optional)
                       'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                       'amu': 2,  # Weight in AMU
@@ -573,7 +573,7 @@ if fanplot == True:
                          'b_angle': 90,  # Angle between LoS and Bmax
                          'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                          'specstep': 0.002222,  # Resolution of spectrometer in nm
-                         'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                         'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                          'plottitle': 'He I 1s2p -> 1s4d',  # Title for plotting (optional)
                          'plot_window': [447, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                          'amu': 2,  # Weight in AMU
@@ -627,7 +627,7 @@ if fanplot2 == True:
                          'b_angle': 90,  # Angle between LoS and Bmax
                          'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                          'specstep': 0.002222,  # Resolution of spectrometer in nm
-                         'Skewness': [0.62, 0.99],  # How non-symmetric the Lorrentzian is
+                         'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                          'plottitle': 'He I 1s2p -> 1s4d',  # Title for plotting (optional)
                          'plot_window': [447, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                          'amu': 2,  # Weight in AMU
@@ -674,7 +674,7 @@ if do_HeSlider:
                 'b_angle': 90,  # Angle between LoS and Bmax
                 'Convfxn': 'GaussianInstrum',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                 'specstep': 0.002222,  # Resolution of spectrometer in nm
-                # 'Skewness' : [0.62,0.99] , #How non-symmetric the Lorrentzian is
+                # 'Skewness' : [1.24,1.98] , #How non-symmetric the Lorrentzian is
                 # 'Pol_angle': 90 ,#Angle polarizing filter makes with max linear transmission, Optional
                 'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarized',  # Title for plotting (optional)
                 'spec_window': [447, 447.2],  # Min and max for convolutions
@@ -718,7 +718,7 @@ if do_Hepolslider:
                    'b_angle': 90,  # Angle between LoS and Bmax
                    'Convfxn': 'GaussianInstrum',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                    'specstep': 0.002222,  # Resolution of spectrometer in nm
-                   # 'Skewness' : [0.62,0.99] , #How non-symmetric the Lorrentzian is
+                   # 'Skewness' : [1.24,1.98] , #How non-symmetric the Lorrentzian is
                    'spec_window': [447, 447.2],  # Min and max for convolutions
                    'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarized',  # Title for plotting (optional)
                    'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
