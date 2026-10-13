@@ -16,10 +16,24 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
 - Unit conventions (nm vs m, cm^-1 vs MHz, HWHM vs FWHM) are implicit and repeated.
 - Tests monkeypatch module globals (`AtomSpect.Zeeman_func`, `AtomSpect.muBcm`).
 
+## Status
+
+- Phase 0 done: `pyproject.toml` (version `0.1.0.dev0`), GitHub Actions workflow, golden-output
+  tests (`tests/golden_cases.py`, `tests/test_golden.py`) and a public-API name test.
+- Phase 1 done: `AtomSpect.py` is now the package `AtomSpect/`. Moved out unchanged:
+  `constants`, `units`, `lineshapes`, `convolution`, `io`, `plotting/{core,slider,fan}`.
+  The physics and `AtomSpect_Main` still live in `AtomSpect/__init__.py` (phases 2-5).
+  `plotting/slider.py` and `plotting/fan.py` import the driver late (inside functions)
+  until phase 3 removes that dependency.
+- Naming: the package keeps the name `AtomSpect` (not `atomspect`). On Windows/macOS a
+  lowercase package would collide with the existing module name, and keeping it means
+  `from AtomSpect import ...` in all examples and user scripts is unchanged, so no shim file
+  is needed.
+
 ## 2. Target layout
 
 ```
-atomspect/
+AtomSpect/
   __init__.py          public API re-exports (keeps `from AtomSpect import ...` working)
   constants.py         physical constants, g factors
   units.py             energy/wavelength conversions, vacuum<->air
@@ -40,7 +54,6 @@ atomspect/
     core.py            plotarray, PlotFunction, legend helpers
     fan.py             plotZfan
     slider.py          MakeSlider and helpers (only module importing tkinter)
-AtomSpect.py           thin shim: `from atomspect import *` + DeprecationWarning
 ```
 
 Dependency direction is strictly downward: constants -> units -> angular -> levels ->
@@ -61,7 +74,7 @@ hamiltonian/hfs -> polarization -> transitions -> convolution -> spectrum -> plo
    (the Boolean-flag fix lives here), and `s_ground/s_excited` validation (S, not 2S+1).
 5. **Make units explicit** in names (`wave_nm`, `wave_m`, `E_cm`, `A_MHz`) and convert at
    module boundaries only.
-6. **Lazy GUI/plot imports** so `import atomspect` works headless without tkinter.
+6. **Lazy GUI/plot imports** so `import AtomSpect` works headless without tkinter.
 
 ## 4. Phases
 
@@ -81,7 +94,7 @@ hamiltonian/hfs -> polarization -> transitions -> convolution -> spectrum -> plo
 - Keep `tests/` as the safety net; add golden-output tests that run each example input deck
   through `AtomSpect_Main` and compare stick positions/strengths and convolved spectra
   (tolerance ~1e-10) against values saved before the refactor.
-- Add import tests: `import atomspect` must not import tkinter or matplotlib.
+- Add import tests: `import AtomSpect` must not import tkinter or matplotlib.
 - Add a test that every name exported by the old module still resolves via the shim.
 
 ## 6. Housekeeping

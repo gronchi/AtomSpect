@@ -1,0 +1,23 @@
+name: tests
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    env:
+      MPLBACKEND: Agg
+      MPMATH_NOGMPY: "1"
+      SYMPY_GROUND_TYPES: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: sudo apt-get update && sudo apt-get install -y python3-tk
+      - run: pip install -e ".[test]"
+      - run: pytest -q
