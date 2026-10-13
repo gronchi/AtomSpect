@@ -60,7 +60,7 @@ def cases():
         for fxn in ("Skewed", "Lorrentzian", "Gaussian", "GaussianInstrum", "Voigt"):
             deck = dict(base, Convfxn=fxn)
             flatten(AtomSpect.AtomSpect_Main(deck), f"main/{name}/{fxn}", out)
-    flatten(AtomSpect.AtomSpect_Main(dict(HE, Polfilter=True, Polangle=30, DoLowSig=True,
+    flatten(AtomSpect.AtomSpect_Main(dict(HE, Pol_angle=30, DoLowSig=True,
                                            DoHighSig=True, EtermG=169087., EtermE=191444.)), "main/he/filter", out)
     fan = dict(HE, Bmag=np.linspace(0, 1, 7), EtermG=169087., EtermE=191444.)
     flatten(AtomSpect.ZeemanFan(fan, "GEHL"), "fan/he", out)
