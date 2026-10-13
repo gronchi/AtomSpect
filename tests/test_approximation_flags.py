@@ -34,7 +34,7 @@ def test_disabled_flags_skip_solver_and_convolution(value, monkeypatch):
     def guarded(*args, **kw):
         assert not kw.get('Lowfield') and not kw.get('Highfield')
         return original(*args, **kw)
-    monkeypatch.setattr(AtomSpect, 'Zeeman_func', guarded)
+    monkeypatch.setattr(AtomSpect.spectrum, 'Zeeman_func', guarded)
     result = AtomSpect.AtomSpect_Main(inputs)
     assert set(result) == set(baseline)
     np.testing.assert_array_equal(result['SpecOut'], baseline['SpecOut'])

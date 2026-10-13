@@ -28,6 +28,14 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
   polarization; fan -> levels. `AtomSpect/__init__.py` (~420 lines) now holds only
   `AtomSpect_Main`, its flag helper and the re-exports. The old HFS/non-HFS duplicates are still
   separate functions (phase 4).
+- Phase 3 done: `config.py` holds `InputDeck` (typed fields, defaults, required-key check,
+  unknown-key warning with a did-you-mean hint, `ConvolutionSettings`) and the flag parser.
+  `spectrum.py` holds `AtomSpect_Main`, now a short pipeline over `_solve_hfs` / `_solve_fine`
+  (+ `_approximation_signals`) and `_convolve`. Output, including `data['Input']`, is unchanged
+  (golden tests). Defects found while doing it and deliberately preserved for now:
+  without `Convfxn` the keys `Skewness`, `Temp` and `ion_vel` are silently ignored;
+  `Convfxn='Gaussian'/'Voigt'` without `Temp`/`TempeV` raises KeyError late, after the solve;
+  the slider writes a `PolAngle` key that the driver does not read.
   `plotting/slider.py` and `plotting/fan.py` import the driver late (inside functions)
   until phase 3 removes that dependency.
 - Naming: the package keeps the name `AtomSpect` (not `atomspect`). On Windows/macOS a
