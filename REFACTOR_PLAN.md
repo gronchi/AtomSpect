@@ -86,9 +86,9 @@ hamiltonian/hfs -> polarization -> transitions -> convolution -> spectrum -> plo
 
 ## 6. Housekeeping
 
-- Remove or relocate untracked clutter from the repo root: `test.py`, `test_convolution.py`,
-  `test_instrumental.py`, `audit_evidence/`, `*_PR_DESCRIPTION.md`, `SUBMISSION_PLAN.md`,
-  `AUDIT_REPORT.md`, `Flowchart.pptx`, `ExamplesList.xlsx`, `__pycache__`; add `.gitignore`.
+- Untracked clutter (audit reports, PR descriptions, scratch tests, evidence scripts) now lives
+  in the git-ignored `audit/` folder. Still to relocate: `Flowchart.pptx`, `ExamplesList.xlsx`,
+  `__pycache__`.
 - Keep CRLF/LF consistent (add `.gitattributes`) so moves produce reviewable diffs.
 - `Function Testing/` and `HFS Calcs/` scripts become examples or tests.
 - Make `Examples/` scripts independent of the working directory (He example already is).
