@@ -1,11 +1,33 @@
-__pycache__
-.spyproject
-/.spyproject/config
-.git
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editors / IDEs
+.spyproject/
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local scratch work, audit notes and temporary outputs
+audit/
 CurrentWork
 Spect_split_ext_field.py
-README.md
 LZ_*
-
-audit/
-!Examples/README.md
+*.log
+*.tmp
