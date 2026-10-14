@@ -40,3 +40,4 @@ from .hamiltonian import _magnetic_eigenvectors, _hfs_magnetic_eigenvectors  # n
 from .transitions import _zeeman_signal  # noqa: F401
 from .config import InputDeck, _approximation_enabled  # noqa: F401
 from .spectrum import AtomSpect_Main  # noqa: F401
+from .result import SpectrumResult  # noqa: F401

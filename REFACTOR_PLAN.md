@@ -46,6 +46,11 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
   instead of failing later with an unbound variable; `PsiHFS` is accepted but has no effect (both of
   its settings built the same Hamiltonian). The golden test now ignores eigenvector-gauge outputs
   (`afcf`, eigenvector matrices), which differ across LAPACK builds.
+- Phase 5 done: `AtomSpect_Main` returns a `SpectrumResult` (a `dict` subclass in `result.py`) with
+  attribute access, `copy()`, `to_dict()` and `describe()`, backed by `KEY_DESCRIPTIONS`; a test
+  fails if a returned key is undocumented. String-key access is unchanged and not deprecated yet.
+  `Savenpy_Dict` stores a plain dict so saved files do not depend on the class. The examples were
+  not rewritten; they keep working through the dict interface.
   `plotting/slider.py` and `plotting/fan.py` import the driver late (inside functions)
   until phase 3 removes that dependency.
 - Naming: the package keeps the name `AtomSpect` (not `atomspect`). On Windows/macOS a

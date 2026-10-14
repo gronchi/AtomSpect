@@ -22,7 +22,7 @@ flowchart LR
     C --> E[Plotting]
 ```
 
-AtomSpect_Main outputs a dictionary with many results and intermediary steps. This output is passed into the PlotFunction to generate the plot. There are additional optional plot flags as well.
+AtomSpect_Main outputs a dictionary with many results and intermediary steps. The entries can also be read as attributes (`result.signal`, `result.wave_air`), and `result.describe()` explains each key. This output is passed into the PlotFunction to generate the plot. There are additional optional plot flags as well.
 
 For HFS calculations, `rad` and the polarization stick partitions follow
 eigenstate pairs, with q = mF_upper - mF_lower. The sigma stick keys retain

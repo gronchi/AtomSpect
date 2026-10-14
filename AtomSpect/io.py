@@ -160,7 +160,7 @@ def Savenpy_Dict(filename, Dict_in,spectra = None, Normalize_sig = False):
   
     
         savedat['Specdata'] = specdat
-    savedat['data'] = Dict_in
+    savedat['data'] = dict(Dict_in)  # plain dict, so saved files do not depend on the result class
     np.save(f'{filename}',savedat,allow_pickle=True)
     return
 

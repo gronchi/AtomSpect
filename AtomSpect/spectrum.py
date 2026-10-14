@@ -8,6 +8,7 @@ from .convolution import Convol_Spect
 from .hamiltonian import Zeeman_func, Zeeman_func_HFS
 from .levels import stateprocess, stateprocess_HFS
 from .radiative import A_Ein
+from .result import SpectrumResult
 from .transitions import _zeeman_signal, Zeeman_sig_norad, Zeeman_signal, Zeeman_signal_HFS
 from .units import nm_to_Hz
 
@@ -223,5 +224,6 @@ def AtomSpect_Main(Inputdeck):
     deck = InputDeck.from_dict(Inputdeck)
     data = _solve_hfs(deck) if deck.is_hfs else _solve_fine(deck)
     _convolve(deck, data, deck.convolution_settings())
+    data = SpectrumResult(data)
     data['Input'] = Inputdeck
     return data
