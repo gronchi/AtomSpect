@@ -12,22 +12,18 @@ The flowchart follows the calculation flow in the [theory manual](doc/AtomSpect_
 
 ```mermaid
 flowchart TD
+    IN["Input dictionary"] --> MAIN
+    IN --> SL["MakeSlider"] -- "on change" --> MAIN
+    IN --> FAN["ZeemanFan / plotZfan"]
     subgraph MAIN["AtomSpect_Main"]
-        V["Defaults and validation<br/>InputDeck.from_dict"] --> Q{"Nuclear spin<br/>supplied?"}
-        Q -- no --> LS["LS basis and Zeeman Hamiltonian<br/>stateprocess, Zeeman_func"]
-        Q -- yes --> HF["Hyperfine basis and Hamiltonian<br/>stateprocess_HFS, Zeeman_func_HFS"]
-        LS --> E1["Definite-M eigenpairs and E1 strengths<br/>Zeeman_signal, Zeeman_signal_HFS"]
-        HF --> E1
-        E1 --> ST["Normalized strengths, air and vacuum wavelengths,<br/>polarization labels and stick lists"]
-        ST --> CV["Filter, merge bins, evaluate line profiles<br/>Convol_Spect, Convol_Sticks"]
+        direction LR
+        V["InputDeck<br/>validation"] --> Q{"I_spin?"}
+        Q -- no --> LS["LS Zeeman<br/>Zeeman_func"]
+        Q -- yes --> HF["Hyperfine Zeeman<br/>Zeeman_func_HFS"]
+        LS & HF --> E1["E1 strengths,<br/>labels, sticks"]
+        E1 --> CV["Line profiles<br/>Convol_Spect"]
     end
-
-    IN["Input dictionary"] --> V
-    IN --> SL["MakeSlider<br/>interactive B, T, Wi and angle"]
-    IN --> FAN["ZeemanFan / plotZfan<br/>energies over a Bmag array"]
-    SL -- "recalculates on every change" --> V
-    CV --> RES["SpectrumResult"]
-    RES --> PLOT["Plotting<br/>PlotFunction"]
+    MAIN --> RES["SpectrumResult"] --> PLOT["PlotFunction"]
 ```
 
 `AtomSpect_Main` uses a scalar `Bmag` and returns data for further analysis or plotting. `MakeSlider` calls the spectrum calculation as its controls change. Energy fans sweep the Hamiltonian over a `Bmag` array; `ZeemanFan` returns energy arrays and `plotZfan` also plots them.

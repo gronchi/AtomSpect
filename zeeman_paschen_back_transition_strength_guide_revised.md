@@ -1713,19 +1713,4 @@ DOI: `10.3847/1538-4357/ac8cfa`
 **[R12] E. Stambulchik (2023; corrected 9 September 2024).** “Stark Broadening of Lyman-α in the Presence of a Strong Magnetic Field.” *Atoms* **11**, 120. Component-dependent Stark–Zeeman behavior; use the corrected version.  
 `https://www.mdpi.com/2218-2004/11/9/120`
 
-### Main changes from the original user-supplied guide
-
-The original file, `zeeman_paschen_back_transition_strength_guide.md`, supplies the starting organization and isolated-term objective. This revision makes the following substantive changes:
-
-- Replaces the invalid dipole-commutation justification with a fixed-basis/operator assumption.
-- Separates isolated-$J$, isolated-LS-term, and arbitrary-coupling external-matrix models.
-- Makes the Hamiltonian and dipole phase convention explicit and consistent.
-- Uses SI Einstein-$A$ prefactors and separates level strengths from magnetic-state strengths.
-- Expands external-data inversion to $A$, $f$, $gf$, line strengths, and lifetime/branch data.
-- Limits the one-reference normalization to one justified orbital channel and tests all available branches.
-- Includes external magnetic matrices and relative-amplitude information in the general model.
-- Adds hyperfine/isotope and multipole pathways, a plasma-model interface, basis/uncertainty checks, and a reproducible synthetic benchmark.
-- Replaces the exact-triplet assertion by the correct three-slope-group asymptote with possible residual structure.
-- Distinguishes a valid atomic component calculation from a validated laboratory-plasma spectrum.
-
 **End of specification.**
