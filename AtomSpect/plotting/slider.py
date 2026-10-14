@@ -31,12 +31,7 @@ def Zslider_Pol(B, thisTemp, thisRes, Bangle, PolAngle, Input):
     This is used when polarization is included.
     '''
     from .. import AtomSpect_Main  # late import: the driver still lives in the package root
-    if not PolAngle:
-        try:
-            del Input['PolAngle']
-        except:
-            pass
-    else:
+    if PolAngle is not None:  # None: leave any filter angle in the deck untouched. 0 is a valid angle.
         Input['Pol_angle'] = PolAngle
 
     Input['Bmag'] = B

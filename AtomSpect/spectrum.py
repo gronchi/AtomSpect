@@ -1,4 +1,6 @@
 """The AtomSpect_Main driver: build levels, solve, form sticks, convolve."""
+import warnings
+
 import numpy as np
 
 from .angular import lande_gi
@@ -83,6 +85,21 @@ def _approximation_signals(deck, data):
     return Ground_Level, Excited_Level
 
 
+def _add_radiative_placeholders(deck, data):
+    """Opt-in A_Ein, f_osc and S_line style outputs; not physical absolute values."""
+    warnings.warn("RadiativePlaceholders: A_Ein, A_Ein_polavg, sigavgs, f_osc and S_line are not valid "
+                  "absolute radiative quantities (see the audit); they are kept only for comparison.",
+                  UserWarning, stacklevel=4)
+    # A_Ein isn't polarization normalized,
+    data['A_Ein'] = [A_Ein(data['wave_air'][i], dips)/(2*data['bigstatelist'][i][1][0] + 1) for i, dips in enumerate(data['signal'])]
+    data['A_Ein_polavg'] = [2*A_Ein(data['wave_air'][i], dips)/(3*(2*data['bigstatelist'][i][1][0] + 1)) for i, dips in enumerate(data['Zsig_norad'])]
+
+    data['sigavgs'] = [sigs/(2*data['bigstatelist'][i][1][0] + 1) for i, sigs in enumerate(data['signal'])]
+
+    data['f_osc'] = np.sum(data['signal'])*m_elec/(4*hbar*(np.pi**3))*((2*deck.L_ground+1)/(2*deck.L_excited+1))
+    data['S_line'] = np.sqrt(np.sum([(3 /(16*q_charge*np.pi**4*nm_to_Hz(x)))*data['signal'][i] for i, x in enumerate(data['wave_vac'])]))*((deck.L_ground+1)/(2*deck.L_excited+1))
+
+
 def _solve_fine(deck):
     """Exact Zeeman levels and E1 sticks without hyperfine structure."""
     # Process the wavefunction matrix and energies. Preliminary sorting is done so that the final state order should be roughly as expected.
@@ -121,14 +138,8 @@ def _solve_fine(deck):
 
     data['rad'] = Z_sig[2]
     data['Zsig_norad'] = Z_sig_norad
-    # A_Ein isn't polarization normalized,
-    data['A_Ein'] = [A_Ein(data['wave_air'][i], dips)/(2*data['bigstatelist'][i][1][0] + 1) for i, dips in enumerate(data['signal'])]
-    data['A_Ein_polavg'] = [2*A_Ein(data['wave_air'][i], dips)/(3*(2*data['bigstatelist'][i][1][0] + 1)) for i, dips in enumerate(data['Zsig_norad'])]
-
-    data['sigavgs'] = [sigs/(2*data['bigstatelist'][i][1][0] + 1) for i, sigs in enumerate(data['signal'])]
-
-    data['f_osc'] = np.sum(data['signal'])*m_elec/(4*hbar*(np.pi**3))*((2*deck.L_ground+1)/(2*deck.L_excited+1))
-    data['S_line'] = np.sqrt(np.sum([(3 /(16*q_charge*np.pi**4*nm_to_Hz(x)))*data['signal'][i] for i, x in enumerate(data['wave_vac'])]))*((deck.L_ground+1)/(2*deck.L_excited+1))
+    if deck.radiative_placeholders:
+        _add_radiative_placeholders(deck, data)
     data['afcf'] = Z_sig[4]
     return data
 
@@ -211,6 +222,7 @@ def AtomSpect_Main(Inputdeck):
                      'DoHighSig' : True , #REQUIRES TERM ENERGY!Bool for whether Highfield approximation and signal are included and plotted
                      'EtermG': 169086.9076, #Term energy of lower state in cm^-1 - Required for DoHighSig
                      'EtermE' : 191444.47832914, #Term energy of upper state in cm^-1 - Required for DoHighSig
+                     'RadiativePlaceholders' : False , #Bool. If True also returns A_Ein, A_Ein_polavg, sigavgs, f_osc and S_line. These are NOT valid absolute radiative quantities; a warning is raised.
                      'sortE' : True , #Bool as to whether the wavefunctions will attempt to be sorted based on expected resulting energy before diagonalization. This significantly slows down operations. 
                       }
 
@@ -223,7 +235,7 @@ def AtomSpect_Main(Inputdeck):
 
     deck = InputDeck.from_dict(Inputdeck)
     data = _solve_hfs(deck) if deck.is_hfs else _solve_fine(deck)
-    _convolve(deck, data, deck.convolution_settings())
+    _convolve(deck, data, deck.convolution)
     data = SpectrumResult(data)
     data['Input'] = Inputdeck
     return data

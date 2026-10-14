@@ -1,5 +1,6 @@
 """Validated view of the input dictionary used by AtomSpect_Main."""
 import difflib
+import math
 import warnings
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -15,13 +16,13 @@ OPTIONAL_KEYS = (
     'HFS_G', 'HFS_E', 'HFSB_G', 'HFSB_E', 'PsiHFS', 'Calc_HFS_Vals',
     'DoLowSig', 'DoHighSig', 'ion_vel', 'Convfxn', 'Skewness', 'Temp', 'TempeV',
     'specstep', 'specres', 'fxnwindow', 'plottitle',
-    # Written by the slider GUI into a working copy of the deck.
-    'PolAngle',
+    'RadiativePlaceholders',
 )
 KNOWN_KEYS = frozenset(REQUIRED_KEYS + OPTIONAL_KEYS)
 
 EV_TO_K = 11602  # Conversion used for the TempeV keyword.
 _TEMPERATURE_PROFILES = ('Gaussian', 'GaussianInstrum', 'Voigt')
+WING_LOSS_WARNING = 0.02  # Warn when truncating the Lorentzian wings drops more than 2% of a line's area.
 
 
 def _approximation_enabled(value):
@@ -50,6 +51,26 @@ class ConvolutionSettings:
     window: float
     ion_vel: Any
     specres: float
+
+
+def lorentzian_wing_loss(window, stepsize, skewness=(1, 1)):
+    """Fraction of a (split) Lorentzian's area lying beyond +-window of its centre.
+
+    The half widths are skewness*stepsize/2 (stepsize is the FWHM); all lengths in nm.
+    """
+    left, right = (k*stepsize/2 for k in skewness)
+    tail = sum(w*(math.pi/2 - math.atan(window/w)) for w in (left, right))
+    return tail/((math.pi/2)*(left + right))
+
+
+def _warn_if_wings_truncated(settings):
+    if settings.function in ('Skewed', 'Lorrentzian', 'Voigt'):
+        skew = settings.skewness if settings.function != 'Voigt' else (1, 1)
+        loss = lorentzian_wing_loss(settings.window, settings.stepsize, skew)
+        if loss > WING_LOSS_WARNING:
+            warnings.warn(f"fxnwindow={settings.window} nm truncates about {100*loss:.1f}% of each "
+                          f"{settings.function} line's area; increase 'fxnwindow' to keep the wings.",
+                          UserWarning, stacklevel=4)
 
 
 @dataclass
@@ -86,6 +107,8 @@ class InputDeck:
     HFS_ConstsG: dict = field(default_factory=dict)
     HFS_ConstsE: dict = field(default_factory=dict)
     PsiHFS: Any = False
+    radiative_placeholders: bool = False
+    convolution: Optional['ConvolutionSettings'] = None
 
     @classmethod
     def from_dict(cls, deck):
@@ -139,29 +162,31 @@ class InputDeck:
             out.HFS_ConstsE = {'HFSA': deck['HFS_E'],
                                'HFSB': deck['HFSB_E'] if 'HFSB_E' in deck else np.zeros_like(out.E_excited)}
             out.PsiHFS = deck.get('PsiHFS', False)
+        out.radiative_placeholders = _approximation_enabled(deck.get('RadiativePlaceholders', False))
+        # Resolve the convolution now so that a missing temperature fails before the solve.
+        out.convolution = out.convolution_settings()
+        _warn_if_wings_truncated(out.convolution)
         return out
 
     def convolution_settings(self):
         """Resolve the profile, temperature, widths and step for the convolution.
 
-        Without 'Convfxn' the default Lorentzian is used and 'Skewness', 'Temp'
-        and 'ion_vel' are ignored (kept from the original driver).
+        Without 'Convfxn' the default Lorentzian is used (it does not depend on
+        the temperature). A temperature ('Temp' in K or 'TempeV' in eV) is
+        required by the Gaussian, GaussianInstrum and Voigt profiles.
         """
         deck = self.raw
-        if 'Convfxn' in deck:
-            function = deck['Convfxn']
-            temperature = 300
-            skewness = [1, 1]
-            stepsize = deck.get('specstep', 0.002)
-            if function in _TEMPERATURE_PROFILES:
-                # Allow the temperature in eV as well.
-                temperature = deck['TempeV']*EV_TO_K if 'TempeV' in deck else deck['Temp']
-            if function in ('Skewed', 'Lorrentzian'):
-                skewness = deck.get('Skewness', [1, 1])
-            ion_vel = deck.get('ion_vel', 0)
-        else:
-            function, skewness, temperature, ion_vel = 'Lorrentzian', [1, 1], 300, 0
-            stepsize = deck.get('specstep', 0.002222)
+        function = deck.get('Convfxn', 'Lorrentzian')
+        temperature = 300
+        if function in _TEMPERATURE_PROFILES:
+            if 'TempeV' in deck:  # Allow the temperature in eV as well.
+                temperature = deck['TempeV']*EV_TO_K
+            elif 'Temp' in deck:
+                temperature = deck['Temp']
+            else:
+                raise KeyError(f"Convfxn '{function}' requires 'Temp' (K) or 'TempeV' (eV) in the input deck")
+        skewness = deck.get('Skewness', [1, 1]) if function in ('Skewed', 'Lorrentzian') else [1, 1]
+        default_step = 0.002 if 'Convfxn' in deck else 0.002222
         return ConvolutionSettings(function=function, temperature=temperature, skewness=skewness,
-                                   stepsize=stepsize, window=deck.get('fxnwindow', 0.1),
-                                   ion_vel=ion_vel, specres=deck.get('specres', 10))
+                                   stepsize=deck.get('specstep', default_step), window=deck.get('fxnwindow', 0.1),
+                                   ion_vel=deck.get('ion_vel', 0), specres=deck.get('specres', 10))

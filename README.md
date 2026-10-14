@@ -22,6 +22,8 @@ flowchart LR
     C --> E[Plotting]
 ```
 
+Unknown keys in the input dictionary raise a warning with a suggestion, and the Gaussian, GaussianInstrum and Voigt profiles require `Temp` (K) or `TempeV` (eV). `A_Ein`, `f_osc` and `S_line` are not valid absolute radiative quantities, so they are only returned with `'RadiativePlaceholders': True`. A warning is raised when `fxnwindow` cuts off more than 2% of a Lorentzian line's area.
+
 AtomSpect_Main outputs a dictionary with many results and intermediary steps. The entries can also be read as attributes (`result.signal`, `result.wave_air`), and `result.describe()` explains each key. This output is passed into the PlotFunction to generate the plot. There are additional optional plot flags as well.
 
 For HFS calculations, `rad` and the polarization stick partitions follow

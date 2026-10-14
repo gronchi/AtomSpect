@@ -23,7 +23,7 @@ HE = dict(s_ground=1, s_excited=1, l_ground=1, l_excited=2,
           E_excited=np.array([191444.49804915, 191444.47952984, 191444.47832914]),
           Bmag=0.5, b_angle=70, amu=4, Temp=300, spec_window=[446.8, 447.6],
           plot_window=[447.0, 447.3], specstep=0.002222, specres=3,
-          Skewness=[1.24, 1.98], fxnwindow=0.1)
+          Skewness=[1.24, 1.98], fxnwindow=0.1, RadiativePlaceholders=True)
 RB = dict(s_ground=.5, s_excited=.5, l_ground=0, l_excited=1,
           E_ground=np.array([0.]), E_excited=np.array([12578.95, 12816.545]),
           I_spin=2.5, mu_I=1.35298, HFS_G=[1011.910813e6],

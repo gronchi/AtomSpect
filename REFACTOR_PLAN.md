@@ -51,6 +51,14 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
   fails if a returned key is undocumented. String-key access is unchanged and not deprecated yet.
   `Savenpy_Dict` stores a plain dict so saved files do not depend on the class. The examples were
   not rewritten; they keep working through the dict interface.
+- Phase 6 done (scoped): (1) default Lorentzian honours `Skewness` and `ion_vel`; (2) a missing
+  temperature for Gaussian/GaussianInstrum/Voigt raises a clear KeyError while parsing; (3) the slider
+  sets `Pol_angle` whenever an angle is supplied (0 degrees was treated as "no filter") and the unused
+  `PolAngle` key is gone; (4) `A_Ein`, `A_Ein_polavg`, `sigavgs`, `f_osc`, `S_line` are opt-in via
+  `RadiativePlaceholders` with a warning; (5) a warning when `fxnwindow` truncates more than 2% of a
+  Lorentzian line's area (`lorentzian_wing_loss`). Not done: the HFS-constant estimator
+  (`HFS_Const_Calcs.py`, a research script whose unit and model issues need a physics decision), and
+  absolute radiative quantities (needs a reduced radial matrix element as input).
   `plotting/slider.py` and `plotting/fan.py` import the driver late (inside functions)
   until phase 3 removes that dependency.
 - Naming: the package keeps the name `AtomSpect` (not `atomspect`). On Windows/macOS a
