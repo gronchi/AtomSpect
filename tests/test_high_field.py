@@ -54,9 +54,12 @@ def test_eigensolver_receives_a_diagonal_hermitian_matrix(monkeypatch):
         return original(matrix)
 
     monkeypatch.setattr(np.linalg, "eigh", check)
-    AtomSpect.Zeeman_func(level, 1., Highfield=True, Eterm=123.)
+    energies = AtomSpect.Zeeman_func(level, 1., Highfield=True, Eterm=123.)[0]
     assert len(captured) == 1
-    np.testing.assert_allclose(np.trace(captured[0]), 9*123., atol=1e-12)
+    # The solver sees the matrix about its mean energy; the high-field shifts sum to zero,
+    # so the returned energies average to the term energy.
+    np.testing.assert_allclose(np.trace(captured[0]), 0., atol=1e-12)
+    np.testing.assert_allclose(np.mean(energies), 123., atol=1e-12)
 
 
 def test_missing_term_energy_has_a_clear_error():

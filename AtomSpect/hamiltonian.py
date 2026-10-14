@@ -22,6 +22,21 @@ def _zeeman_operator(Psi, states, l_index, s_index, i_index=None, gI=0.0):
     return H_Zeeman
 
 
+def _eigh_about_mean(matrix):
+    """Diagonalize a Hermitian energy matrix about its mean diagonal energy.
+
+    Level energies of ~1e5 cm^-1 carry Zeeman and hyperfine splittings that can be
+    1e-9 of that size. Diagonalizing the matrix with the common offset removed keeps
+    those splittings, and the eigenvectors of nearly degenerate levels, accurate to
+    rounding error instead of to ~1e-7, so results no longer depend on how the linear
+    algebra library schedules its arithmetic. The offset is added back to the energies.
+    """
+    matrix = np.asarray(matrix)
+    origin = float(np.mean(np.real(np.diag(matrix))))
+    energies, vectors = np.linalg.eigh(matrix - origin*np.eye(len(matrix)))
+    return energies + origin, vectors
+
+
 def Zeemanlow(gf, mf, B):
     # Lowfield Zeeman approximation. Valid for J or F total AM.
     """Return the weak-field Zeeman shift g*m*muB*B in cm^-1, for B in T."""
@@ -127,7 +142,7 @@ def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
         tmJMat = np.diagflat([x[1] for x in Level_in[-1]])
         scaledMat = Level_in[1] + Binput*(gjmat*tmJMat)*muBcm
 
-    eigZ, eigvecZ = np.linalg.eigh(scaledMat)  # Using driver="evx" seems to change some of the signs of the resulting matrices.
+    eigZ, eigvecZ = _eigh_about_mean(scaledMat)
 
     if Highfield:
         eigvecZ = np.dot(Psi, eigvecZ)
@@ -157,7 +172,7 @@ def Zeeman_func_HFS(Level_in, Binput, gI, PsiHFS=True):
     # PsiHFS is accepted for backwards compatibility; both of its settings gave this Hamiltonian.
     scaledMat = Level_in[1] + np.diagflat(Level_in[2]) + Binput*H_Zeeman*muBcm
 
-    eigZ, eigvecZ = np.linalg.eigh(scaledMat)
+    eigZ, eigvecZ = _eigh_about_mean(scaledMat)
     return [eigZ, eigvecZ]
 
 
