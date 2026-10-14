@@ -47,7 +47,7 @@ These cases are covered by [test_review_regressions.py](../tests/test_review_reg
 
 ## Still open
 
-- The hyperfine-constant estimator `HFS_Const_Calcs.py` has unit and modelling defects and has not been repaired.
+- The hyperfine-constant estimator (now `AtomSpect/hfs_estimate.py`, formerly the root script `HFS_Const_Calcs.py`) was moved into the package with its duplicated constants and unit helpers removed. Its numbers are pinned by `tests/test_hfs_estimate.py`, but its model and unit defects (`qe`, the units of `Bhfsconst`, `gI_kopf`) are not repaired.
 - Absolute radiative quantities need a reduced radial matrix element as input.
 - Approximation spectra (`DoLowSig`, `DoHighSig`) are not implemented with hyperfine structure.
 - Equal-energy eigenvectors receive a reconstructed basis, so only summed strength at coincident lines is meaningful.

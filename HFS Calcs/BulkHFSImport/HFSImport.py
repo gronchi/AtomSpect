@@ -7,7 +7,7 @@ This script takes an input file and does automated calculation and comparison fo
 """
 
 
-from HFS_Const_Calcs import Ahfs, pererror, read_HFSInput, powerset
+from AtomSpect.hfs_estimate import Ahfs, pererror, read_HFSInput, powerset
 
 import csv, os, sys
 import numpy as np

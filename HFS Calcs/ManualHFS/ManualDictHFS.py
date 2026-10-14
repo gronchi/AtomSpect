@@ -7,7 +7,7 @@ This file takes the manual dictionary tests for the hyperfine constant values an
 
 
 # from AtomSpect import *
-from HFS_Const_Calcs import Ahfs
+from AtomSpect.hfs_estimate import Ahfs
 #%%ManualDictTests
 domanualDicts = True
 if domanualDicts:

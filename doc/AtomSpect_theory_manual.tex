@@ -460,7 +460,7 @@ The repository's test suite adds regression tests for the polarization labels (w
 \begin{itemize}\setlength\itemsep{0pt}
 \item Only relative strengths are meaningful. No radial matrix elements, populations or photon-energy weighting.
 \item Each term is isolated. Mixing between terms of different $L$ or $S$ and configuration interaction are not modelled.
-\item Hyperfine constants and moments are user inputs. The estimator \code{HFS\_Const\_Calcs.py} remains an unaudited research aid.
+\item Hyperfine constants and moments are user inputs. The estimator module \code{hfs\_estimate} (semi-empirical A and B constants) is a research aid whose numbers are pinned by tests but whose model and units are not validated.
 \item The non-HFS high-field approximation neglects fine structure and uses $g_S=2$.
 \item \code{sortE} changes only the order in which basis states are listed, not the eigenvalues, and is slow.
 \item Without \code{Convfxn} the symmetric Lorentzian is used and \code{Temp} is ignored. \code{Skewness} is used only by \code{Skewed}.

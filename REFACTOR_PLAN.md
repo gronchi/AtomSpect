@@ -57,7 +57,7 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
   `PolAngle` key is gone; (4) `A_Ein`, `A_Ein_polavg`, `sigavgs`, `f_osc`, `S_line` are opt-in via
   `RadiativePlaceholders` with a warning; (5) a warning when `fxnwindow` truncates more than 2% of a
   Lorentzian line's area (`lorentzian_wing_loss`). Not done: the HFS-constant estimator
-  (`HFS_Const_Calcs.py`, a research script whose unit and model issues need a physics decision), and
+  (`AtomSpect/hfs_estimate.py`: moved from the root script `HFS_Const_Calcs.py` with shared constants and unit helpers reused and its numbers pinned by tests; its unit and model issues still need a physics decision), and
   absolute radiative quantities (needs a reduced radial matrix element as input).
 - Phase 7 (documentation) done: `doc/` mirrors the EZSSS layout (LaTeX manual with PDF, README,
   REVIEW, Makefile, `scripts/{make_figures,plot_figures,build_manual,example_minimal}.py`, figure data
