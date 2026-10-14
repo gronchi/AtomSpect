@@ -6,7 +6,7 @@ Start with the [minimal documentation example](../doc/scripts/example_minimal.py
 python doc/scripts/example_minimal.py
 ```
 
-The examples below demonstrate larger workflows. Install AtomSpect first, then run each script from its own directory so its relative data paths resolve. The C III example includes an optional NetCDF workflow using `xarray` and `h5netcdf`; CSV data are also provided.
+The examples below demonstrate larger workflows. Install AtomSpect first, then run each script from any directory: the scripts change to their own folder, so their data files and output figures stay next to them. The C III example includes an optional NetCDF workflow using `xarray` and `h5netcdf`; CSV data are also provided.
 
 | Script | Workflow |
 |---|---|

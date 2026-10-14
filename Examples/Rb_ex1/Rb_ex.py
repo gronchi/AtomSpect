@@ -12,6 +12,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import ticker
 #This adds the directy two folders up from the example file so taht the main module can be imported.
+# Work relative to this script, so the example runs from any directory.
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.path.pardir, os.path.pardir)))
 from AtomSpect  import AtomSpect_Main, Normalize,PlotFunction,read_Spectra, plotZfan,Convol_Sticks, make_stickbins,MakeSlider, ZeemanFan
 

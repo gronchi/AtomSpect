@@ -30,6 +30,8 @@ from matplotlib import pyplot as plt
 
 
 #This is the base folder of the main function. Can be excluded if data files are in the same location as the 
+# Work relative to this script, so the example runs from any directory.
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.path.pardir, os.path.pardir)))
 from AtomSpect  import AtomSpect_Main, Normalize,PlotFunction,Vac_to_air, Convol_Spect, MultiSpec, read_Spectra
 
