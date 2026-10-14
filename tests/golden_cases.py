@@ -67,6 +67,37 @@ def cases():
     fan = dict(RB, Bmag=np.linspace(0, .5, 7))
     flatten(AtomSpect.ZeemanFan(fan, "GEH"), "fan/rb", out)
 
+    # Direct calls into the level/Hamiltonian/signal layers (cover sortE, every
+    # field regime, both PsiHFS settings and the unlabelled signal path).
+    for sort in (False, True):
+        for name, args in (("g", (1, 1, HE["E_ground"])), ("e", (2, 1, HE["E_excited"]))):
+            lev = AtomSpect.stateprocess(*args, 0.5, sortE=sort)
+            flatten(lev, f"levels/he{name}/sort{sort}", out)
+        gi = AtomSpect.lande_gi(RB["I_spin"], RB["mu_I"])
+        for name, L, E, A, B in (("g", 0, RB["E_ground"], RB["HFS_G"], [0.]),
+                                 ("e", 1, RB["E_excited"], RB["HFS_E"], RB["HFSB_E"])):
+            lev = AtomSpect.stateprocess_HFS(L, .5, RB["I_spin"], {"HFSA": A, "HFSB": B}, gi, E, 0.1, sortE=sort)
+            flatten(lev, f"levels/rb{name}/sort{sort}", out)
+    lg = AtomSpect.stateprocess(1, 1, HE["E_ground"], 0.5)
+    le = AtomSpect.stateprocess(2, 1, HE["E_excited"], 0.5)
+    for regime, kw in (("mid", {}), ("low", {"Lowfield": True}), ("high", {"Highfield": True})):
+        eg, ee = ({"Eterm": 169087.}, {"Eterm": 191444.}) if kw.get("Highfield") else ({}, {})
+        zg, ze = AtomSpect.Zeeman_func(lg, 0.5, **kw, **eg), AtomSpect.Zeeman_func(le, 0.5, **kw, **ee)
+        flatten([zg[0], ze[0]], f"zfunc/he/{regime}/energies", out)
+        flatten(AtomSpect.Zeeman_signal(lg, zg, le, ze, Bangle=70, gamma=20, Filter=True), f"zsig/he/{regime}", out)
+        flatten(AtomSpect._zeeman_signal(lg, zg, le, ze, label_eigenpairs=False), f"zsig/he/{regime}/unlabelled", out)
+    zg, ze = AtomSpect.Zeeman_func(lg, 0.5), AtomSpect.Zeeman_func(le, 0.5)
+    flatten(AtomSpect.Zeeman_sig_norad(lg, zg, le, ze), "zsig/he/norad", out)
+    flatten(AtomSpect.HZeeman(lg), "hzeeman/he", out)
+    gi = AtomSpect.lande_gi(RB["I_spin"], RB["mu_I"])
+    rg = AtomSpect.stateprocess_HFS(0, .5, 2.5, {"HFSA": RB["HFS_G"], "HFSB": [0.]}, gi, RB["E_ground"], 0.1)
+    re_ = AtomSpect.stateprocess_HFS(1, .5, 2.5, {"HFSA": RB["HFS_E"], "HFSB": RB["HFSB_E"]}, gi, RB["E_excited"], 0.1)
+    for psi in (True, False):
+        zg, ze = AtomSpect.Zeeman_func_HFS(rg, 0.1, gi, psi), AtomSpect.Zeeman_func_HFS(re_, 0.1, gi, psi)
+        flatten([zg[0], ze[0]], f"zfunc/rb/psi{psi}/energies", out)
+        flatten(AtomSpect.Zeeman_signal_HFS(rg, zg, re_, ze, Bangle=70, gamma=20, Filter=True), f"zsig/rb/psi{psi}", out)
+    flatten(AtomSpect.HZeeman_HFS(rg, gi), "hzeeman/rb", out)
+
     # Units and wavelength conversions.
     x = np.array([200., 450., 800., 1500.])
     for fn in ("Hz_to_nm", "nm_to_Hz", "ev_to_MHz", "cm_to_nm", "cm_to_ev", "ev_to_cm",
