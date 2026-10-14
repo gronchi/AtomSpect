@@ -8,9 +8,27 @@ See the [theory manual](doc/AtomSpect_theory_manual.pdf), [documentation guide](
 
 ## Workflow
 
-The calculation flow below is exported directly from the [theory manual's TeX source](doc/AtomSpect_theory_manual.tex). It shows how `AtomSpect_Main` builds the Zeeman or hyperfine Hamiltonian, calculates E1 components, and broadens them into a spectrum.
+The flowchart follows the calculation flow in the [theory manual](doc/AtomSpect_theory_manual.pdf). An input dictionary drives `AtomSpect_Main`, the interactive `MakeSlider`, or the energy fans; `AtomSpect_Main` builds the Zeeman or hyperfine Hamiltonian, calculates E1 components, and broadens them into a spectrum.
 
-![AtomSpect calculation flow: input validation, Zeeman or hyperfine Hamiltonian, E1 strengths, polarization sticks, line profiles, and SpectrumResult.](doc/figures/calculation_flow.svg)
+```mermaid
+flowchart TD
+    subgraph MAIN["AtomSpect_Main"]
+        V["Defaults and validation<br/>InputDeck.from_dict"] --> Q{"Nuclear spin<br/>supplied?"}
+        Q -- no --> LS["LS basis and Zeeman Hamiltonian<br/>stateprocess, Zeeman_func"]
+        Q -- yes --> HF["Hyperfine basis and Hamiltonian<br/>stateprocess_HFS, Zeeman_func_HFS"]
+        LS --> E1["Definite-M eigenpairs and E1 strengths<br/>Zeeman_signal, Zeeman_signal_HFS"]
+        HF --> E1
+        E1 --> ST["Normalized strengths, air and vacuum wavelengths,<br/>polarization labels and stick lists"]
+        ST --> CV["Filter, merge bins, evaluate line profiles<br/>Convol_Spect, Convol_Sticks"]
+    end
+
+    IN["Input dictionary"] --> V
+    IN --> SL["MakeSlider<br/>interactive B, T, Wi and angle"]
+    IN --> FAN["ZeemanFan / plotZfan<br/>energies over a Bmag array"]
+    SL -- "recalculates on every change" --> V
+    CV --> RES["SpectrumResult"]
+    RES --> PLOT["Plotting<br/>PlotFunction"]
+```
 
 `AtomSpect_Main` uses a scalar `Bmag` and returns data for further analysis or plotting. `MakeSlider` calls the spectrum calculation as its controls change. Energy fans sweep the Hamiltonian over a `Bmag` array; `ZeemanFan` returns energy arrays and `plotZfan` also plots them.
 
