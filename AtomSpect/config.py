@@ -16,7 +16,7 @@ OPTIONAL_KEYS = (
     'HFS_G', 'HFS_E', 'HFSB_G', 'HFSB_E', 'PsiHFS', 'Calc_HFS_Vals',
     'DoLowSig', 'DoHighSig', 'ion_vel', 'Convfxn', 'Skewness', 'Temp', 'TempeV',
     'specstep', 'specres', 'fxnwindow', 'plottitle',
-    'RadiativePlaceholders',
+    'RadiativePlaceholders', 'RadiativeData',
 )
 KNOWN_KEYS = frozenset(REQUIRED_KEYS + OPTIONAL_KEYS)
 

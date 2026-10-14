@@ -10,7 +10,7 @@ matplotlib.use("Agg")
 import numpy as np
 import pytest
 import AtomSpect
-from AtomSpect.result import KEY_DESCRIPTIONS, SpectrumResult
+from AtomSpect.result import SpectrumResult
 
 FINE = dict(s_ground=0, s_excited=0, l_ground=0, l_excited=1, E_ground=np.array([0.]),
             E_excited=np.array([12500.]), Bmag=.1, b_angle=90, amu=40,

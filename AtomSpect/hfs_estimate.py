@@ -2,7 +2,7 @@
 
 Follows Kopfermann's hydrogenic model with the Casimir/Breit/Rosenthal-type corrections and the
 LS/jj coupling relations of Kuhn. `Ahfs(Input)` returns the estimated A in MHz for one level, and
-`read_HFSInput` (re-exported here) reads the CSV tables used by `HFS Calcs/BulkHFSImport`.
+`read_HFSInput` (re-exported here) reads the CSV tables used by `Examples/HFSConstants/BulkHFSImport`.
 
 The estimates are rough: P levels are typically within a few percent of experiment and some s
 levels are off by more than 10%. The routines are pinned by `tests/test_hfs_estimate.py`, which
@@ -20,10 +20,16 @@ from itertools import chain, combinations
 import numpy as np
 from scipy.special import gamma
 
-from .constants import (a_o, c_light, eps0, g_L, g_S, hbar, hh, kboltz, m_elec, m_prot,  # noqa: F401
-                        mu_0, muB, muN, muN2, muP, mu_B, q_charge)  # noqa: F401
-from .io import read_HFSInput  # noqa: F401
-from .units import Hz_to_nm, cm_to_ev, cm_to_nm, cm_to_Hz, ev_to_cm, ev_to_MHz  # noqa: F401
+from .constants import (a_o, eps0, hh, m_elec, m_prot,
+                        mu_0, muB, muP, q_charge)
+from .io import read_HFSInput as read_HFSInput
+from .units import cm_to_Hz, ev_to_MHz
+from .units import (
+    Hz_to_nm as Hz_to_nm,
+    cm_to_ev as cm_to_ev,
+    cm_to_nm as cm_to_nm,
+    ev_to_cm as ev_to_cm,
+)
 
 # Constants specific to this estimator.
 Rfreq = 3.28984196025e15  # Rydberg frequency
@@ -41,7 +47,6 @@ def cm_to_MHz(E_diff):
 #%%Functions
 
 def powerset(iterable):
-    #This is a modified version of the python website that outputs a list where the strings are all conbined together per entry.
     "Subsequences of the iterable from shortest to longest."
     # powerset([1,2,3]) → () (1,) (2,) (3,) (12) (13) (23) (123)
     s = list(iterable)
@@ -65,18 +70,16 @@ def Ahfs_dnu(deltanu,I):
     return 2*deltanu/(2*I +1)
 
 
-
 def Ahfs_Kopf(Z,n,ndefect,muI,I,l_in,j, Za=1):
     #Eqyatuib 26.8 for hydrogenic and small quantum numbers
     #Za is ionization, neutral = 1.
     thisgI = (muI/I)*(m_elec/m_prot) #this is giprime*
     if j==0:
         #There is no splitting for J=0
-        return 0 
+        return 0
     else:
-        
+
         tempval = hcRyd*alpha**2 * Z* Za**2 * thisgI / (j*(j+1)*(l_in + 0.5)*((n - ndefect)**3))
-            # tempval = 13.605693122990 *alpha**2 * Z* Za**2 * thisgI / ((j*j)*(l_in)*((n - ndefect)**3))
 
     return ev_to_MHz(tempval)
 
@@ -106,31 +109,25 @@ def deltacorr(Z,M,j):
     #Works based on table VI,2 on Kuhn pg 339!
     rtmp = 2e-15 *((M)**(1/3))
     ytemp = 2*Z*rtmp/a_o
-    
+
     thisrho = np.sqrt((j+.5)**2 - (alpha*Z)**2)
-    
+
     return 1-(((2*(1-thisrho)*thisrho*(2*thisrho+1))/((2*thisrho -1)*(gamma(2*thisrho +1))**2))*ytemp**(2*thisrho -1))
 
 
 def Fcorrj(Z,j):
     #Eq 26.18 Kopf, adjusted to j values only. Matches all compared values in Kopf and Kuhn.
     #Assuming s2 = 1/2 always, which I guess is true yeah.
-    #k = l+1 for j = l+.5, k1
-    #k = -l for j = l-1/2 ,k2
     #Adding in from table 8, based on 26.25 for nonhydrogenic (corrections)
 
-    rho = np.sqrt((np.abs(j) + 0.5)**2 - (alpha*Z)**2)    
+    rho = np.sqrt((np.abs(j) + 0.5)**2 - (alpha*Z)**2)
     tF = (4*j*(j+1)*(j+.5))/(rho*(4* rho**2 -1))
     return tF
 
 def Rcorr(Z,l,s,kval):
     #This is from Kopf 30.11, tested and matches Kuhn pg 337 # Only used in the calculation of the Bhfs constant?.
-    
-    #k = l+1 for j = l+.5, k1
-    #k = l-1 for j = l-1/2 ,k2  
-    #
-    
-    
+
+
     if kval == 'l+':
        j = l + np.abs(s)
        k = l+1
@@ -138,7 +135,6 @@ def Rcorr(Z,l,s,kval):
         j = l - np.abs(s)
         k=-l
     rho = np.sqrt((j + 0.5)**2 - (alpha*Z)**2)
-    # rho = np.sqrt(k**2 - (alpha*Z)**2)
     if l==0:
         return 1
     else:
@@ -146,17 +142,16 @@ def Rcorr(Z,l,s,kval):
         return tF
 
 
-
 def dsigcorr(qdef1,qdef2):
-    
+
     #This is 1 - dsigma/dn, wherein dn=1, so it's just the difference between two quantum defects of the same term.
     #I seem to get better results if I use dsigma/dn* for different n levels.
     #Thie supposedly is only valid for s states? Unclear why.
     return 1 - (qdef2 - qdef1)
 
 def Hcorr(Z,l):
-    
-    
+
+
     #Kopf 26.1 - Matches compared values from Kuhn pg 362 and others. - Unsure if this is supposed to be used all the time or just for doublets.
     rhop = np.sqrt((np.abs(l)+1)**2 - (alpha*Z)**2) #For doubet l+1/2
     rhopp = np.sqrt(l**2 - (alpha*Z)**2) #For doublet l-1/2
@@ -175,15 +170,14 @@ def Isotopediff(Eterm,mlight,mheavy):
 
 def sscouple(S,s_in,s_out):
     #This calculates the coupling factors for the case of ss coupling per Kopfermann 27.4. Typically going to have s2=1/2
-    #Returns [s1fac,s2fac]
+    # Return the inner- and outer-spin coupling factors, in that order.
     s_infac = (S*(S+1) + s_in*(s_in +1) - s_out*(s_out+1))/(2*S*(S +1)) #This is the correction for the "lower" electron
     s_outfac = (S*(S+1) + s_out*(s_out +1) - s_in*(s_in+1))/(2*S*(S +1)) #This is the correction for the "excited" electron
     return[s_infac,s_outfac]
 
 def sl1couple(J,S,s_in,s_out,l_out):
-    #This calculates the coupling factors for the case of sl1 for spin-spin is large compared to spin-orbital (of electron 2). 
+    #This calculates the coupling factors for the case of sl1 for spin-spin is large compared to spin-orbital (of electron 2).
 
-    #Returns [sl1fac]
     sl1fac = ((J*(J+1) + S*(S +1) - l_out*(l_out+1))/(2*J*(J +1)))*((S*(S+1) + s_in*(s_in +1) - s_out*(s_out+1))/(2*S*(S +1)))
     return sl1fac
 
@@ -203,7 +197,6 @@ def jjcouple2(J,j_out,j_in):
     jj_in = ((J*(J+1) + j_in*(j_in +1) - j_out*(j_out+1))/(2*J*(J +1))) #jj_in coupling
     jj_out = ((J*(J+1) + j_out*(j_out +1) - j_in*(j_in+1))/(2*J*(J +1))) #jj_out coupling
     return[jj_in,jj_out]
-
 
 
 def Ahfs_Kopf2(Z,deltaFS,muI,I,l_in,j):
@@ -270,7 +263,7 @@ def QdefCorr(E_ionize,E1,n1,E2,n2, Za=1,E_ryd=hcRyd):
 
     ET1 = E_ionize - E1
     ET2 = E_ionize - E2
-    
+
     QDef1 = Qdefect(ET1,n1,Za=Za,E_ryd = E_ryd)
     QDef2 = Qdefect(ET2,n2,Za=Za)
     return 1 - ((QDef2[1]-QDef1[1]))
@@ -294,26 +287,24 @@ def Ahfs_Calc(Input,verbose = False,detailed=False):
         DESCRIPTION.
 
     '''
-    #dict_keys(['Atom', 'Label', 'AMU', 'n1', 'E1', 'Eionize', 's1', 'l1', 'j1', 'Z', 'Za', 'I', 'mu_I', 'Q(b)', 'A_Exp', 'B_Exp', 'CorrFlags', 'Coupling', 'n2', 'E2', 's2', 'l2', 'j2', 'S', 'L', 'J', 'A_Calc', 'B_Calc', '', 'Source', 'Notes'])
 
     #using an input dictionary to do all of the calculations in a single swoop. Including the Z_effective corrections based on the l value.
-   
+
     #Equation 26.8 for hydrogenic and small quantum numbers, but it seems to be the same for all systems, so just going to use with corrections.
     #Also is Eq 31 and 32 from Kuhn on pg 339
-    #Za is ionization, neutral = 1. 
-    
-    #Verbose(bool) enables or disables error messages.
+    #Za is ionization, neutral = 1.
+
     muI = Input['muI']
     I = Input['I']
     l1 = Input['l1']
     j1=Input['j1']
     s1=Input['s1']
 
-    
+
     thisZ = Input['Z'] #Number of charges, screened charge (Casamir1933) has Zi = Z for s, Z-4 for p, Z-11 for d, and Z-35 for 4f.
     n = Input['n1'] #Principle quantum number
     #For the Rubidium test, it seems that the correction factors were only needed for the ground s level.
-    
+
     if 'Za' in Input:
         Za = Input['Za'] #Ionization/effective charge. Za=1 for neutral, 2 for singly ionized, etc...
     else:
@@ -325,48 +316,41 @@ def Ahfs_Calc(Input,verbose = False,detailed=False):
         qdef = Qdefect(Input['E_ionize']-Input['E1'], Input['n1'], Za=Za) #This calculates [n*,sigma], always needed. Defined/discussed by Casamir (1936ish)
 
     ndefect = qdef[1]
-    # print(qdef)
     #It looks like the screening constant is possibly the same as delta?, so gonna try that out.
 
-    # Zi = thisZ - ndefect       
-                    
-    # Testing match/case instead of a bunch of if statements for handling of Zi.
+
     match np.abs(l1):
         case 0: #s
-            # Zi = thisZ - qdef[1]
             Zi = thisZ
 
-        case 1: #p        
+        case 1: #p
             Zi = thisZ -4
         case 2: #d
             if thisZ>12:
-                Zi = thisZ - 11 
+                Zi = thisZ - 11
             else:
                 Zi = qdef[0]-2
         case 3: #f
             Zi = thisZ-35 - qdef[0]
- 
+
     thisgI = (muI/I)*(m_elec/m_prot) #this is giprime, unsure if a further mass correction is needed somewhere for nuclear weight
 
     #Since you can check for parts of a string, the corrections can be toggled as part of a single flag string.
     #Possible inclusions are: F, H, eps, del, ds for the corrections as expected. Still working on hydrogenic vs non and what they might entail other than couplings.
-    
-    #Will attempt to figure out what types of corrections are typically applicable and when.
+
     corrfactor = 1
     tFcorr = 1
     tHcorr = 1
     tepscorr = 1
     tdelcorr = 1
     tdscorr = 1
-        
+
     if 'Corrflags' in Input:
-        #Update: make some default correction flags based on observation of results.
 
             corrfactors = {}
             if 'R' in Input['Corrflags']:
                 #This takes care of the two different components. This work to correct for Lithium, but none of the heavier elements.
-                # jj = l1 + s1
-            
+
                 if j1 == (l1+.5):
                     tRcorr = Rcorr(thisZ,l1,s1,'l+')
                     corrfactor = corrfactor*tRcorr
@@ -390,7 +374,7 @@ def Ahfs_Calc(Input,verbose = False,detailed=False):
                     corrfactors['Hcorr'] = tHcorr
 
             if 'eps' in Input['Corrflags']:
-                if 'r_ro' in Input:                    
+                if 'r_ro' in Input:
                     tepscorr = epscorr(np.abs(thisZ),Input['AMU'],j1,r_ro=Input['r_ro'])
                 else:
                     tepscorr = epscorr(np.abs(thisZ),Input['AMU'],j1)
@@ -403,31 +387,29 @@ def Ahfs_Calc(Input,verbose = False,detailed=False):
                 corrfactors['deltacorr'] = tdelcorr
 
             if 'ds' in Input['Corrflags']:
-                #Trying the inclusion of ds for l>0 because I don't understand why it isn't included.  
+                #Trying the inclusion of ds for l>0 because I don't understand why it isn't included.
                 try:
                     if 'n2' in Input:
                         tdscorr = QdefCorr(Input['E_ionize'], Input['E1'], Input['n1'],Input['E2'], Input['n2'],Za=Za)
                         corrfactor = corrfactor*tdscorr
                         corrfactors['dscorr'] = tdscorr
 
-                        # print(tdscorr)
                     else:
                         corrfactor=corrfactor
                         if verbose:
                             print('Need E2 and n2 to calculate dsdn correction factor - No dsdn factor included')
-                except:             
+                except:
                     corrfactor=corrfactor
                     if verbose:
                         print('Need E2 and n2 to calculate dsdn correction factor - No dsdn factor included')
             corrfactors['TotalCorr'] = corrfactor
-                
 
-                
+
     if j1==0:
         #There is no splitting for J=0
         return 0
     else:
-      
+
         tempA = corrfactor*correctedE(Input['AMU']) *alpha**2 * Zi* Za**2 * thisgI / (j1*(j1+1)*(l1 + 0.5)*((n - ndefect)**3))
         if detailed:
             return [ev_to_MHz(tempA),corrfactor]
@@ -443,52 +425,44 @@ def Ahfs(Input,verbose = False, Input2 = {}):
             S = Input['S']
             s1 = Input['s1']
             s2 = Input2['s1']
-            L = Input['L']
-            l1 = Input['l1']
             l2 = Input2['l1']
             J = Input['J']
             j1 = Input['j1']
             j2 = Input2['j1']
             match Input['Coupling']:
-              
+
                 #Per Kuhn pg 339, the correction factors are for the small values, so per electron!
                 #This assumes that Input1 is the inner electron, and input2 is the outer electron.
                     case 'ss':
                         sscoup = sscouple(S,s1,s2)
-                        
+
                         tempout = tempA*sscoup[0] + tempA2*sscoup[1]
-                        # print('do ss coupling') #Kopf 27.4
                     case 'sl1':
                         sl1coup = sl1couple(J,S,s1,s2,l2)
                         tempout = tempA*sl1coup
-                        # print('do sl coupling for big spin-spin') #27.9
                     case 'sl2':
                         sl2coup = sl2couple(J,s1,j2)
                         tempout = tempA*sl2coup
-                        # print('do sl coupling for big spin-orbital of electron 2 (jj coupling)') #Eq 27.15
                     case 'jj':
                         jjcoup = jjcouple(J,j2,s1)
                         tempout = jjcoup[0]*tempA +jjcoup[1]*tempA2
-                        # print('do jj coupling inclusion of both electrons') #27.19  
                     case 'jj2':
                         jjcoup = jjcouple2(J,j2,j1)
                         tempout = jjcoup[0]*tempA +jjcoup[1]*tempA2
-                        # print('do jj coupling inclusion of both electrons') #27.19  
                     case 'None':
-                        
+
                         tempout = tempA
-    
+
                     case _:
                         tempout = tempA
                         print('Something went wrong. Check Input2 parameters. Only A1 returned.')
             data['Ahfsout'] = tempA2
             data['Acoupled'] = tempout
-            
+
     data['A'] = tempA
     return data
-                    
-    
+
+
 def GenCouple(A,B,C,D):
     #Couples (A(A+1) + B(B+1) - C(C+1)) /(2D(D+1)) since it is such a common calculation, esp for testing.
     return (A*(A+1) + B*(B+1) - C*(C+1)) /(2*D*(D+1))
-

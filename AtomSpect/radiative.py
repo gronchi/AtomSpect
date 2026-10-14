@@ -14,12 +14,11 @@ def A_Ein(E_in, dipolesig):
     The implementation multiplies dipolesig by a frequency-squared factor.
     A normalized angular strength omits the radial matrix element, so this
     value is not a physical absolute Einstein A coefficient or rate."""
- 
-    # omega = (Ea-Eb)/hbar
+
     tomega = nm_to_Hz(E_in)/(2*np.pi) #Note also the lack of hbar here, just h.
     #This expression looks close to eq 4.119 in Bransden Atoms (Pg190/182)
     tAein = ((tomega**2 * q_charge**2)/(np.pi*eps0*hh*c_light**3)) * dipolesig  # Not exactly as given by papers, but works?
-   
+
     return tAein
 
 
@@ -29,10 +28,9 @@ def A_Ein2(E_in, dipolesig):
     E_in is wavelength in nm; dipolesig is the supplied angular strength.
     The prefactor and missing radial matrix element prevent interpreting
     the result as a validated absolute Einstein coefficient."""
- 
-    # omega = (Ea-Eb)/hbar
+
     tomega = nm_to_Hz(E_in)*(2*np.pi) #Note also the
     #This expression looks close to eq 4.119 in Bransden Atoms (Pg190/182)
     tAein = 4*((tomega**3 * q_charge**2)/(np.pi*eps0*hbar*c_light**3)) * dipolesig  # Not exactly as given by papers, but works?
-   
+
     return tAein

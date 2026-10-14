@@ -66,9 +66,6 @@ def stateprocess(L_state, S_state, E_level, thisB, sortE=False):
     E_level = _level_inputs(L_state, S_state, E_level)
     # Create an array that contains [L,ml,S,ms] for the given L,S values. Starts with highest ml,mS values and itereates through ms first.
     LS0 = [[float(L_state), float(x), float(S_state), float(y)] for x in np.linspace(L_state, -L_state, int(2*L_state+1), dtype=float) for y in np.linspace(S_state, -S_state, int(2*S_state+1), dtype=float)]
-    # LS0 = [[L_state, x, S_state, y] for x in np.linspace(L_state, -L_state, int(2*L_state+1),dtype=float) for y in np.linspace(S_state, -S_state, int(2*S_state+1),dtype=float) ]
-    # print(LS0)
-    # Now create the possible J values
     Jvals = np.arange(np.abs(L_state-S_state), (L_state+S_state+.1))  # ,dtype=float)
 
     # Use those J values to make all possible mJ values and starts with Lowest J, and lowest mJ
@@ -79,7 +76,6 @@ def stateprocess(L_state, S_state, E_level, thisB, sortE=False):
 
     # Expand the input energies which were given for each J to correspond to the number of mJs
     E_cm0 = [[E_level[x]]*int(2*Jvals[x] + 1) for x in range(len(E_level))]
-    # Flatten the results out
     E_cm0_flat = [item for row in E_cm0 for item in row]
     # This step uses a low field approximation in order to sort the state-list based on the given magnetic field such that the relative state function order is known.
     # This is used for signal strength calculation as otherwise we may not know what order the functions are after they get diagonalized. This step might not be needed.
@@ -125,18 +121,13 @@ def stateprocess_HFS(L_state, S_state, I_state, HFS_Const, g_I, E_level, thisB, 
     E_level = _level_inputs(L_state, S_state, E_level)
     if not np.isscalar(I_state) or not np.isfinite(I_state) or I_state < 0 or 2*I_state != round(2*I_state):
         raise ValueError('I_state must be a nonnegative integer or half integer')
-    # Create an array that contains [L,ml,S,ms] for the given L,S values. Starts with lowest ml,mS values and itereates through ms first.
-    # LS0 = [[L_state, x, S_state, y] for x in np.linspace(-L_state, L_state, int(2*L_state+1)) for y in np.linspace(-S_state, S_state, int(2*S_state+1)) ]
     # Create an array that contains [L,ml,S,ms,I,mI] for the given L,S,I values. Starts with Highest mL,mS values and itereates through mI first, then mS, then mL
     # Extra type-casting is required due to new numpy.float64 objects interaction with sympy wigner functions
     LSI0 = [[float(L_state), float(x), float(S_state), float(y), float(I_state), float(z)] for x in np.linspace(-L_state, L_state, int(2*L_state+1)) for y in np.linspace(-S_state, S_state, int(2*S_state+1))for z in np.linspace(I_state, -I_state, int(2*I_state+1))]
 
-    # Now create the V values, starting with the lowest J state first.
 
-    # Make all Js corresponding to L,S relation
     Jvals = np.arange(np.abs(L_state-S_state), (L_state+S_state+.1))
 
-    # Make all mJs for the Js
     Jmjs0 = make_Jmj(Jvals)
 
     # Make a list of J,mJ,I,mI states
@@ -144,7 +135,6 @@ def stateprocess_HFS(L_state, S_state, I_state, HFS_Const, g_I, E_level, thisB, 
 
     # Combine J and Is to make possible Fs
     Fvals = [np.arange(np.abs(-x + I_state), (x + I_state+.1)) for x in Jvals]
-    # Flatten the list to be one big list
     Fvals = [float(item) for row in Fvals for item in row]
     # Make the possible mFs for all Fs
     Fmfs0 = make_Jmj(Fvals)
@@ -160,8 +150,6 @@ def stateprocess_HFS(L_state, S_state, I_state, HFS_Const, g_I, E_level, thisB, 
     # Duplicate energies based on degeneracy and flatten the results
 
     # Duplicate HFS constants to match F levels based on degeneracy and flatten the results
-    # HFSConst = [[HFS_Const[0][x]]*int(2*Jvals[x] +1)*int(2*I_state + 1) for x in range(len(E_level))]
-    # Flatten the shape of the Energy array
 
     # Make a large list of [F,mF,J,mJ,I,mI,L,mL,S,mS]
     bigstatelist = [[x[0], x[1], y[0], y[1], y[2], y[3], z[0], z[1], z[2], z[3]] for x, y, z, in zip(Fmfs0, JI0, LSI0)]

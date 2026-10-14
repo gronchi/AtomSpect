@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 
 from .angular import lande_gi
-from .config import InputDeck, _approximation_enabled  # noqa: F401
+from .config import InputDeck
 from .constants import hbar, m_elec, q_charge
 from .convolution import Convol_Spect
 from .hamiltonian import Zeeman_func, Zeeman_func_HFS
@@ -17,17 +17,13 @@ from .units import nm_to_Hz
 
 def _solve_hfs(deck):
     """Exact hyperfine Zeeman levels and E1 sticks (nuclear spin present)."""
-    # Use spin, spin parity, and nuclear dipole moment to calculate lande g_i nuclear factor.
     thisg_I = lande_gi(deck.I_spin, deck.mu_I)
 
-    # Process the wavefunction matrix and energies. Preliminary sorting is done so that the final state order should be roughly as expected.
     Ground_Level_HFS = stateprocess_HFS(deck.L_ground, deck.S_ground, deck.I_spin, deck.HFS_ConstsG, thisg_I, deck.E_ground, deck.Bfield)
     Excited_Level_HFS = stateprocess_HFS(deck.L_excited, deck.S_excited, deck.I_spin, deck.HFS_ConstsE, thisg_I, deck.E_excited, deck.Bfield)
 
-    # Take the sorted states, the state matrix, and energy matrix and calculate the zeeman splitting (with HFS)
     Ground_Zeeman_HFS = Zeeman_func_HFS(Ground_Level_HFS, deck.Bfield, thisg_I, deck.PsiHFS)
     Excited_Zeeman_HFS = Zeeman_func_HFS(Excited_Level_HFS, deck.Bfield, thisg_I, deck.PsiHFS)
-    # Use the eigenvectors and values from the diagonalization of the hamiltonian to calculate the relative signal strength. This function uses a combination of Isler1997 and Metcalf 4.32/4.33
     Z_sig_HFS = Zeeman_signal_HFS(Ground_Level_HFS, Ground_Zeeman_HFS, Excited_Level_HFS, Excited_Zeeman_HFS,
                                   Bangle=deck.Bangle, gamma=deck.Polangle, Filter=deck.Polfilter,
                                   T_Alpha=deck.Talpha, T_Beta=deck.Tbeta)
@@ -46,7 +42,7 @@ def _solve_hfs(deck):
     data['ZeemanSplits_G'] = Ground_Zeeman_HFS[0]
     data['Red_Dipole'] = Z_sig_HFS[4]
 
-    data['rad'] = Z_sig_HFS[2]  # Given out so that it can be used to plot specific polarizations.
+    data['rad'] = Z_sig_HFS[2]
     return data
 
 
@@ -102,15 +98,12 @@ def _add_radiative_placeholders(deck, data):
 
 def _solve_fine(deck):
     """Exact Zeeman levels and E1 sticks without hyperfine structure."""
-    # Process the wavefunction matrix and energies. Preliminary sorting is done so that the final state order should be roughly as expected.
     Ground_Level = stateprocess(deck.L_ground, deck.S_ground, deck.E_ground, deck.Bfield)
     Excited_Level = stateprocess(deck.L_excited, deck.S_excited, deck.E_excited, deck.Bfield)
     data = {}
 
-    # Use ground and excited states to calculate zeeman splitting and diangonalize the energy hamiltonian to obtain eigenvalues and vectors.
     Ground_Zeeman = Zeeman_func(Ground_Level, deck.Bfield)
     Excited_Zeeman = Zeeman_func(Excited_Level, deck.Bfield)
-    # Use the new eigenvectors as the basis to calculate the relative signal strengths for the transitions
     Z_sig = Zeeman_signal(Ground_Level, Ground_Zeeman, Excited_Level, Excited_Zeeman, Bangle=deck.Bangle,
                           gamma=deck.Polangle, Filter=deck.Polfilter, T_Alpha=deck.Talpha, T_Beta=deck.Tbeta)
     Z_sig_norad = Zeeman_sig_norad(Ground_Level, Ground_Zeeman, Excited_Level, Excited_Zeeman)
@@ -130,7 +123,6 @@ def _solve_fine(deck):
     data['statelist_Ground'] = Ground_Level[-1]
     data['statelist_Excited'] = Excited_Level[-1]
 
-    # Energy level output with lowfield approximation of zeeman splitting output.
     data['E0_Ground'] = Ground_Level[3]
     data['E0_Excited'] = Excited_Level[3]
 
@@ -168,7 +160,7 @@ def _convolve(deck, data, settings):
 
     if deck.do_low:
         ConvolvedSpectLow, redsticksLow, _ = spectrum(data['wave_air_low'], data['signal_low'])
-        data['SpecOutLow'] = np.array(ConvolvedSpectLow)  # Ugly, but should fix an issue with plotting it?
+        data['SpecOutLow'] = np.array(ConvolvedSpectLow)
         data['reduced_sticksLow'] = redsticksLow
 
     if deck.do_high:
@@ -241,4 +233,7 @@ def AtomSpect_Main(Inputdeck):
     _convolve(deck, data, deck.convolution)
     data = SpectrumResult(data)
     data['Input'] = Inputdeck
+    if 'RadiativeData' in Inputdeck:
+        from .atomic import components_from_inputdeck
+        data['AtomicComponents'] = components_from_inputdeck(Inputdeck, Inputdeck['RadiativeData'])
     return data

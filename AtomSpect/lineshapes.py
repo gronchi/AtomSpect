@@ -1,21 +1,14 @@
-"""Unit-area line profiles; wavelengths in metres, widths are FWHM."""
+"""Unit-area line profiles; wavelengths in metres, widths are FWHM.
+
+Profiles return densities per metre. Temperatures are in kelvin and masses
+are in atomic mass units. Custom profiles used by Convol_Sticks should follow
+the existing functions' wavelength, temperature, width and velocity arguments.
+"""
 import numpy as np
 import scipy as scp
 
 from .constants import amu_kg, c_light, kboltz
 
-
-# =============================================================================
-# The lineshapes here are all built the same way, so a custom lineshape can be defined.
-# The code uses these functions to take a "stick" with a given height and perform the convolution.
-# Every lineshape is normalized to unit area (in metres), so the total strength of a stick is independent of the profile.
-# Instrument widths (pixel_size) are FWHM for every function.
-# All of the inputs here expect wavelengths in meters and temperature in Kelvin
-# Atomic mass is in mass number. ie Rb = 85, Ar = 40, etc
-# The inputs should be func(wave_range, peak, Temp, atomic mass, pixel_size = 0.005, ion_velocity=0, bidir=False)
-# This would allow the function to be placed in the Convol_Sticks function, even if things like pixel_size, mass, ion_velocity, or bidirectional doppler shift are not used.
-# Ensure that wave_range is a np.array of possible wavelengths for the convolution to be evaluated at.
-# =============================================================================
 
 def Gaussian(x, x0, Temp_in, amu, v_ion=0, bidir=False):
     # Dickhauer, but added the ion velocity shift to the mean calculation
@@ -128,7 +121,6 @@ def Lorrentzian(xrange, peak, pixel_size=0.002222, Skewness=[1, 1], v_ion=0, bid
     v_ion is in m/s; bidir averages scalar +/-v or the pair [+v1,-v2].
     The profile has a single continuous peak and integrates to one on the
     infinite wavelength axis."""
-    # The Skewness is the left and right constants [left,right], and change the skewness of the lorrentzian. If both are 1, it is a normal lorrentzian. These values can be modified to fit the instrument profile.
 
     # pixel_size is the FWHM; the half-widths on each side are therefore half of it.
     l_w = Skewness[0]*pixel_size/2
@@ -154,18 +146,14 @@ def Lorrentzian(xrange, peak, pixel_size=0.002222, Skewness=[1, 1], v_ion=0, bid
     return SL
 
 def Normalize(list_in, scaling=1.0):
-    # Convert input to a numpy array immediately
     """Scale an array to peak scaling; return zeros and empty arrays unchanged."""
     data = np.asarray(list_in)
-    
-    # Get the max value, safely handling potential zeros
+
     if data.size == 0:
         return data.copy()
     max_val = np.max(data)
-    
+
     if max_val == 0:
         return data  # Return as-is if there's no signal to avoid div by zero
-    
-    # Vectorized math: Scaling * (Data / Max)
-    # This avoids the "not iterable" error entirely
+
     return (data / max_val) * scaling

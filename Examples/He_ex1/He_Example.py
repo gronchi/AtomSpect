@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Jul 10 13:26:58 2024
 @author: Leo Nofs
@@ -46,7 +45,6 @@ doHeNonPol = 1# Shows multiple B fields with all three regimes
 doHeNonPol2 = 1  # All 3 B fields, show sticks (dipole only)
 doHeNonPol3 =  1# Single B - show all polarization-resolved components
 
-# savepdf = 0
 
 savepdf =1
 savepng = 0
@@ -57,7 +55,6 @@ do_HeSlider = 0
 do_Hepolslider = 0
 
 closeplots = 0
-# do_title=0 #Adds titles to the plots
 
 if doHePol2 == True:
 
@@ -114,30 +111,28 @@ if doHePol2 == True:
             PlotFunction(HePol, HePol_PlotObj,  NormalizeSig=True, axsin=taxs, position=[0, i],
                          makefig=False,  plotlabel=r'$\gamma$' + f'={angles}' + r'$^o$', plotnondip=True, legcols=6)
 
-    # if do_title:      
     plt.tight_layout(rect=[0, 0, 1, .9])
-    taxs[0][1].annotate('', xy=(447.174, .33), xytext=(447.174, 0.65), 
+    taxs[0][1].annotate('', xy=(447.174, .33), xytext=(447.174, 0.65),
             arrowprops=dict(facecolor='black', shrink=0.05),
             )
-    taxs[0][0].annotate('', xy=(447.153, .475), xytext=(447.1605, 0.65), 
+    taxs[0][0].annotate('', xy=(447.153, .475), xytext=(447.1605, 0.65),
             arrowprops=dict(facecolor='black', shrink=0.05),
             )
-    
+
 
     if savepdf:
 
         taxs[0][0].get_figure().savefig(example_dir / 'He_Pol2.pdf', dpi=savedpi)
-    if savepng:    
+    if savepng:
             plt.tight_layout(rect=[0, 0, 1, .9])
             plt.rcParams['axes.titlepad'] = 315
-            plt.title(f'{InputdeckHePol['plottitle']}')
-            
+            plt.title(f'{InputdeckHePol["plottitle"]}')
+
 
             taxs[0][0].get_figure().savefig(example_dir / 'He_Pol2.png', dpi=savedpi)
 
-        
+
     plt.show()
-# %%
 
 if doHePol == True:
     plt.close('all')
@@ -152,7 +147,6 @@ if doHePol == True:
 
     polangles = [0, 30, 70, 90]
 
-    # fig, axs = plt.subplots(4,sharex=True,sharey=True, figsize = (16,10))
     colorlist = ['royalblue', 'g', 'r', 'brown', 'm', 'c', 'y', 'black', 'seagreen']
 
     HePol_PlotObj = []
@@ -173,12 +167,11 @@ if doHePol == True:
                           'Pol_angle': angles,  # Angle polarizing filter makes with max linear transmission, Optional
                           'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarizing Filter',  # Title for plotting (optional)
                           'spec_window': [447, 447.2],  # Min and max for convolutions
-                        
+
                           'SpectrumData': [He_PolShift, He_Pol_Spec['signals'][i]],  # Spectrometer Data.
                           'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                           'amu': 4.0026,  # Weight in AMU
                           'specres':3,  # How many steps per resolution are calculated. Higher makes a smoother curve.
-                          # 'sortE' : True
                             'TAlpha' : 0.65, #Beam Splitter Film Correction
                             'TBeta' : 0.35, #Beam Splitter Film Coating Correction
 
@@ -194,24 +187,19 @@ if doHePol == True:
         else:
             PlotFunction(HePol, HePol_PlotObj,  NormalizeSig=True, axsin=taxs[i][0], position=[0, i],
                          makefig=False,  plotlabel=r'$\gamma$' + f'={angles}' + r'$^o$',marker_count=5)
-            
-    # tfig = taxs[0][0].get_figure()   
-    # plt.subplots_adjust(hspace=0, wspace=0)
 
-    # savepdf = 1
+
     if savepdf:
         taxs[0][0].get_figure().savefig(example_dir / 'He_Pol.pdf', dpi=savedpi)
-    if savepng:      
+    if savepng:
         plt.tight_layout(rect=[0, 0, 1, .9])
         plt.rcParams['axes.titlepad'] = 450
-        plt.title(f'{InputdeckHePol['plottitle']}')
+        plt.title(f'{InputdeckHePol["plottitle"]}')
         taxs[0][0].get_figure().savefig(example_dir / 'He_PolB.png', dpi=savedpi)
     plt.show()
-        
-        #%%
+
 
 if doHePol3 == True:
-    # plt.close('all')
     pathfil = str(example_dir)
     filname = '/He_Spectra_1.5T_Polarized.csv'
     fil = pathfil + filname
@@ -223,7 +211,6 @@ if doHePol3 == True:
 
     polangles = [0, 30, 70, 90]
 
-    # fig, axs = plt.subplots(4,sharex=True,sharey=True, figsize = (16,10))
     colorlist = ['royalblue', 'g', 'r', 'brown', 'm', 'c', 'y', 'black', 'seagreen']
 
     HePol_PlotObj = []
@@ -243,24 +230,19 @@ if doHePol3 == True:
                           'Pol_angle': angles,  # Angle polarizing filter makes with max linear transmission, Optional
                           'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarizing Filter',  # Title for plotting (optional)
                           'spec_window': [447, 447.2],  # Min and max for convolutions
-                        
+
                           'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                           'amu': 4.0026,  # Weight in AMU
                           'specres':3,  # How many steps per resolution are calculated. Higher makes a smoother curve.
-                          # 'sortE' : True
                           'SpectrumData': [He_PolShift, He_Pol_Spec['signals'][i]],  # Spectrometer Data.
-            
-                            # 'TAlpha' : 0.65, #Beam Splitter Film Correction
-                            # 'TBeta' : 0.35, #Beam Splitter Film Coating Correction
-                       
-        
+
 
                           }
 
         HePol3 = AtomSpect_Main(InputdeckHePol3)
         HePol_PlotVar3 = ['royalblue', 2.5, 'solid', 'Intermediate']
 
-    
+
         InputdeckHeNonPol3b = {'s_ground': 1,  # Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                              's_excited': 1,  # Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
                              'l_ground': 1,  # Orbital Angular Momentum of ground state, int or half int
@@ -281,32 +263,25 @@ if doHePol3 == True:
                              'amu': 4.0026,  # Weight in AMU
                           'SpectrumData': [He_PolShift, He_Pol_Spec['signals'][i]],  # Spectrometer Data.
 
-                             # 'DoLowSig' : 'Y' , #If this exists in the input, lowfield signal strength will be calculated.
-                             # 'DoHighSig' : 'Y' , #If this exists in the input, highfield signal strength will be calculated.
                              'sortE': True ,
-                             # 'Pol_angle': 0,  # Angle polarizing filter makes with max linear transmission, Optional
-            
+
                             'TAlpha' : 0.65, #Beam Splitter Film Correction
                             'TBeta' : 0.35, #Beam Splitter Film Coating Correction
                              }
-        
+
         HePol3b = AtomSpect_Main(InputdeckHeNonPol3b)
 
-        
+
         colorlist = ['royalblue', 'g', 'r', 'brown', 'm', 'c', 'y', 'black', 'seagreen']
 
         HePol_PlotVar3b= ['red', 2.5, 'solid', 'Int - Corrected Pol','s']
-
-
-
-
 
 
         if i == 0:  # In the future, automate this process of the plotting.
             taxs = PlotFunction(HePol3b, HePol_PlotVar3b, NormalizeSig=True,
                                 Shape=[len(polangles), 1], makefig=True, show=False,
                                 plotlabel=r'$\gamma$' + f'={angles}' + r'$^o$',marker_count=15,plotpol=0)
-            
+
             PlotFunction(HePol3, HePol_PlotVar3,  NormalizeSig=True, axsin=taxs[i][0], position=[0, i],
                          makefig=False,  plotlabel=r'$\gamma$' + f'={angles}' + r'$^o$',marker_count=11,plotpol=0)
         else:
@@ -314,21 +289,18 @@ if doHePol3 == True:
                          makefig=False,  plotlabel=r'$\gamma$' + f'={angles}' + r'$^o$',marker_count=11,plotpol=0)
             PlotFunction(HePol3b, HePol_PlotVar3b,  NormalizeSig=True, axsin=taxs[i][0], position=[0, i],
                          makefig=False,  plotlabel=r'$\gamma$' + f'={angles}' + r'$^o$',marker_count=15,plotpol=0, legcols=3)
-            
-    # tfig = taxs[0][0].get_figure()   
-    # plt.subplots_adjust(hspace=0, wspace=0)
 
-    # savepdf = 1
+
     if savepdf:
         taxs[0][0].get_figure().savefig(example_dir / 'He_Pol3.pdf', dpi=savedpi)
-    if savepng:      
+    if savepng:
         plt.tight_layout(rect=[0, 0, 1, .9])
         plt.rcParams['axes.titlepad'] = 450
-        plt.title(f'{InputdeckHePol['plottitle']}')
+        plt.title(f'{InputdeckHePol["plottitle"]}')
         taxs[0][0].get_figure().savefig(example_dir / 'He_Pol3B.png', dpi=savedpi)
     plt.show()
 # %%For the paper
-if doHeNonPol == True: 
+if doHeNonPol == True:
     pathfil = str(example_dir)
     plt.close('all')
     fil = pathfil + '/He_Spectra_NonPolarized.csv'
@@ -362,9 +334,7 @@ if doHeNonPol == True:
                              'DoHighSig' : 'Y' , #If this exists in the input, highfield signal strength will be calculated.
                              'EtermG': 169086.7664725, #Term energy of lower state in cm^-1
 
-                             # 'EtermG': 169086.9076, #Term energy of lower state in cm^-1
                              'EtermE' : 191444.47832914, #Term energy of upper state in cm^-1
-                             # 'EtermE' : 191444.4827, #Term energy of upper state in cm^-1
                             'TAlpha' : 0.65, #Beam Splitter Film Correction
                             'TBeta' : 0.35, #Beam Splitter Film Coating Correction
 
@@ -372,7 +342,7 @@ if doHeNonPol == True:
         HeNonPol = AtomSpect_Main(InputdeckHeNonPol)
 
         colorlist = ['royalblue', 'g', 'r', 'brown', 'm', 'c', 'y', 'black', 'seagreen']
-        HeNonPol_PlotVar = [] 
+        HeNonPol_PlotVar = []
         HeNonPol_PlotVar.append(['royalblue', 2.5, 'solid', 'Intermediate','D'])
         HeNonPol_PlotVar.append( [colorlist[1], 1.5, '-.', 'Weak-field','X'])
         HeNonPol_PlotVar.append( [colorlist[2], 1.5, '--', 'Strong-field','o'])
@@ -385,30 +355,26 @@ if doHeNonPol == True:
                          makefig=False,plotwind = InputdeckHeNonPol['plot_window'],  plotnondip=0,plotpol=0)
             PlotFunction(HeNonPol['SpecOutHigh'], HeNonPol_PlotVar[2],  NormalizeSig=True, axsin=taxs, position=[i,0],
                          makefig=False,plotwind = InputdeckHeNonPol['plot_window'],  plotnondip=0,plotpol=0)
-     
+
         else:
             PlotFunction(HeNonPol, HeNonPol_PlotVar[0],  NormalizeSig=True, axsin=taxs, position=[0, i],
-                            makefig=False,  plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0)         
+                            makefig=False,  plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0)
             PlotFunction(HeNonPol['SpecOutHigh'], HeNonPol_PlotVar[2],  NormalizeSig=True, axsin=taxs, position=[0,i],
                          makefig=False,plotwind = InputdeckHeNonPol['plot_window'],  plotnondip=0,plotpol=0)
-            
+
             PlotFunction(HeNonPol['SpecOutLow'], HeNonPol_PlotVar[1],  NormalizeSig=True, axsin=taxs, position=[0,i],
                          makefig=False,plotwind = InputdeckHeNonPol['plot_window'],  plotnondip=0,plotpol=0 , legcols=4)
     plt.tight_layout(rect=[0, 0, 1, .9])
 
-    # if do_title:      
-    #     plt.tight_layout(rect=[0, 0, 0.75, .95])
-    #     plt.suptitle(f'{InputdeckHeNonPol['plottitle']}')
     if savepdf:
         taxs[0][0].get_figure().savefig(example_dir / 'He_NonPolRegime.pdf', format='pdf')
-    if savepng:      
+    if savepng:
         plt.tight_layout(rect=[0, 0, 1, .9])
         plt.rcParams['axes.titlepad'] = 405
-        plt.title(f'{InputdeckHeNonPol['plottitle']}')
+        plt.title(f'{InputdeckHeNonPol["plottitle"]}')
         taxs[0][0].get_figure().savefig(example_dir / 'He_NonPolRegimeB.png', dpi=savedpi)
     plt.show()
-#%%
-if doHeNonPol2 == True: 
+if doHeNonPol2 == True:
     pathfil = str(example_dir)
     plt.close('all')
     fil = pathfil + '/He_Spectra_NonPolarized.csv'
@@ -438,14 +404,10 @@ if doHeNonPol2 == True:
                              'amu': 4.0026,  # Weight in AMU
                              'SpectrumData': [He_NonPol_Spec['wavelength'], He_NonPol_Spec['signals'][i]],  # Spectrometer Data.
 
-                             # 'DoLowSig' : 'Y' , #If this exists in the input, lowfield signal strength will be calculated.
-                             # 'DoHighSig' : 'Y' , #If this exists in the input, highfield signal strength will be calculated.
                              'sortE': True ,
-                             # 'TAlpha' : np.sqrt(1-0.35) ,
-                             # 'TBeta' : np.sqrt(1-0.65) ,
                              }
         HeNonPol2 = AtomSpect_Main(InputdeckHeNonPol2)
-        
+
         InputdeckHeNonPol2b = {'s_ground': 1,  # Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                              's_excited': 1,  # Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
                              'l_ground': 1,  # Orbital Angular Momentum of ground state, int or half int
@@ -464,18 +426,15 @@ if doHeNonPol2 == True:
                              'amu': 4.0026,  # Weight in AMU
                              'SpectrumData': [He_NonPol_Spec['wavelength'], He_NonPol_Spec['signals'][i]],  # Spectrometer Data.
 
-                             # 'DoLowSig' : 'Y' , #If this exists in the input, lowfield signal strength will be calculated.
-                             # 'DoHighSig' : 'Y' , #If this exists in the input, highfield signal strength will be calculated.
                              'sortE': True ,
-                             # 'Pol_angle': 0,  # Angle polarizing filter makes with max linear transmission, Optional
-            
+
                             'TAlpha' : 0.65, #Beam Splitter Film Correction
                             'TBeta' : 0.35, #Beam Splitter Film Coating Correction
                              }
-        
+
         HeNonPol2b = AtomSpect_Main(InputdeckHeNonPol2b)
 
-        
+
         colorlist = ['royalblue', 'g', 'r', 'brown', 'm', 'c', 'y', 'black', 'seagreen']
         HeNonPol_PlotVar= ['royalblue', 2.5, 'solid', 'Int - Expected','s']
         HeNonPol_PlotVar2= ['red', 2.5, 'solid', 'Int - Corrected Pol']
@@ -486,26 +445,22 @@ if doHeNonPol2 == True:
                                 Shape=[len(Bmags), 1], makefig=True, show=False,
                                 plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0)
             PlotFunction(HeNonPol2b, HeNonPol_PlotVar2,  NormalizeSig=True, axsin=taxs[i][0], position=[0, i],
-                            makefig=False,  plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0)   
- 
+                            makefig=False,  plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0)
+
         else:
             PlotFunction(HeNonPol2, HeNonPol_PlotVar,  NormalizeSig=True, axsin=taxs[i][0], position=[0, i],
-                            makefig=False,  plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0)   
+                            makefig=False,  plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0)
             PlotFunction(HeNonPol2b, HeNonPol_PlotVar2,  NormalizeSig=True, axsin=taxs[i][0], position=[0, i],
-                            makefig=False,  plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0, legcols=3)  
-    # if do_title:      
-    #     plt.tight_layout(rect=[0, 0, 0.75, .95])
-    #     plt.suptitle(f'{InputdeckHeNonPol2['plottitle']}')
+                            makefig=False,  plotlabel=f'B={Bvals}T', plotnondip=0, plotpol=0, legcols=3)
     if savepdf:
         taxs[0][0].get_figure().savefig(example_dir / 'He_NonPol2.pdf', format='pdf')
-    if savepng:      
+    if savepng:
         plt.tight_layout(rect=[0, 0, 1, .9])
         plt.rcParams['axes.titlepad'] = 405
-        plt.title(f'{InputdeckHeNonPol2['plottitle']}')
+        plt.title(f'{InputdeckHeNonPol2["plottitle"]}')
         taxs[0][0].get_figure().savefig(example_dir / 'He_NonPol2B.png', dpi=savedpi)
     plt.show()
 
-#%%
 if doHeNonPol3 == True:
     pathfil = str(example_dir)
     plt.close('all')
@@ -513,8 +468,6 @@ if doHeNonPol3 == True:
     He_NonPol_Spec = read_Spectra(fil, scalewave=0.1, headercount=1)  # Need to scale the wavelengths from angstrom to nm.
 
     Bmags = 3.2
-
-    # He_NonPol_Spec['wavelength'] = [x + 0.00666 for x in He_NonPol_Spec['wavelength']]
 
 
     InputdeckHeNonPol3 = {'s_ground': 1,  # Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
@@ -535,33 +488,27 @@ if doHeNonPol3 == True:
                       'spec_window': [447, 447.2],  # Min and max for convolutions
                             'TAlpha' : 0.65, #Beam Splitter Film Correction
                             'TBeta' : 0.35, #Beam Splitter Film Coating Correction
-                      # 'DoLowSig': 'Y',  # If this exists in the input, lowfield signal strength will be calculated.
-                      # 'DoHighSig': 'Y',  # If this exists in the input, highfield signal strength will be calculated.
 
                       }
     HeNonPol3 = AtomSpect_Main(InputdeckHeNonPol3)
-    
+
     colorlist = ['royalblue', 'g', 'r', 'brown', 'm', 'c', 'y', 'black', 'seagreen']
-    
+
     HeNonPol_PlotObj = [colorlist[0], 2.5, 'solid', 'Intermediate']
-    
+
     taxs = PlotFunction(HeNonPol3, HeNonPol_PlotObj, NormalizeSig=True,
                         makefig=True, show=False,  plotlabel=f'B={Bmags}T', plotpol=1, plotnondip=1)
 
 
-    # if do_title:      
-    #     plt.tight_layout(rect=[0, 0, 0.75, .95])
-    #     plt.suptitle(f'{InputdeckHeNonPol3['plottitle']}')
     if savepdf:
         taxs[0][0].get_figure().savefig(example_dir / 'He_NonPol3.pdf', format='pdf')
-    if savepng:      
+    if savepng:
         plt.tight_layout(rect=[0, 0, 1, 0.9])
         plt.rcParams['axes.titlepad'] = 315
-        plt.title(f'{InputdeckHeNonPol3['plottitle']}')
+        plt.title(f'{InputdeckHeNonPol3["plottitle"]}')
         taxs[0][0].get_figure().savefig(example_dir / 'He_NonPol3B.png', dpi=savedpi)
     plt.show()
 
-    # %%
 if fanplot == True:
     InputdeckHeNonPolFan = {'s_ground': 1,  # Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                          's_excited': 1,  # Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
@@ -569,7 +516,6 @@ if fanplot == True:
                          'l_excited': 2,  # Orbital Angular Momentum of excited state, int or half int
                          'E_ground': np.array([169087.8308131,  169086.8428979,  169086.7664725]),  # Lowest J first, in cm^-1
                          'E_excited': np.array([191444.49804915, 191444.47952984, 191444.47832914]),  # Lowest J first, in cm^-1
-                         # 'Bmag': 0.1,  # Magnetic Field  [T]
                          'b_angle': 90,  # Angle between LoS and Bmax
                          'Convfxn': 'Skewed',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                          'specstep': 0.002222,  # Resolution of spectrometer in nm
@@ -583,21 +529,14 @@ if fanplot == True:
                          'DoHighSig': 'Y',  # If this exists in the input, lowfield signal strength will be calculated.
                          'EtermG': 169086.7664725, #Term energy of lower state in cm^-1
 
-                         # 'EtermG': 169086.9076, #Term energy of lower state in cm^-1
                          'EtermE': 191444.4827, #Term energy of upper state in cm^-1
 
-                         # 'Pol_angle': 90 ,#Angle polarizing filter makes with max linear transmission, Optional
-                         # 'sortE' : True
 
                          }
-    
-    # HeB0 = AtomSpect_Main(InputdeckHeNonPolFan)
+
     InputdeckHeNonPolFan['Bmag'] = np.linspace(0, 5, 1000)
-    # Brange = np.linspace(0, 5, 100)
     flags = 'HGL'
     Zfantest = plotZfan(InputdeckHeNonPolFan, flags=flags,markercount = 35)
-    # plt.ylim(169083.4, 169090)
-    # plt.tight_layout()
     if savepdf:
         plt.savefig(example_dir / 'He_Fan.pdf', format='pdf')
     if savepng:
@@ -605,21 +544,16 @@ if fanplot == True:
     plt.show()
     flags_ = 'G'
     Zfantest = plotZfan(InputdeckHeNonPolFan, flags=flags_,markercount = 0)
-    # plt.xlim(0,1)
-    # plt.tight_layout()
     if savepdf:
         plt.savefig(example_dir / 'He_Fan_Int.pdf', format='pdf')
     if savepng:
         plt.savefig(example_dir / 'He_Fan_Int.png', dpi=savedpi)
     plt.show()
-        
-        #%%
-# fanplot2 = 1
+
 if fanplot2 == True:
-    # plt.close('all')
     InputdeckHeNonPolFan = {'s_ground': 1,  # Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                          's_excited': 1,  # Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
-                         'l_ground': 1,  # Orbital Angular Momentum of ground state, int or half int 
+                         'l_ground': 1,  # Orbital Angular Momentum of ground state, int or half int
                          'l_excited': 2,  # Orbital Angular Momentum of excited state, int or half int
                          'E_ground': np.array([169087.8308131,  169086.8428979,  169086.7664725]),  # Lowest J first, in cm^-1
                          'E_excited': np.array([191444.49804915, 191444.47952984, 191444.47832914]),  # Lowest J first, in cm^-1
@@ -638,17 +572,12 @@ if fanplot2 == True:
                          'EtermG': 169086.7664725, #Term energy of lower state in cm^-1
                          'EtermE': 191444.47832914, #Term energy of upper state in cm^-1
 
-                         # 'Pol_angle': 90 ,#Angle polarizing filter makes with max linear transmission, Optional
-                         # 'sortE' : True
 
                          }
     InputdeckHeNonPolFan['Bmag'] = np.linspace(0, .075, 1000)
-    # Brange = np.linspace(0, .25, 100)
     flags = 'ELH'
-    # flags = 'E'
 
     Zfantest = plotZfan(InputdeckHeNonPolFan, flags=flags, markercount = 50)
-    # plt.ylim(169083.4, 169090)
     savepdf=1
     if savepdf:
         plt.savefig(example_dir / 'He_FanE.pdf',format='pdf')
@@ -656,11 +585,9 @@ if fanplot2 == True:
         plt.savefig(example_dir / 'He_FanE.png', dpi=savedpi)
     plt.show()
 
-#%%
 
 if do_HeSlider:
     pathfil = str(example_dir)
-    # plt.close('all')
     fil = pathfil + '/He_Spectra_NonPolarized.csv'
     He_NonPol_Spec = read_Spectra(fil, scalewave=0.1, headercount=1)  # Need to scale the wavelengths from angstrom to nm.
 
@@ -674,8 +601,6 @@ if do_HeSlider:
                 'b_angle': 90,  # Angle between LoS and Bmax
                 'Convfxn': 'GaussianInstrum',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                 'specstep': 0.002222,  # Resolution of spectrometer in nm
-                # 'Skewness' : [1.24,1.98] , #How non-symmetric the Lorrentzian is
-                # 'Pol_angle': 90 ,#Angle polarizing filter makes with max linear transmission, Optional
                 'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarized',  # Title for plotting (optional)
                 'spec_window': [447, 447.2],  # Min and max for convolutions
 
@@ -705,7 +630,6 @@ if do_Hepolslider:
 
     polangles = [0, 30, 70, 90]
 
-    # fig, axs = plt.subplots(4,sharex=True,sharey=True, figsize = (12,8))
     colorlist = ['royalblue', 'g', 'r', 'brown', 'm', 'c', 'y', 'black', 'seagreen']
 
     SliderHePol = {'s_ground': 1,  # Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
@@ -718,7 +642,6 @@ if do_Hepolslider:
                    'b_angle': 90,  # Angle between LoS and Bmax
                    'Convfxn': 'GaussianInstrum',  # Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
                    'specstep': 0.002222,  # Resolution of spectrometer in nm
-                   # 'Skewness' : [1.24,1.98] , #How non-symmetric the Lorrentzian is
                    'spec_window': [447, 447.2],  # Min and max for convolutions
                    'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarized',  # Title for plotting (optional)
                    'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
@@ -726,24 +649,10 @@ if do_Hepolslider:
                    'specres': 10,  # How many steps per resolution are calculated. Higher makes a smoother curve.
                    'fxnwindow': 0.25, #How far the convolution evaluates from the last stick in nm
 
-                   # 'DoLowSig' : 'Yes' , #If this exists in the input, lowfield signal strength will be calculated.
                    }
     MakeSlider(SliderHePol, [He_PolShift, Normalize(He_Pol_Spec['signals'][-1])], [447.1, 447.2],
                banglevary=1, polvary=1, do_other=1)
 
 if closeplots:
     plt.close('all')
-
-#%% Save/load testing
-#Testing the save and load functions and ensuring the loaded values work as intended.
-# He_Pol_Specwav = [0.1*x +0.006666 for x in He_Pol_Spec['wavelength']]
-# He_Pol_Spec2 = [Normalize(x) for x in He_Pol_Spec['signals']]
-# Savenpy_Dict('He_asdf2',SliderHePol,spectra=[He_Pol_Specwav, He_Pol_Spec2],Normalize_sig = 1)
-# #%%
-
-# testHeDict,testHeLspec = Loadnpy_Dict('He_asdf2')
-# #%%
-# MakeSlider(testHeDict, [testHeLspec['wavelength'] ,Normalize(testHeLspec['signals'][-1]) ], [447.1, 447.2],
-#                banglevary=1, polvary=1, do_other=1)
-
 

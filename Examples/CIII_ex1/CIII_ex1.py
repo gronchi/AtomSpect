@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Mon Jul 15 17:08:11 2024
 
@@ -24,12 +23,11 @@ a try/except that falls back to just loading the .csv file of the same spectrome
 
 """
 
-import csv, os, sys
+import os, sys
 import numpy as np
 from matplotlib import pyplot as plt
 
 
-#This is the base folder of the main function. Can be excluded if data files are in the same location as the 
 # Work relative to this script, so the example runs from any directory.
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.path.pardir, os.path.pardir)))
@@ -38,10 +36,8 @@ from AtomSpect  import AtomSpect_Main, Normalize,PlotFunction,Vac_to_air, Convol
 
 pathfil = os.getcwd()
 
-#Add the path for the npy spectra objects
 
 sys.path.append(pathfil)
-
 
 
 savedpi = 144
@@ -55,16 +51,12 @@ do_sticks=1
 #Convert the spectrometer data from vacuum to air wavelengths
 
 
-
-
 #%%28.1eV
 if doHighTemp:
-    # plt.close('all')
     CIIISpec = np.load('CIII_2.24T.npy') #This is the spectrometer data, saved via np.save
     CIII_wav = [Vac_to_air(x) for x in CIIISpec[0]]
     Los_Angle = 68#Theta angle of LoS in degrees
     Temperature = 28.1#Temp in eV
-    # Polangle = 55.75
     Bmag = 2.24
     #Spetrometer resolution is defined in Gradic2022
     InputdeckCIII_4649 = {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
@@ -81,12 +73,11 @@ if doHighTemp:
                           'specstep' : 0.04 , #Resolution of spectrometer in nm
                           'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
                           'Temp' : Temperature*11604, #Temperature in K. Used for Gaussian convolution
-                          'plottitle': r"CIII $[1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J)$" f": B={Bmag}T , LoS = {Los_Angle}, T = {Temperature}, ", #Title for plotting (optional)     
+                          'plottitle': r"CIII $[1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J)$" f": B={Bmag}T , LoS = {Los_Angle}, T = {Temperature}, ", #Title for plotting (optional)
                           'ion_vel' : -2500, #Ion velocity in m/s
-                          'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                          # 'Pol_angle': Polangle ,#Angle polarizing filter makes with max linear transmission, Optional
-    
-                          
+                          'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
+
                        }
     InputdeckCIII_4649B = {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                           's_excited':1 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
@@ -102,42 +93,32 @@ if doHighTemp:
                           'specstep' : 0.04 , #Resolution of spectrometer in nm
                           'Convfxn': 'Gaussian', #Optional: 'Gaussian', 'Skewed'.
                           'Temp' : Temperature*11604, #Temperature in K. Used for Gaussian convolution
-                          'plottitle': f'CIII [1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J): B={Bmag}T LoS = {Los_Angle}', #Title for plotting (optional)     
-                          # 'ion_vel' : -1700, #Ion velocity in m/s
-                          'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                          # 'Pol_angle': Polangle ,#Angle polarizing filter makes with max linear transmission, Optional
-    
-                          
+                          'plottitle': f'CIII [1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J): B={Bmag}T LoS = {Los_Angle}', #Title for plotting (optional)
+                          'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
+
                        }
-    
-    
-    
-    
+
+
     CIII_4649 = AtomSpect_Main(InputdeckCIII_4649) #Gaussian Instrum
     CIII_4649B = AtomSpect_Main(InputdeckCIII_4649B) #Gaussian Only
-    
-        
 
-    
+
     CIII_Plotvars = [['royalblue', 2, '--','Gaussian+Instrum+Doppler' ,'D' ]    ]
-    
-    
+
+
     CIII_Plotvars.append(['crimson', 2, '--','Gaussian','o'])
-    
-    
-    
-    #This plots my results and sticks, gaussian convolution, including the ion velocity.
+
 
     thixas = PlotFunction(CIII_4649,CIII_Plotvars[0],plotwind = [464.5,465.3],
                  SpectrumPlot = np.array([CIII_wav, Normalize(CIIISpec[1])]),
-              #   plottitle=r"CIII $[1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J)$" f": B=2.24T , LoS = {Los_Angle}, T = {Temperature}, " ,
                  NormalizeSig = True,makefig=True ,fig_size=(10,8))
 
     if savefigs:
         plt.savefig('CIII_4649.pdf',dpi=savedpi, format='pdf')
-        if do_title:      
+        if do_title:
 
-            plt.suptitle(f'{InputdeckCIII_4649['plottitle']}')
+            plt.suptitle(f'{InputdeckCIII_4649["plottitle"]}')
             plt.savefig('CIII_4649B.pdf', dpi=savedpi, format='pdf')
 
     if do_sticks:
@@ -152,34 +133,28 @@ if doHighTemp:
             plt.savefig('CIII_4649Sticks.pdf',dpi=savedpi, format='pdf')
 
 
-
     if doConvComp:
-        
+
         thixas = PlotFunction(CIII_4649,CIII_Plotvars[0],plotwind = [464.5,465.3],
                      SpectrumPlot =[CIII_wav, Normalize(CIIISpec[1])],
-                  #   plottitle=r"CIII $[1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J)$" f": B=2.24T , LoS = {Los_Angle}, T = {Temperature}, " ,
                      NormalizeSig = True,makefig=True ,plotpol = 0)
-        PlotFunction(CIII_4649B,CIII_Plotvars[1],plotwind = [464.5,465.5],  axsin=thixas , 
+        PlotFunction(CIII_4649B,CIII_Plotvars[1],plotwind = [464.5,465.5],  axsin=thixas ,
                      NormalizeSig = True,makefig=0 ,plotpol = 0)
 
         if savefigs:
             plt.savefig('CIII_4649ConvComp.pdf',dpi=savedpi)
-            if do_title:      
-                # plt.tight_layout(rect=[0, 0, 0.75, .95])
-                plt.suptitle(f'{InputdeckCIII_4649['plottitle']}')
+            if do_title:
+                plt.suptitle(f'{InputdeckCIII_4649["plottitle"]}')
                 plt.savefig('CIII_4649ConvCompB.pdf', dpi=savedpi)
-    
-  
 
-    
 
     #This adds multiple different, overlapping spectra from different atoms, which will have different scalings needed.
-    
+
     if doCombSpec:
         plt.close('all')
         thisTemp =28.1
-    
-       
+
+
         InputdeckOII =        {'s_ground':1.5 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                               's_excited':1.5 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
                               'l_ground': 1 , #Orbital Angular Momentum of ground state, int or half int
@@ -188,16 +163,15 @@ if doHighTemp:
                               'E_excited':  np.array([206730.762,206786.286,206877.865,207002.482]) , #Lowest J first, in cm^-1
                               'Bmag': 2.22, #Magnetic Field  [T]
                               'b_angle': Los_Angle , #Angle between LoS and Bmax
-                              'plottitle': f'OII [](^3P)3s (^4P_J) -> [](^3P)3p (^4D_J) : B=2.24T , LoS = {Los_Angle}' , #Title for plotting (optional)     
+                              'plottitle': f'OII [](^3P)3s (^4P_J) -> [](^3P)3p (^4D_J) : B=2.24T , LoS = {Los_Angle}' , #Title for plotting (optional)
                               'plot_window' : [464.5,465.5], #Min and max for plot window range (nm)
                               'spec_window' : [462,470], #Min and max convolution (nm)
                               'amu' : 16 ,  #Weight in AMU
                               'specstep' : 0.04 , #Resolution of spectrometer in nm
                               'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
                               'Temp' : thisTemp*11604, #Temperature in K. Used for Gaussian convolution
-                              'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                              # 'ion_vel' : -1700, #Ion velocity in m/s
-                              
+                              'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
                           }
         InputdeckOIII =        {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                               's_excited':1 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
@@ -207,19 +181,18 @@ if doHighTemp:
                               'E_excited':  np.array([391830.76,391917.8,392209.53]) , #Lowest J first, in cm^-1
                               'Bmag': 2.24 , #Magnetic Field  [T]
                               'b_angle': Los_Angle , #Angle between LoS and Bmax
-                              'plottitle': f'OIII 2s^2 2p (3P)4p -> 2s^22p(^2P)5s (^3P): B=2.24T , LoS = {Los_Angle}' , #Title for plotting (optional)     
+                              'plottitle': f'OIII 2s^2 2p (3P)4p -> 2s^22p(^2P)5s (^3P): B=2.24T , LoS = {Los_Angle}' , #Title for plotting (optional)
                               'plot_window' : [464.5,465.5], #Min and max for plot window range (nm)
                               'spec_window' : [462,470], #Min and max convolution (nm)
                               'amu' : 16 ,  #Weight in AMU
                               'specstep' : 0.02 , #Resolution of spectrometer in nm
                               'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
                               'Temp' : thisTemp*11604, #Temperature in K. Used for Gaussian convolution
-                              'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                              # 'ion_vel' : -1700, #Ion velocity in m/s
-                              
+                              'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
                           }
-        
-    
+
+
         InputdeckCIII_4663 = {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                           's_excited':1 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
                           'l_ground': 1 , #Orbital Angular Momentum of ground state, int or half int
@@ -228,162 +201,118 @@ if doHighTemp:
                           'E_excited':  np.array([329685.38,329706.47,329743.57]) , #Lowest J first, in cm^-1
                           'Bmag': 2.24 , #Magnetic Field  [T]
                           'b_angle': Los_Angle , #Angle between LoS and Bmax
-                          'plottitle': f'CIII : B=2.24T , LoS = {Los_Angle}' , #Title for plotting (optional)     
+                          'plottitle': f'CIII : B=2.24T , LoS = {Los_Angle}' , #Title for plotting (optional)
                           'plot_window' : [464.5,465.5], #Min and max for plot window range (nm)
                           'spec_window' : [462,470], #Min and max convolution (nm)
-    
+
                           'amu' : 12.011 ,  #Weight in AMU
                           'specstep' : 0.02 , #Resolution of spectrometer in nm
                           'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
                           'Temp' : 3.717*11604, #Temperature in K. Used for Gaussian convolution
-                          'fxnwindow': 1 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
+                          'fxnwindow': 1 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
                           'ion_vel' : 2500, #Ion velocity in m/s
-                          # 'Pol_angle': 90 ,#Angle polarizing filter makes with max linear transmission, Optional
-    
+
                        }
-     
-    
-    
+
+
         OII_465 = AtomSpect_Main(InputdeckOII)
         OIII_465 = AtomSpect_Main(InputdeckOIII)
-    
+
         CIII_4663 = AtomSpect_Main(InputdeckCIII_4663)
-    
-        
-        
-        #Trying a rough attempt at adding two different lines together before convolution (no padspec this time)
-        
-        # plt.close('all')
-        #To have 28 eV CII, lets think about the required energy
-        
+
+
         multispecs = [CIII_4649,CIII_4663,OII_465,OIII_465]
         #This allows for scaling of the differeint possible contributions.
         scalers = [1,.1,.02,0.02]
         temp_list = np.array([thisTemp,])*11602
-        # scalers = [0,0,1,1]
         combspect = MultiSpec(multispecs,scalers)
-        #Unfortunately, all included atoms will have the same temp, velocity, and mass currently.
         Combspec = Convol_Spect(combspect[0],combspect[1], [462,470],[464.5,465.5], combspect[3], 0.035,Temperature_in=combspect[2],
                                   functiontype = "GaussianInstrum", wind_size = 1, ionvel=-2500)
-        
-    
-    
+
+
         CIII_Plotvars = [['green', 2.5, '-.','CIII 464.9']  ,  ['brown', 2.5, '--',InputdeckCIII_4663['plottitle']]]
-    
+
         Normcombsig = Normalize(Combspec[0][1])
-    
-        fig, axs = plt.subplots(1 , figsize=(14,14)) 
+
+        fig, axs = plt.subplots(1 , figsize=(14,14))
         plt.xlabel('Wavelength (nm)', weight='semibold')
         plt.ylabel('Normalized Intensity (arb)', weight='semibold')
 
         axslines = axs.twinx()
-        # axslines.vlines(CIII_4649['wave_air'], np.zeros_like(CIII_4649['signal']),CIII_4649['signal'],color='green', label='CIII 4649')
-        # axslines.vlines(CIII_4663['wave_air'], np.zeros_like(CIII_4663['signal']),scalers[1]*CIII_4663['signal'],color='orange', label='CIII 4663, f=0.1')
-    
-        # axslines.vlines(OII_465['wave_air'], np.zeros_like(OII_465['signal']),scalers[2]*OII_465['signal'],color='maroon', label='OII, f=0.025 ')
-        # axslines.vlines(OIII_465['wave_air'], np.zeros_like(OIII_465['signal']),scalers[3]*OIII_465['signal'],color='blue', label='OIII, f= 0.02')
+
         axslines.set_ylim(-0.1*np.max(CIII_4649['reduced_sticks'][1]),np.max(CIII_4649['reduced_sticks'][1]))
         axslines.stem(CIII_4649['wave_air'], CIII_4649['signal'], linefmt='C4', markerfmt='+', basefmt=" ",label='CIII 464.9')
-        
+
         axslines.stem(CIII_4663['wave_air'],scalers[1]*CIII_4663['signal'],linefmt='C1', markerfmt='D', basefmt=" ", label=f'CIII 466.3, f={scalers[1]}')
         axslines.stem(OII_465['wave_air'], scalers[2]*OII_465['signal'],linefmt='C2', markerfmt='x', basefmt=" ", label=f'OII, f={scalers[2]} ')
         axslines.stem(OIII_465['wave_air'], scalers[3]*OIII_465['signal'], linefmt='C3', markerfmt='o', basefmt=" ",label=f'OIII, f={scalers[3]}')
         axslines.set_ylim(-0.1*np.max(CIII_4649['reduced_sticks'][1]),np.max(CIII_4649['reduced_sticks'][1]))
-    
+
         axs.plot(Combspec[0][0], Normcombsig, label='Combined CIII + OII lines', marker='D',linewidth = 2, markersize = 5, markevery=2)
         combax = PlotFunction(CIII_4649,CIII_Plotvars[0],plotwind = [464.5,465.5], SpectrumPlot =[CIII_wav, Normalize(CIIISpec[1])],plottitle=f"B = 2.24T, Temp = {Temperature}eV, Los = {Los_Angle} deg," r"$v_i$ = -2500 m/s, $\Delta \lambda_{instrum}$ = 0.035 nm" ,
                      NormalizeSig=True, makefig=0,plotpol=0,axsin = axs)
         tfig=combax.get_figure()
-        # tfig=combax[0][1].get_figure()
         tfig.legends = []
 
-        #This block is to resulve some issues with legends. Normally, it is included in the PlotFunction, but as that was not used here,
-        #It must be done like this.
-        #Future work aims to find a better way to combine multiple spectra
         try:
             handles, labels = [x[0].get_legend_handles_labels() for x in combax]
-            # pass
         except:
             try:
-                
+
                 handles, labels = combax[0][0].get_legend_handles_labels()
             except:
                 handles, labels = combax.get_legend_handles_labels()
-    
+
         handles2,labels2 = axslines.get_legend_handles_labels()
-      
+
         handles.extend(handles2)
         labels.extend(labels2)
-        # plt.rcParams['figure.figsize'] = [10,10]
- 
+
         unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
         tfig.legend(*zip(*unique), bbox_to_anchor=(.5, .99), loc='upper center', ncol=4, fontsize=18)
         plt.tight_layout(rect=[0, 0, 1, 0.92])
         plt.subplots_adjust(hspace=0, wspace=0)
         if savefigs:
             plt.savefig('CIII_Multispec.pdf',format='pdf')
-            if do_title:      
-                # plt.tight_layout(rect=[0, 0, 0.75, .95])
-                plt.suptitle(f'{InputdeckCIII_4649['plottitle']}')
+            if do_title:
+                plt.suptitle(f'{InputdeckCIII_4649["plottitle"]}')
                 plt.savefig('CIII_MultispecB.pdf', dpi=savedpi)
-    
 
 
 #%%7.9eV
 if doLowTemp:
     #This low temperature example can use either the non-standard package xarray for cdf data format.
     #Alternatively, the same data has been included as a .csv file.
-    
-    
+
+
     try:
         import xarray as xr
         #Fiber44 of 20230215.015 available on Aurora dataset, publication states B = 2.51T, alpha = 71 deg, vi = 1km/s, ti = 17 eV
         #To read this file you need to install the h5netcdf python package.
         fil9 = f"{pathfil}/CIII_17eV.nc"
-        
-        # sys.path.append(pathfil)
-        
-        
-        # fig1 = xr.open_dataset(fil, engine="h5netcdf")
+
+
         fig9 = xr.open_dataset(fil9, engine="h5netcdf")
-        
+
         #Fiber44 of 20230215.015 available on Aurora dataset, publication states B = 2.51T, alpha = 71 deg, vi = 1km/s, ti = 17 eV
         CIIISpecL = fig9['spectrum_data'].values[1]
         Fiber44wav = fig9['spectrum_data']['wavelength'].values[1]
         CIII_wavL = [Vac_to_air(x) for x in Fiber44wav]
 
-        # #This block was used to take the cdf file and convert it into a .csv file.
-        # #While a little a-typical, this method uses csv.DictWriter for a list of dictionary entries.
-        # #There are definitely a large number of ways this can be achieved.
-        
-        # CIII_Ldat = [{'wavelength' :a , 'signals' : b} for a,b in zip(CIII_wavL,CIIISpecL)]
-        
-        # with open('CIII_17eV.csv', mode='w', newline='') as readme:
-        #     fieldnames = CIII_Ldat[0].keys()
-            
-        #     writer = csv.DictWriter(readme, fieldnames = fieldnames)
-        #     writer.writeheader()
-        #     for things in CIII_Ldat:
-        #         try:
-        #             trow = {k: v for k, v in things.items()}
-        #             writer.writerow(trow)
-        #         except:
-        #             pass
+
     except:
         #Since xarray and h5netcdf are non-standard python packages, have fall back to using the .csv file instead.
         #The attempt to use the cdf file is kept to show an example doing so in case the user encounters that need.
         pathfil = os.getcwd()
         filname = '/CIII_17eV.csv' #There are multiple magnetic field values in this file which will be split and parsed using read_Spectra utility.
         fil = pathfil + filname
-    
-        #Import and process the spectral data
+
         Spec_Raw = read_Spectra(fil, headercount=1, keepheaders=False)
         CIIISpecL= Spec_Raw['signals']
         CIII_wavL= Spec_Raw['wavelength']
 
     Los_Angle = 71#Theta angle of LoS in degrees
     TemperatureL = 17#Temp in eV
-    # Polangle = 55.75
     BmagL = 2.24
     InputdeckCIII_4649L = {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                        's_excited':1 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
@@ -399,30 +328,27 @@ if doLowTemp:
                        'specstep' : 0.035, #Resolution of spectrometer in nm
                        'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
                        'Temp' : TemperatureL*11604, #Temperature in K. Used for Gaussian convolution
-                       'plottitle': r"CIII $[1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J)$" f": B={BmagL}T , LoS = {Los_Angle}, T = {TemperatureL}, ", #Title for plotting (optional)     
-                       # 'specres' : 20,
+                       'plottitle': r"CIII $[1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J)$" f": B={BmagL}T , LoS = {Los_Angle}, T = {TemperatureL}, ", #Title for plotting (optional)
                        'ion_vel' : -500, #Ion velocity in m/s
-                       'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                       # 'Pol_angle': Polangle ,#Angle polarizing filter makes with max linear transmission, Optional
- 
-                       
+                       'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
+
                     }
     CIII_4649L = AtomSpect_Main(InputdeckCIII_4649L) #Gaussian Instrum
 
-    
+
     CIII_Plotvars = [['royalblue', 2, '--','Gaussian+Instrum+Doppler' ,'D' ]    ]
 
     thixas = PlotFunction(CIII_4649L,CIII_Plotvars[0],plotwind = [464.5,465.3],
                  SpectrumPlot = np.array([CIII_wavL, Normalize(CIIISpecL)]),
-              #   plottitle=r"CIII $[1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J)$" f": B=2.24T , LoS = {Los_Angle}, T = {Temperature}, " ,
                  NormalizeSig = True,makefig=True ,fig_size=(10,8))
 
 
     if doCombSpec:
         plt.close('all')
         thisTempL =17
-    
-       
+
+
         InputdeckOII =        {'s_ground':1.5 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                               's_excited':1.5 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
                               'l_ground': 1 , #Orbital Angular Momentum of ground state, int or half int
@@ -431,16 +357,15 @@ if doLowTemp:
                               'E_excited':  np.array([206730.762,206786.286,206877.865,207002.482]) , #Lowest J first, in cm^-1
                               'Bmag': BmagL, #Magnetic Field  [T]
                               'b_angle': Los_Angle , #Angle between LoS and Bmax
-                              'plottitle': f'OII [](^3P)3s (^4P_J) -> [](^3P)3p (^4D_J) : B={BmagL}T , LoS = {Los_Angle}' , #Title for plotting (optional)     
+                              'plottitle': f'OII [](^3P)3s (^4P_J) -> [](^3P)3p (^4D_J) : B={BmagL}T , LoS = {Los_Angle}' , #Title for plotting (optional)
                               'plot_window' : [464.5,465.5], #Min and max for plot window range (nm)
                               'spec_window' : [462,470], #Min and max convolution (nm)
                               'amu' : 16 ,  #Weight in AMU
                               'specstep' : 0.035 , #Resolution of spectrometer in nm
                               'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
                               'Temp' : thisTempL*11604, #Temperature in K. Used for Gaussian convolution
-                              'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                              # 'ion_vel' : -1000, #Ion velocity in m/s
-                              
+                              'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
                           }
         InputdeckOIII =        {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                               's_excited':1 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
@@ -450,19 +375,18 @@ if doLowTemp:
                               'E_excited':  np.array([391830.76,391917.8,392209.53]) , #Lowest J first, in cm^-1
                               'Bmag': BmagL , #Magnetic Field  [T]
                               'b_angle': Los_Angle , #Angle between LoS and Bmax
-                              'plottitle': f'OIII 2s^2 2p (3P)4p -> 2s^22p(^2P)5s (^3P): B={BmagL}T , LoS = {Los_Angle}' , #Title for plotting (optional)     
+                              'plottitle': f'OIII 2s^2 2p (3P)4p -> 2s^22p(^2P)5s (^3P): B={BmagL}T , LoS = {Los_Angle}' , #Title for plotting (optional)
                               'plot_window' : [464.5,465.5], #Min and max for plot window range (nm)
                               'spec_window' : [462,470], #Min and max convolution (nm)
                               'amu' : 16 ,  #Weight in AMU
                               'specstep' : 0.035 , #Resolution of spectrometer in nm
                               'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
                               'Temp' : thisTempL*11604, #Temperature in K. Used for Gaussian convolution
-                              'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                              # 'ion_vel' : -1000, #Ion velocity in m/s
-                              
+                              'fxnwindow': 2 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
                           }
-        
-    
+
+
         InputdeckCIII_4663 = {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                           's_excited':1 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
                           'l_ground': 1 , #Orbital Angular Momentum of ground state, int or half int
@@ -471,96 +395,83 @@ if doLowTemp:
                           'E_excited':  np.array([329685.38,329706.47,329743.57]) , #Lowest J first, in cm^-1
                           'Bmag': BmagL , #Magnetic Field  [T]
                           'b_angle': Los_Angle , #Angle between LoS and Bmax
-                          'plottitle': f'CIII : B={BmagL}T , LoS = {Los_Angle}' , #Title for plotting (optional)     
+                          'plottitle': f'CIII : B={BmagL}T , LoS = {Los_Angle}' , #Title for plotting (optional)
                           'plot_window' : [464.5,465.5], #Min and max for plot window range (nm)
                           'spec_window' : [462,470], #Min and max convolution (nm)
-    
+
                           'amu' : 12.011 ,  #Weight in AMU
                           'specstep' : 0.035 , #Resolution of spectrometer in nm
                           'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
                           'Temp' : thisTempL*11604, #Temperature in K. Used for Gaussian convolution
-                          'fxnwindow': 1 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                          # 'ion_vel' : -1000, #Ion velocity in m/s
-                          # 'Pol_angle': 90 ,#Angle polarizing filter makes with max linear transmission, Optional
-    
+                          'fxnwindow': 1 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
                        }
-     
-    
-    
+
+
         OII_465 = AtomSpect_Main(InputdeckOII)
         OIII_465 = AtomSpect_Main(InputdeckOIII)
-    
+
         CIII_4663 = AtomSpect_Main(InputdeckCIII_4663)
-    
-        
-        
-        
+
+
         plt.close('all')
-        
+
         multispecs = [CIII_4649L,CIII_4663,OII_465,OIII_465]
         #This allows for scaling of the differeint possible contributions.
         scalers = [1,.05,.05,0.3]
         temp_list = np.array([thisTempL,])*11602
-        
+
         combspect = MultiSpec(multispecs,scalers)
-        
+
         Combspec = Convol_Spect(combspect[0],combspect[1], [462,470],[464.5,465.5], combspect[3], 0.035,Temperature_in=combspect[2],
                                   functiontype = "GaussianInstrum", wind_size = 1, ionvel=1000)
-        
-    
-    
+
+
         CIII_Plotvars = [['green', 2.5, '-.','CIII 464.9']  ,  ['brown', 2.5, '--',InputdeckCIII_4663['plottitle']]]
-    
+
         Normcombsig = Normalize(Combspec[0][1])
-    
-        fig, axs = plt.subplots(1 , figsize=(14,14)) 
+
+        fig, axs = plt.subplots(1 , figsize=(14,14))
         plt.xlabel('Wavelength (nm)', weight='semibold')
         plt.ylabel('Normalized Intensity (arb)', weight='semibold')
 
         axslines = axs.twinx()
-    
+
         axslines.set_ylim(-0.1*np.max(CIII_4649L['reduced_sticks'][1]),np.max(CIII_4649L['reduced_sticks'][1]))
         axslines.stem(CIII_4649L['wave_air'], CIII_4649L['signal'], linefmt='C4', markerfmt='+', basefmt=" ",label='CIII 464.9')
         axslines.stem(CIII_4663['wave_air'],scalers[1]*CIII_4663['signal'],linefmt='C1', markerfmt='D', basefmt=" ", label=f'CIII 466.3, f={scalers[1]}')
-    
+
         axslines.stem(OII_465['wave_air'], scalers[2]*OII_465['signal'],linefmt='C2', markerfmt='x', basefmt=" ", label=f'OII, f={scalers[2]} ')
         axslines.stem(OIII_465['wave_air'], scalers[3]*OIII_465['signal'], linefmt='C3', markerfmt='o', basefmt=" ",label=f'OIII, f={scalers[3]}')
         axslines.set_ylim(-0.1*np.max(CIII_4649L['reduced_sticks'][1]),np.max(CIII_4649L['reduced_sticks'][1]))
-    
+
         axs.plot(Combspec[0][0], Normcombsig, label='Combined CIII + OII lines', marker='D',linewidth = 2, markersize = 5, markevery=2)
         combax = PlotFunction(CIII_4649L,CIII_Plotvars[0],plotwind = [464.5,465.5], SpectrumPlot =[CIII_wavL, Normalize(CIIISpecL)],plottitle=f"B = 2.51T, Temp = {thisTempL}eV, Los = {Los_Angle} deg," r"$v_i$ = 1000 m/s, $\Delta \lambda_{instrum}$ = 0.035 nm" ,
                      NormalizeSig=True, makefig=0,plotpol=0,axsin = axs)
         tfig=combax.get_figure()
-        # tfig=combax[0][1].get_figure()
         tfig.legends = []
 
-        #This block is to resulve some issues with legends. Normally, it is included in the PlotFunction, but as that was not used here,
-        #It must be done like this.
-        #Future work aims to find a better way to combine multiple spectra
         try:
             handles, labels = [x[0].get_legend_handles_labels() for x in combax]
-            # pass
         except:
             try:
-                
+
                 handles, labels = combax[0][0].get_legend_handles_labels()
             except:
                 handles, labels = combax.get_legend_handles_labels()
-    
+
         handles2,labels2 = axslines.get_legend_handles_labels()
-      
+
         handles.extend(handles2)
         labels.extend(labels2)
-        # plt.rcParams['figure.figsize'] = [10,10]
- 
+
         unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
         tfig.legend(*zip(*unique), bbox_to_anchor=(.5, .99), loc='upper center', ncol=4, fontsize=18)
         plt.tight_layout(rect=[0, 0, 1, 0.92])
         plt.subplots_adjust(hspace=0, wspace=0)
         if savefigs:
             plt.savefig('CIII_MultispecLow.pdf',format='pdf')
-            if do_title:      
-                # plt.tight_layout(rect=[0, 0, 0.75, .95])
-                plt.suptitle(f'{InputdeckCIII_4649['plottitle']}')
+            if do_title:
+                plt.suptitle(f'{InputdeckCIII_4649["plottitle"]}')
                 plt.savefig('CIII_MultispecBLow.pdf', dpi=savedpi)
         plt.show()

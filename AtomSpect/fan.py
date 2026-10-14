@@ -7,11 +7,8 @@ from .hamiltonian import HZeeman, HZeeman_HFS, ZeemanHigh, ZeemanhighHFS, Zeeman
 from .levels import stateprocess, stateprocess_HFS
 
 
-#        stateprocces HFS return [w3cgprod,E0_cm_Mat,E_HFSFlat,E_low,bigstatelist]
-
-
 def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=None, B_HFS=0):
-    
+
     # This is a supporting function which is for streamlining the diagonalization process which makes it much faster
     # Only the required calculation steps are taken for each magnetic field as the E0 and wavefunctions for zero-field don't change.
     # So make the wavefunctions once only before diagonalization.
@@ -58,13 +55,10 @@ def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=None, B_HFS=0):
         ZfansLow.append(thisZeemanEnergyL)
         ZfansHigh.append(thisZeemanEnergyH)
 
-    # print(Zfans[-1])
     return [ZfansLow, ZfansHigh]
 
 
 def ZeemanFan(Inputdeck, flags=''):
-    # Take the Inputdeck, generate states, then calculate energy for each value. Transpose and put it out.
-    # Take the required values from the input deck.
     """Return energy fans versus the magnetic fields in Inputdeck['Bmag'].
 
     flags selects G (lower), E (upper), L (weak-field approximation), and
@@ -81,18 +75,13 @@ def ZeemanFan(Inputdeck, flags=''):
     E_ground = Inputdeck['E_ground']
     E_excited = Inputdeck['E_excited']
     Bfield_ext = Inputdeck['Bmag']
-    # Bext_angle = Inputdeck['b_angle']
     EtermE = Inputdeck.get('EtermE')
     EtermG = Inputdeck.get('EtermG')
     if 'I_spin' not in Inputdeck and 'H' in flags:
         for flag, key in (('G', 'EtermG'), ('E', 'EtermE')):
             if flag in flags and Inputdeck.get(key) is None:
                 raise ValueError(f'Non-HFS high-field {flag} fan requires {key} in cm^-1')
-    # Generate empty lists for storing values in later. Ground, excited, low and exact. Look to add high approximation too.
-    # GZ_fan = []
-    # EZ_fan = []
 
-    # Check if HFS is being included.
     if 'I_spin' in Inputdeck:
         HFSConstsG = {}
         HFSConstsG['HFSA'] = Inputdeck['HFS_G']
@@ -122,7 +111,6 @@ def ZeemanFan(Inputdeck, flags=''):
             EigG = []
             for Bvals in Bfield_ext:
 
-                # tmat = np.asmatrix(Ground_Zeeman_HFS[0] +  Ground_Zeeman_HFS[2] +  Bvals*Ground_Zeeman_HFS[1]*muBcm)
                 if 'PsiHFS' in Inputdeck:
                     tmat = np.asmatrix(Ground_Zeeman_HFS['E0'] + Ground_Zeeman_HFS['PsiHFS'] + Bvals*Ground_Zeeman_HFS['H_Z']*muBcm)
                 else:

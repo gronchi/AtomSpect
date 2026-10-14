@@ -2,6 +2,7 @@
 
 # What each key of the result holds. Keys that only exist in some modes are marked.
 KEY_DESCRIPTIONS = {
+    'AtomicComponents': 'Opt-in physical Model B component table from RadiativeData; separate from legacy normalized spectra.',
     'signal': 'Relative E1 strength per eigenstate pair (sums to 1, or zero for a dark observation).',
     'wave_air': 'Air wavelength of every pair [nm].',
     'wave_vac': 'Vacuum wavelength of every pair [nm].',

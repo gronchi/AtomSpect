@@ -18,20 +18,20 @@ def MultiSpec(appendlist, scalelist):
     signals = np.array([])
     temps = np.array([])
     amus = np.array([])
-    
+
     for scaler, obj in zip(scalelist, appendlist):
         waves = np.append(waves, obj['wave_air'])
         signals = np.append(signals, scaler * np.array(obj['signal']))
-        
+
         # Capture metadata for each component to allow different T/amu during convolution
-        # Defaults to 300K and 1 amu if not found 
+        # Defaults to 300K and 1 amu if not found
         deck = obj['Input']
         t_val = deck['TempeV']*EV_TO_K if 'TempeV' in deck else deck.get('Temp', 300)
         a_val = obj['Input'].get('amu', 1)
-        
+
         temps = np.append(temps, np.full_like(obj['wave_air'], t_val, dtype=float))
         amus = np.append(amus, np.full_like(obj['wave_air'], a_val, dtype=float))
-        
+
     return [waves, signals, temps, amus]
 
 def Convol_Sticks(x0, xwind, Temp_in, amu_in, stepsize_nm, function="", Skew_consts=[1, 1], vel_ion=0, specres=10, bidirect=False):
@@ -46,7 +46,6 @@ def Convol_Sticks(x0, xwind, Temp_in, amu_in, stepsize_nm, function="", Skew_con
 
     Return [wavelength_nm, profile_per_m]. Integrate against wavelength in
     metres for unit area; finite windows truncate the analytic tails."""
-    # hstep = stepsize_nm # step size in nm!! (Want 10x the steps per pixe for better shape?)
     _validate_sampling(stepsize_nm, specres)
     hstep = (1/specres)*stepsize_nm
 
@@ -67,16 +66,13 @@ def Convol_Sticks(x0, xwind, Temp_in, amu_in, stepsize_nm, function="", Skew_con
             specout = tlorry
         case 'Gaussian':
             tlorry = Gaussian(1e-9*waveout, 1e-9*x0, Temp_in, amu_in, v_ion=vel_ion, bidir=bidirect)
-            # tlorry[tlorry>1] =1 #Sometimes an odd range for the lorrentzian causes the central peak to be twice as high for a single point, this should correct for that.
             specout = tlorry
         case 'GaussianInstrum':
             tlorry = GaussianInstrum(1e-9*waveout, 1e-9*x0, Temp_in, amu_in, pixel_size=1e-9*stepsize_nm, v_ion=vel_ion, bidir=bidirect)
-            # tlorry[tlorry>1] =1 #Sometimes an odd range for the lorrentzian causes the central peak to be twice as high for a single point, this should correct for that.
             specout = tlorry
         case 'Voigt':
 
             tlorry = Voigt(1e-9*waveout, 1e-9*x0, Temp_in, amu_in, pixel_size=1e-9*stepsize_nm, v_ion=vel_ion, bidir=bidirect)
-            # tlorry[tlorry>1] =1 #Sometimes an odd range for the lorrentzian causes the central peak to be twice as high for a single point, this should correct for that.
             specout = tlorry
 
         case _:
@@ -121,7 +117,7 @@ def make_stickbins(sticks_in, *data_arrays, windsize=.1):
         wavebins.append(wavered[mask])
         for i, arr in enumerate(data_arrays):
             binned_data[i].append(np.array(arr)[mask])
-            
+
     return {'binned_waves': wavebins, 'binned_data': binned_data, 'bin_windows': wavewind}
 
 def _validate_sampling(resolution, specres):
@@ -131,8 +127,8 @@ def _validate_sampling(resolution, specres):
     if not np.isfinite(specres) or specres <= 0:
         raise ValueError('specres must be finite and positive')
 
-def Convol_Spect(waves_in, signal_in, spec_wind, plot_wind, atomic_weight_amu, resolution_nm, 
-                 Temperature_in=300, functiontype="", wind_size=.1, 
+def Convol_Spect(waves_in, signal_in, spec_wind, plot_wind, atomic_weight_amu, resolution_nm,
+                 Temperature_in=300, functiontype="", wind_size=.1,
                  Skewness_consts=[1, 1], ionvel=0, specres=10, bidir=False):
 
     # 1. Resolve inputs into arrays
@@ -171,7 +167,7 @@ def Convol_Spect(waves_in, signal_in, spec_wind, plot_wind, atomic_weight_amu, r
     cutoff = 0.05 * np.max(signal_in)/len(signal_in) if signal_in.size else 0
     phys_reducer = (signal_in > cutoff) & \
                    (waves_in > np.min(spec_wind)) & (waves_in < np.max(spec_wind))
-    
+
     t_wav_phys, t_sig_phys = waves_in[phys_reducer], signal_in[phys_reducer]
     t_temp_phys, t_amu_phys = temps_arr[phys_reducer], amus_arr[phys_reducer]
 
@@ -193,14 +189,14 @@ def Convol_Spect(waves_in, signal_in, spec_wind, plot_wind, atomic_weight_amu, r
         # Optimization: Skip bins entirely outside the plot window
         if winds[1] < np.min(plot_wind) or winds[0] > np.max(plot_wind):
             continue
-            
+
         sigs, temps, amus = data_list
         twav = np.linspace(winds[0], winds[1], max(2, int(round(specres*(winds[1] - winds[0])/resolution_nm))))
         tsig = np.zeros_like(twav)
-        
+
         for w, s, t, a in zip(sticks, sigs, temps, amus):
-            tspec = Convol_Sticks(w, [winds[0], winds[1]], t, a, resolution_nm, 
-                                 function=functiontype, Skew_consts=Skewness_consts, 
+            tspec = Convol_Sticks(w, [winds[0], winds[1]], t, a, resolution_nm,
+                                 function=functiontype, Skew_consts=Skewness_consts,
                                  vel_ion=ionvel, specres=specres, bidirect=bidir)
             tsig += s * tspec[1]
 
@@ -210,7 +206,7 @@ def Convol_Spect(waves_in, signal_in, spec_wind, plot_wind, atomic_weight_amu, r
     # 5. Final Spectrum Clipping
     out_w, out_s = np.array(tempwavs), np.array(tempsigs)
     mask = (out_w >= np.min(plot_wind)) & (out_w <= np.max(plot_wind))
-    
+
     # Close the curve at the plot-window edges. A window edge that lies inside an evaluated bin keeps
     # the curve's own value there (holding the nearest sample); only an edge outside every bin, where
     # the spectrum was not evaluated, is set to zero.

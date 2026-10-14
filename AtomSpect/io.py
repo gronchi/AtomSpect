@@ -7,11 +7,6 @@ import numpy as np
 from .lineshapes import Normalize
 
 
-
-
-
-
-
 def read_Spectra(filename, scalewave=1, headercount=1, keepheaders=False):
     """Read a CSV whose first column is wavelength and remaining columns are signals.
 
@@ -27,7 +22,6 @@ def read_Spectra(filename, scalewave=1, headercount=1, keepheaders=False):
             headers.append(next(reader))
         specdat = []
 
-        # Read through the rows and scale the wavelength by the scalefactor.
         for rows in reader:
             specdat.append([float(x) for x in rows])
 
@@ -37,12 +31,9 @@ def read_Spectra(filename, scalewave=1, headercount=1, keepheaders=False):
         Spectraout = []
         [Spectraout.append(x) for i, x in enumerate(specdat[1:])]
 
-        # This small bit gives magnetic field values based on the headers info
-        # Bvals = [float(x) for x in headers[0][1:]]
 
         specdata_out = {}
         specdata_out['wavelength'] = [scalewave*x for x in specwav]  # output wavelength, assumed in nm.
-        # specdata_out['Bvals'] = Bvals
         if len(Spectraout) == 1:
             specdata_out['signals'] = Spectraout[0]
         else:
@@ -59,12 +50,8 @@ def read_dict(filename):
     """Read CSV records, omit empty cells, and convert numeric cells to floats."""
     with open(f'{filename}', mode='r', newline='') as readme:
         reader = csv.DictReader(readme, delimiter=',', quoting=csv.QUOTE_NONE)
-        # headers = []
-        # for i in range(headercount):
-        #     headers.append(next(reader))
         datraw = []
 
-        # Read through the rows and scale the wavelength by the scalefactor.
         for rows in reader:
             trow = {k: v for k, v in rows.items() if v}
 
@@ -84,9 +71,6 @@ def read_HFSInput(filename):
     return read_dict(filename)
 #%% Save and Load
 def Savenpy_Dict(filename, Dict_in,spectra = None, Normalize_sig = False):
-    #This function should allow for saving of data so it doesn't need to be re-input everytime.
-    #This includes the input dictionary, which could then be easily compiled and re-called later.
-    #Work on this has not been fleshed out and it should be treated as such.
     """Save a plain copy of Dict_in and optional spectra to a NumPy .npy file.
     
     spectra can be a dictionary with wavelength/signals or a two-row
@@ -107,8 +91,6 @@ def Savenpy_Dict(filename, Dict_in,spectra = None, Normalize_sig = False):
     np.save(str(filename), savedat, allow_pickle=True)
 
 def Loadnpy_Dict(filepath):
-    #This function takes the numpy.save dictionary and loads it, including the spectrometer data, for future use.
-    #Need to test if figures can be saved too...
     """Load a trusted file written by Savenpy_Dict.
 
     filepath may include or omit .npy. Return (plain_dictionary, spectra),

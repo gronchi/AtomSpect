@@ -144,7 +144,7 @@ hamiltonian/hfs -> polarization -> transitions -> convolution -> spectrum -> plo
   in the git-ignored `audit/` folder. Still to relocate: `Flowchart.pptx`, `ExamplesList.xlsx`,
   `__pycache__`.
 - Keep CRLF/LF consistent (add `.gitattributes`) so moves produce reviewable diffs.
-- `Function Testing/` and `HFS Calcs/` scripts become examples or tests.
+- `Function Testing/` has moved into `Examples/LineShapes/` and `Examples/Polarization/`, with runnable examples using the package functions. `HFS Calcs/` has moved into `Examples/HFSConstants/`, with script-relative data paths and a shared table used by the estimator tests.
 - Make `Examples/` scripts independent of the working directory (He example already is).
 
 ## 7. Risks

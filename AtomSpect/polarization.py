@@ -2,7 +2,6 @@
 import numpy as np
 
 
-
 def polarization(mupper, mlower, Btheta, gamma=0, Pol_Filter=False, TAlpha=1, TBeta=1, pol1 = 1, pol2 = 0):
     '''
     This polarization calculation is generally based on Isler1997 http://dx.doi.org/10.1063/1.872095
@@ -26,19 +25,18 @@ def polarization(mupper, mlower, Btheta, gamma=0, Pol_Filter=False, TAlpha=1, TB
     '''
 
     if Pol_Filter == False:
-        
+
         ealph = np.sqrt(TAlpha) #These are unity unless modified by an additional component
         ebeta = np.sqrt(TBeta) #These are unity unless modified by an additional component
-        
+
     else:
 
         gammaangle = np.deg2rad(gamma)
         ealph = np.sqrt(TAlpha)*(pol1*np.cos(gammaangle) + pol2*np.sin(gammaangle))
         ebeta = np.sqrt(TBeta)*(pol1*np.sin(gammaangle) + pol2*np.cos(gammaangle))
-        
+
     theta_rad = np.deg2rad(Btheta)  # convert deg to radians
-    # print(ealph,ebeta)
-    
+
     epsz = ealph*np.sin(theta_rad)
 
     e0 = epsz
@@ -47,15 +45,11 @@ def polarization(mupper, mlower, Btheta, gamma=0, Pol_Filter=False, TAlpha=1, TB
     eps0 = np.sqrt(e0*e0)
 
     # eps1 is the for a change in am of 1 (sigma)
-    # eps1 = 0.5*np.sqrt(((np.cos(theta_rad)**2) * (ealph**2) + (ebeta**2)))  # While this looks like Isler appendix, we haven't squared it for the intensity calc yet.
 
     eps1 = np.sqrt(((np.cos(theta_rad)**2) * (ealph**2) + (ebeta**2))*0.5)  # Same as Isler appendix, we haven't squared it for the intensity calc yet.
 
-    # print(polfact)
-    # Calculate and check the change in magnetic angular momentum. circularly (sigma) light has a change of +/-1, linear (pi) is a change of 0.
     delta_am = np.array(mupper) - np.array(mlower)
     rad_tmp = [0, 3]
-    # Using match case instead of a bunch of if statements.
     match delta_am:
         case 1:
             rad_tmp = [eps1, 1]

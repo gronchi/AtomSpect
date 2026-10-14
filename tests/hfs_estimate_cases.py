@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 GOLDEN = Path(__file__).parent / "golden" / "hfs_estimate.json"
-TABLE = ROOT / "HFS Calcs" / "BulkHFSImport" / "HFSInputs.csv"
+TABLE = ROOT / "Examples" / "HFSConstants" / "BulkHFSImport" / "HFSInputs.csv"
 FLAGS = ["", "F", "H", "de", "ds", "FHdelepsds"]
 
 

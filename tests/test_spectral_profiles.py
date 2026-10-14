@@ -47,7 +47,6 @@ def test_lorentzian_centre_is_single_valued():
 
 
 def test_fallback_convolution_matches_named_lorentzian():
-    w = np.linspace(599.9, 600.1, 2001)
     a = A.Convol_Sticks(600.0, [599.9, 600.1], 300, 40, 0.002, function="Lorrentzian")
     b = A.Convol_Sticks(600.0, [599.9, 600.1], 300, 40, 0.002, function="unknown")
     assert np.allclose(a[1], b[1])

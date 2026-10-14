@@ -2,7 +2,6 @@
 import numpy as np
 
 
-
 c_light = 299792458  # Speed of light in m/s
 hbar = 1.0546e-34  # Plank's constant hbar in Angular
 hh = 2.0*np.pi*hbar  # Plank's constant in frequency

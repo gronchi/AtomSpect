@@ -105,7 +105,6 @@ def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
 
     Return [energies_cm, vectors], with ascending energies and eigenvectors
     in columns of the coupled |J,mJ> basis, including in the high-field case."""
-    # Level=[CGmat, Eo_mat,E0_flat,bigstatelist]; bigstatelist entries are [J,mJ,L,mL,S,mS].
     Psi = Level_in[0]  # Wavefunction basis matrix, comprised of CG coefficients.
 
     # Check for High and Low field approximations
@@ -141,7 +140,6 @@ def HZeeman(Level_in):
 
     Level_in is returned by stateprocess. E0 is in cm^-1; H_Z is dimensionless.
     The Hamiltonian is E0 + B_T*muBcm*H_Z, not E0 + B_T*H_Z."""
-    # Level=[CGmat, Eo_mat,E0_flat,bigstatelist]; bigstatelist entries are [J,mJ,L,mL,S,mS].
     H_Zeeman = _zeeman_operator(Level_in[0], Level_in[-1], l_index=3, s_index=5)
     return [Level_in[1], H_Zeeman]
 
@@ -153,7 +151,6 @@ def Zeeman_func_HFS(Level_in, Binput, gI, PsiHFS=True):
     lande_gi. PsiHFS is retained for compatibility; both values select the
     same Hamiltonian. Return [energies_cm, vectors] in ascending energy order,
     with eigenvector columns in the coupled |F,mF> basis."""
-    # Level=[w3mat, E0 matrix, HFS energies, ...]; states are [F,mF,J,mJ,I,mI,L,mL,S,mS].
     H_Zeeman = _zeeman_operator(Level_in[0], Level_in[-1], l_index=7, s_index=9, i_index=5, gI=gI)
 
     # The HFS shifts are diagonal in the |F,mF> basis, the same basis as Level_in[1] and H_Zeeman.

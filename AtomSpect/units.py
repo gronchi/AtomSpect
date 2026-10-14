@@ -3,31 +3,26 @@ from .constants import c_light
 
 
 def Hz_to_nm(Ediff):
-    # Converts from Hz to nm
     """Convert a frequency in Hz to vacuum wavelength in nm (scalar or NumPy array)."""
     return 2.99792458E17 / Ediff
 
 
 def nm_to_Hz(Ediff):
-    # Converts from nm to Hz
     """Convert vacuum wavelength in nm to frequency in Hz (scalar or NumPy array)."""
     return 2.99792458E17 / Ediff
 
 
 def ev_to_MHz(Ediff):
-    # Converts from eV to MHz
     """Convert an energy in eV to frequency in MHz using the legacy rounded constant."""
     return (1e-6)*Ediff*2.41804e14
 
 
 def cm_to_nm(E_diff):
-    # Converts from energy in cm^-1 to wavelength in nm.
     """Convert an energy difference in cm^-1 to vacuum wavelength in nm."""
     return 1e7/E_diff
 
 
 def cm_to_Hz(E_diff, MHz=False):
-    # Converts from energy in cm^-1 to energy in Hz (E = hf = hc/lambda)
     """Convert wavenumber in cm^-1 to frequency in Hz, or MHz when MHz=True."""
     if MHz:
         return 100*c_light*E_diff/1e6  # Return result in MHz.
@@ -36,13 +31,11 @@ def cm_to_Hz(E_diff, MHz=False):
 
 
 def cm_to_ev(E_diff):
-    # Convert from cm^-1 to eV
     """Convert wavenumber in cm^-1 to eV using the legacy rounded constant."""
     return 1.2398e-4*E_diff
 
 
 def ev_to_cm(E_diff):
-    # Convert from eV to cm^-1
     """Convert energy in eV to cm^-1 using the legacy rounded constant."""
     return E_diff/(1.2398e-4)
 # %%Wavelength
@@ -57,11 +50,8 @@ def Vac_to_air(wavein):
 
     # Using Morton2000
     wavevac_angs = wavein*10 #Convert to angstrom to match the paper
-    #Define a common factor
     s = (1e4)/wavevac_angs
-    #Calculate n_air
     n_air = 1 + 8.34254e-5 + (2.406147e-2)/(130 - s**2) + (1.5998e-4)/(38.9 - s**2)
-    #Calculate the new wavelength based on the index of refraction
     wavelengths = wavein / n_air
 
     return wavelengths
@@ -76,11 +66,8 @@ def air_to_vac(wavein):
 
     # Using Morton2000
     wavevac_angs = wavein*10 #Convert to angstrom to match the paper
-    #Define a common factor
     s = (1e4)/wavevac_angs
-    #Calculate n_air
     n_air = 1 + 8.34254e-5 + (2.406147e-2)/(130 - s**2) + (1.5998e-4)/(38.9 - s**2)
-    #Calculate the new wavelength based on the index of refraction
     wavelengths = wavein * n_air
 
     return wavelengths

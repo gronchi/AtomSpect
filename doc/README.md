@@ -21,12 +21,14 @@ It computes a He I 447 nm Zeeman pattern at 0.5 T, with polarization labels, and
 |------|----------|
 | `AtomSpect_theory_manual.tex` / `.pdf` | Manual source and rebuilt PDF |
 | `figures/*.pdf` | Four generated illustrations |
+| `figures/calculation_flow.svg` | README flowchart exported from the manual's TikZ diagram |
 | `figures/data/*.csv` | Numerical data behind the figures and the analytic-check errors |
 | `figures/data/validation_checks.tex` | The check table included in the manual |
 | `figures/data/provenance.txt` | Generation time and package versions |
 | `scripts/make_figures.py` | Runs the analytic checks, then writes the data and figures |
 | `scripts/plot_figures.py` | Redraws all four figures from the CSV files without solving again |
 | `scripts/build_manual.py` | Builds the PDF with Python on Windows or Unix |
+| `scripts/export_workflow.py` | Exports the manual's calculation flowchart to SVG for the main README |
 | `scripts/example_minimal.py` | Runnable minimal example |
 | `REVIEW.md` | Audit findings, repairs and validation scope |
 
@@ -56,6 +58,8 @@ python doc/scripts/build_manual.py --rebuild
 ```
 
 Requirements: `pdflatex` with the packages in the TeX preamble; Python with NumPy, SciPy, SymPy and matplotlib (the package's own dependencies). The Makefile defaults to `python` and `pdflatex`; override with `make -C doc figures PYTHON=/path/to/python`.
+
+After editing the manual's TikZ calculation-flow diagram, refresh the README image with `python doc/scripts/export_workflow.py`. This export also requires the LaTeX `standalone` class and Python's `PyMuPDF` package; the checked-in SVG displays without those tools.
 
 ## Interpreting the checks and figures
 

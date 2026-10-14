@@ -181,6 +181,19 @@ def test_slider_startup_allows_missing_title_and_numpy_bounds(monkeypatch):
     plt.close('all')
 
 
+@pytest.mark.parametrize('temperature', [dict(Temp=2 * 11602), dict(TempeV=2)])
+def test_slider_starts_at_deck_temperature(monkeypatch, temperature):
+    from matplotlib import pyplot as plt
+    monkeypatch.setattr(plt, 'show', lambda *args, **kwargs: None)
+    raw = deck(Convfxn='Gaussian', **temperature)
+    A.MakeSlider(raw, [[799., 801.], [0., 1.]], plotwind=np.array([799, 801]),
+                 do_sticks=False, do_Polplot=False)
+    assert raw['Temp'] == pytest.approx(2 * 11602)
+    if 'TempeV' in temperature:
+        assert raw['TempeV'] == pytest.approx(2)
+    plt.close('all')
+
+
 def test_slider_blocks_in_a_script_and_not_in_a_console(monkeypatch):
     """The slider window must stay open when a plain script calls MakeSlider."""
     import sys

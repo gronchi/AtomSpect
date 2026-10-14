@@ -22,8 +22,6 @@ def lande_gi(I, u_I):
 
 
 def lande_gj2(J, L, S):
-    # Lande gJ as derived in Griffiths and others. Comes from projection of angular momentum and averaging of L and S
-    #This has one less step of calculation than lande_gj function but should be equivalent.
     """Return the electronic Lande g_J using the package g_L and g_S constants."""
     if J == 0:
         return 0
@@ -32,7 +30,6 @@ def lande_gj2(J, L, S):
 
 
 def lande_gj(J, L, S):
-    # Lande gJ as derived in Griffiths and others. Comes from projection of angular momentum and averaging of L and S
     """Return the electronic Lande g_J for quantum numbers J, L, S; zero for J=0."""
     if J == 0: #There is no lande effect if J=0 due to a singularity (1/J)
         return 0
@@ -42,13 +39,11 @@ def lande_gj(J, L, S):
 
 
 def lande_gf(F, I, J, L, S, g_I):
-    # Lande gF, comes from averaging I, L, and S similar to gJ.
     """Return the weak-field hyperfine g_F; zero for F=0.
 
     F, I, J, L and S are angular momenta. g_I is returned by lande_gi;
     the nuclear contribution carries the same minus sign as the exact Hamiltonian."""
     thisgj = lande_gj(J, L, S)
-    #There is no lande effect if F=0, due to a singularity (1/F)
     if F == 0:
         return 0
     else:
@@ -57,16 +52,6 @@ def lande_gf(F, I, J, L, S, g_I):
 
 
 def make_Jmj(J_am):
-    # This function takes an input general angular momentum J and creates a list of [J,mJ] for all corresponding mJ's.
-    # J_am can be an array itself and the output will be a flat list of all possible J,mJ values, starting with the lowest [J,mj] and
-    # cycling through the mJ's for each J.
-    # =============================================================================
-    #
-    #     'Starting with the lowest J has the potential to cause some issues and there should, instead, be a generalized way for the user to input the J-values ordering'
-    #     'The issue would be because the eigval function sorts in ascending order of energies, so I should do likewise, as that may correct for potential issues'
-    #     'with energy ordering and states as tracking past diagonalization is not possible.'
-    # =============================================================================
-    ###
     """Return [J, mJ] pairs for a scalar or iterable J, with ascending mJ within each J."""
     if np.isscalar(J_am):
         Jtmp = [[float(J_am), float(x)] for x in np.linspace(-J_am, J_am, int(2*J_am+1))]
@@ -76,14 +61,12 @@ def make_Jmj(J_am):
 
 
 def CGCoeff(j1, m1, j2, m2, j3, m3):
-    # Calculates Clebsch-Gordan Coefficient and outputs a float instead of sympy result
     """Return the real Clebsch-Gordan coefficient <j1,m1;j2,m2|j3,m3> as a float."""
     thisCG = float(CG(j1, m1, j2, m2, j3, m3).doit())
     return thisCG
 
 
 def CGw3(j1, m1, j2, m2, j3, m3):
-    # Clebsh Gordon Coeff using wigner3j
     """Return <j1,m1;j2,m2|j3,m3> as a float using a Wigner 3j symbol."""
     return ((-1)**(-j1 + j2 - m3))*np.sqrt(2*j3 + 1)*float(w3j(float(j1), float(j2), float(j3), float(m1), float(m2), -float(m3)))
 
@@ -94,13 +77,10 @@ def dipolestr(LG, LE):
     LG and LE each contain [J,mJ,L,mL,S,mS]. The radial reduced matrix
     element is omitted; square the amplitude to obtain an angular strength."""
     thisq = LE[1] - LG[1]
-    # if thisq == -1 or thisq== 0 or thisq== 1:
 
     tw3 = float(w3j(LG[0], 1, LE[0], LG[1], thisq, -LE[1]))
     tdp3 = ((-1)**(LE[2] + LG[4] - LE[1])) * np.sqrt((2*LE[0]+1)*(2*LG[0]+1))*tw3*float(w6j(LE[2], LE[0], LG[4], LG[0], LG[2], 1))
 
-    # else:
-    #     tdp3 = 0
     return tdp3
 
 
@@ -109,13 +89,10 @@ def dipolestr_HFS(LG, LE):
 
     LG and LE each contain [F,mF,J,mJ,I,mI,L,mL,S,mS]. The radial reduced
     matrix element is omitted. The expression uses one 3j and two 6j symbols."""
-    # States are from bigsortedlist = [F,mF,J,mJ,I,mI,L,mL,S,mS]
-    # [0,1 ,2,3 ,4,5 ,6,7 ,8,9 ]
 
     thisq = LE[1] - LG[1]
 
     # This is Metcalf 4.33
-    # Calculate the wigner 3j and two wigner 6j.
     tw3 = float(w3j(LG[0], 1, LE[0], LG[1], thisq, -LE[1]))
     tw61 = float(w6j(LE[6], LE[2], LG[8], LG[2], LG[6], 1))
     tw62 = float(w6j(LE[2], LE[0], LG[4], LG[0], LG[2], 1))

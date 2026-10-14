@@ -9,7 +9,7 @@ def Delta_E_HFS(I, J, F, A, B):
     #These are in units of Hz typically. Output is in units of cm^-1
     #1/(100*c_light) is the conversion factor that takes the Hz and results in cm^-1
     #See SteckRb for a good overview of hyperfine. Kopfermann is a very detailed source as well.
-    
+
     # First need to define a constant K that will be used in the calculations
     """Return the hyperfine shift in cm^-1 for I,J,F and A,B in Hz; omit quadrupole terms for I or J <= 1/2."""
     K = F*(F+1) - I*(I+1) - J*(J+1)

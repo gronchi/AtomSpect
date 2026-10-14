@@ -6,6 +6,14 @@ The model treats one lower and one upper LS term in a static magnetic field, wit
 
 See the [theory manual](doc/AtomSpect_theory_manual.pdf), [documentation guide](doc/README.md), and [review record](doc/REVIEW.md) for the equations, conventions, validation, and known limitations.
 
+## Workflow
+
+The calculation flow below is exported directly from the [theory manual's TeX source](doc/AtomSpect_theory_manual.tex). It shows how `AtomSpect_Main` builds the Zeeman or hyperfine Hamiltonian, calculates E1 components, and broadens them into a spectrum.
+
+![AtomSpect calculation flow: input validation, Zeeman or hyperfine Hamiltonian, E1 strengths, polarization sticks, line profiles, and SpectrumResult.](doc/figures/calculation_flow.svg)
+
+`AtomSpect_Main` uses a scalar `Bmag` and returns data for further analysis or plotting. `MakeSlider` calls the spectrum calculation as its controls change. Energy fans sweep the Hamiltonian over a `Bmag` array; `ZeemanFan` returns energy arrays and `plotZfan` also plots them.
+
 ## Installation
 
 Use Python 3.10 or newer. From the repository root:
@@ -153,7 +161,7 @@ Polarization labels use q = M_upper − M_lower, with M = mJ or mF. The emitted-
 
 ## Examples and documentation
 
-Start with the [minimal documentation example](doc/scripts/example_minimal.py). The [examples guide](Examples/README.md) describes the Ar, He, Rb, and C III workflows, including measured spectra, combined lines, polarization, and sliders.
+Start with the [minimal documentation example](doc/scripts/example_minimal.py). The [examples guide](Examples/README.md) describes the Ar, He, Rb, and C III workflows, including measured spectra, combined lines, polarization, and sliders, plus standalone line-profile, polarization-factor, and hyperfine-constant estimation examples.
 
 Rebuild the documentation from the repository root:
 

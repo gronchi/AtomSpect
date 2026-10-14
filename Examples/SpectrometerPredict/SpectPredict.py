@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Aug 17 10:06:38 2024
 
@@ -9,7 +8,7 @@ This code demonstrates using sliders to predict what the spectrometer might see.
 
 """
 
-import csv, os, sys
+import os, sys
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -17,17 +16,10 @@ from matplotlib import pyplot as plt
 # Work relative to this script, so the example runs from any directory.
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.path.pardir, os.path.pardir)))
-from AtomSpect  import AtomSpect_Main, Normalize,PlotFunction,read_Spectra, plotZfan,Convol_Sticks, make_stickbins,MakeSlider, ZeemanFan,Vac_to_air
+from AtomSpect  import AtomSpect_Main, Normalize,read_Spectra, MakeSlider, Vac_to_air
 
 
 pathfil = os.getcwd()
-
-
-
-
-
-              
-#%%
 
 
 pathfil = os.getcwd()
@@ -35,7 +27,6 @@ pathfil = os.getcwd()
 fil = pathfil + '/He_Spectra_NonPolarized.csv'
 He_NonPol_Spec = read_Spectra(fil,scalewave = 0.1, headercount=1)  #Need to scale the wavelengths from angstrom to nm.
 
-#%%
 
 InputHe = {'s_ground': 1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
               's_excited': 1 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
@@ -47,22 +38,13 @@ InputHe = {'s_ground': 1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , i
               'b_angle': 90 , #Angle between LoS and Bmax
               'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'. 'Lorrentzian' , 'GaussinInstrum'
               'specstep' : 0.002222 , #Resolution of spectrometer in nm
-              # 'Skewness' : [1.24,1.98] , #How non-symmetric the Lorrentzian is
-              # 'Pol_angle': 90 ,#Angle polarizing filter makes with max linear transmission, Optional
-              'plottitle': 'He I 1s2p -> 1s4d: B=3.2T, UnPolarized'  , #Title for plotting (optional)     
+              'plottitle': 'He I 1s2p -> 1s4d: B=3.2T, UnPolarized'  , #Title for plotting (optional)
               'plot_window' : [447.1,447.2], #Min and max for plot window range (nm), convolutions will only take place within this range
               'amu' : 4.0026  ,#Weight in AMU
               'specres' : 10 , #How many steps per resolution are calculated. Higher makes a smoother curve.
-              # 'DoLowSig' : 'Yes' , #If this exists in the input, lowfield signal strength will be calculated. 
-              # 'DoHighSig': 'Yes' , #To use Strong field approximation, you MUST include EtermE and EtermG keys for term energy
                     'TAlpha' : np.sqrt(0.65) ,
                     'TBeta' : np.sqrt(0.35),
-              }  
-
-
-
-
-
+              }
 
 
 InputdeckCIII_4649 = {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
@@ -77,18 +59,13 @@ InputdeckCIII_4649 = {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s 
                       'amu' : 12.011 ,  #Weight in AMU
                       'specstep' : 0.0075 , #Resolution of spectrometer in nm
                       'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
-                      'Temp' : 11602*7.9, #Temperature in K. Used for Gaussian convolution
-                      'plottitle': r'CIII [1$s^2$]2s3s $(^3S_1)$ -> [1$s^2$]2s3p ($^3P_J$), B=2.24T, LoS=68.6, T = 28.1eV', #Title for plotting (optional)     
+                      'Temp' : 11602*2.0, #Temperature in K. Used for Gaussian convolution
+                      'plottitle': r'CIII [1$s^2$]2s3s $(^3S_1)$ -> [1$s^2$]2s3p ($^3P_J$), B=2.24T, LoS=68.6, T = 2.0eV', #Title for plotting (optional)
 
-                      # 'plottitle': f'CIII [1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J): B=2.24T , LoS = {90}', #Title for plotting (optional)     
                       'ion_vel' : -500, #Ion velocity in m/s
-                      'fxnwindow': 1 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                      # 'Pol_angle': 50 ,#Angle polarizing filter makes with max linear transmission, Optional
-                      # 'DoLowSig' : 'Yes' , #If this exists in the input, lowfield signal strength will be calculated. 
-                      # 'DoHighSig' : 'Yes' , #If this exists in the input, lowfield signal strength will be calculated. 
-                      
+                      'fxnwindow': 1 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
                    }
-#
 
 InputdeckCIII_4649L = {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , int or half int
                       's_excited':1 ,#Spin multiplicity,s, for excited state ^(2s +1)L_J, int or half int
@@ -102,37 +79,27 @@ InputdeckCIII_4649L = {'s_ground':1 ,#Spin multiplicity,s, for ground state ^(2s
                       'amu' : 12.011 ,  #Weight in AMU
                       'specstep' : 0.044 , #Resolution of spectrometer in nm
                       'Convfxn': 'GaussianInstrum', #Optional: 'Gaussian', 'Skewed'.
-                      'Temp' : 11602*7.9, #Temperature in K. Used for Gaussian convolution
-                      'plottitle': r'CIII [1$s^2$]2s3s $(^3S_1)$ -> [1$s^2$]2s3p ($^3P_J$), B=2.24T, LoS=68.6, T = 17.1eV', #Title for plotting (optional)     
+                      'Temp' : 11602*2.0, #Temperature in K. Used for Gaussian convolution
+                      'plottitle': r'CIII [1$s^2$]2s3s $(^3S_1)$ -> [1$s^2$]2s3p ($^3P_J$), B=2.24T, LoS=68.6, T = 2.0eV', #Title for plotting (optional)
 
-                      # 'plottitle': f'CIII [1s^2]2s3s (^3S_1) -> [1s^2]2s3p (^3P_J): B=2.24T , LoS = {90}', #Title for plotting (optional)     
                       'ion_vel' : -500, #Ion velocity in m/s
-                      'fxnwindow': 1 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                      # 'Pol_angle': 50 ,#Angle polarizing filter makes with max linear transmission, Optional
-                      # 'DoLowSig' : 'Yes' , #If this exists in the input, lowfield signal strength will be calculated. 
-                      # 'DoHighSig' : 'Yes' , #If this exists in the input, lowfield signal strength will be calculated. 
-                      
+                      'fxnwindow': 1 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works.
+
                    }
 CIII_Z = AtomSpect_Main(InputdeckCIII_4649)
 
-
-               
 
 CIIISpecHighTemp = np.load('CIII_2.24T.npy') #This is the spectrometer data
 
 CIIIwaveH = [Vac_to_air(x) for x in CIIISpecHighTemp[0]]
 CIIISigH = Normalize(CIIISpecHighTemp[1])
-CIII_PlotvarsH = [['green', 3, '-.','CIII']]                   
+CIII_PlotvarsH = [['green', 3, '-.','CIII']]
 
 
 fil = pathfil + '/CIII_17eV1.csv'
 Spec_Raw = read_Spectra(fil, headercount=1, keepheaders=False)
 CIIISpecL= Normalize(Spec_Raw['signals'])
 CIII_wavL= Spec_Raw['wavelength']
-
-#%%
-# plt.close('all')
-
 
 
 # Three slider windows: He I with the non-polarized He data, and C III 465 nm with the
@@ -145,6 +112,3 @@ MakeSlider(InputdeckCIII_4649,[CIIIwaveH,CIIISigH],[464.5,465.5],do_sticks = 1,d
 MakeSlider(InputdeckCIII_4649L,[CIII_wavL,CIIISpecL],[464.5,465.5],do_sticks = 1,do_Polplot=1,polvary=0,banglevary=1, block=False)
 
 plt.show(block=True)
-
-
-
