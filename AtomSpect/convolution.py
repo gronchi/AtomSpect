@@ -211,7 +211,21 @@ def Convol_Spect(waves_in, signal_in, spec_wind, plot_wind, atomic_weight_amu, r
     out_w, out_s = np.array(tempwavs), np.array(tempsigs)
     mask = (out_w >= np.min(plot_wind)) & (out_w <= np.max(plot_wind))
     
-    final_spectrum = [np.concatenate([[np.min(plot_wind)], out_w[mask], [np.max(plot_wind)]]),
-                      np.concatenate([[0], out_s[mask], [0]])]
+    # Close the curve at the plot-window edges. A window edge that lies inside an evaluated bin keeps
+    # the curve's own value there (holding the nearest sample); only an edge outside every bin, where
+    # the spectrum was not evaluated, is set to zero.
+    left, right = float(np.min(plot_wind)), float(np.max(plot_wind))
+    kept_w, kept_s = out_w[mask], out_s[mask]
+    step = resolution_nm/specres
+    waves, signals = list(kept_w), list(kept_s)
+    if len(kept_w) == 0 or kept_w[0] > left:
+        covered = len(kept_w) > 0 and kept_w[0] - left <= 1.5*step
+        waves.insert(0, left)
+        signals.insert(0, kept_s[0] if covered else 0.0)
+    if len(kept_w) == 0 or kept_w[-1] < right:
+        covered = len(kept_w) > 0 and right - kept_w[-1] <= 1.5*step
+        waves.append(right)
+        signals.append(kept_s[-1] if covered else 0.0)
+    final_spectrum = [np.array(waves), np.array(signals)]
 
     return final_spectrum, redsticks, tbins['bin_windows']

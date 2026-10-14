@@ -198,3 +198,21 @@ def test_slider_blocks_in_a_script_and_not_in_a_console(monkeypatch):
                 Convfxn='Gaussian', spec_window=[799, 801], plot_window=[799, 801], specstep=.01, specres=1)
     slider.MakeSlider(deck, [np.array([799., 801.]), np.array([0., 0.])], [799, 801])
     assert seen['block'] is True
+
+
+def test_curve_is_not_forced_to_zero_at_a_window_edge_inside_a_line():
+    """A broad line crossing the plot-window edge must keep its own value there."""
+    waves = np.array([600.0])
+    sig = np.array([1.0])
+    window = [599.99, 600.20]          # the line centre sits next to the left edge
+    (w, s), _, _ = A.Convol_Spect(waves, sig, [599, 601], window, 40, 0.01, functiontype="Lorrentzian",
+                          wind_size=0.5, specres=5)
+    assert w[0] == pytest.approx(599.99)
+    # FWHM 0.01 nm, 0.01 nm from the centre: the Lorentzian is 1/(1+(0.01/0.005)^2) = 0.2 of the peak,
+    # and the edge must carry (about) that value rather than 0.
+    assert s[0] == pytest.approx(s[1]) and 0.15*np.max(s) < s[0] < 0.4*np.max(s)
+    # An edge far from every line is still zero.
+    (w2, s2), _, _ = A.Convol_Spect(waves, sig, [599, 601], [598.0, 602.0], 40, 0.01, functiontype="Lorrentzian",
+                            wind_size=0.05, specres=5)
+    assert s2[0] == 0 and s2[-1] == 0
+    assert np.all(np.diff(w2) > 0)
