@@ -6,6 +6,7 @@ the existing functions' wavelength, temperature, width and velocity arguments.
 """
 import numpy as np
 import scipy as scp
+import scipy.special  # noqa: F401  (older SciPy does not load submodules on attribute access)
 
 from .constants import amu_kg, c_light, kboltz
 

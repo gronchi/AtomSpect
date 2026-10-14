@@ -11,7 +11,6 @@ from .units import *  # noqa: F401,F403
 from .lineshapes import *  # noqa: F401,F403
 from .convolution import *  # noqa: F401,F403
 from .io import *  # noqa: F401,F403
-from .plotting import *  # noqa: F401,F403
 from .angular import *  # noqa: F401,F403
 from .hfs import *  # noqa: F401,F403
 from .radiative import *  # noqa: F401,F403
@@ -59,3 +58,25 @@ from .atomic import (
     frequency_profile_to_wavelength as frequency_profile_to_wavelength,
     isolated_multipole_rates as isolated_multipole_rates,
 )
+
+
+# Plotting needs matplotlib (and tkinter for the slider dialogs). Load it on first use so that
+# `import AtomSpect` works on headless machines and stays fast for batch calculations.
+_PLOTTING_NAMES = frozenset({
+    'plotarray', 'parse_plot_data', 'get_target_axis', 'consolidate_legend', 'PlotFunction',
+    'plotZfan', 'Zslider', 'Zslider_Pol', 'enable_manual_input', 'MakeSlider',
+})
+
+
+def __getattr__(name):
+    if name == 'plotting' or name in _PLOTTING_NAMES:
+        import importlib
+        plotting = importlib.import_module('.plotting', __name__)
+        value = plotting if name == 'plotting' else getattr(plotting, name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | _PLOTTING_NAMES | {'plotting'})

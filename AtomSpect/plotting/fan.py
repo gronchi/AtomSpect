@@ -2,6 +2,8 @@
 from matplotlib import pyplot as plt
 from matplotlib import ticker
 
+from ..fan import ZeemanFan
+
 
 def plotZfan(Inputdeck, flags='', savefig=False, figname='placeholder',markercount = 15,
              markersize_ = 6,markersize_H = 6,markersize_L = 6):
@@ -12,7 +14,6 @@ def plotZfan(Inputdeck, flags='', savefig=False, figname='placeholder',markercou
     arguments set exact, high- and weak-field marker sizes. savefig writes
     the current figure to figname + '_Excited.png' (legacy naming); if both
     G and E are selected, separate figures are opened and only E is saved."""
-    from .. import ZeemanFan  # late import: the driver still lives in the package root
 
     Zfantest = ZeemanFan(Inputdeck, flags=flags)  # Calculate
 

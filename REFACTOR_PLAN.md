@@ -62,10 +62,24 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
 - Phase 7 (documentation) done: `doc/` mirrors the EZSSS layout (LaTeX manual with PDF, README,
   REVIEW, Makefile, `scripts/{make_figures,plot_figures,build_manual,example_minimal}.py`, figure data
   and 11 analytic checks). A repository review after phase 6 (see `doc/REVIEW.md`) added
-  `tests/test_review_regressions.py`; the suite has 311 tests. The audit working files stay in the
-  git-ignored `audit/`. Remaining: the HFS-constant estimator and absolute radiative quantities.
-  `plotting/slider.py` and `plotting/fan.py` import the driver late (inside functions)
-  until phase 3 removes that dependency.
+  `tests/test_review_regressions.py`. The audit working files stay in the git-ignored `audit/`.
+- Follow-up (October 2026): `import AtomSpect` no longer loads matplotlib or tkinter; the plotting
+  names load on first use and tkinter only when a slider value dialog opens (`tests/test_imports.py`).
+  The plotting modules import the driver directly instead of late. `.gitattributes` normalizes line
+  endings. `pyproject.toml` sets minimum dependency versions, which CI tests on Python 3.10 next to
+  the latest releases on 3.11 and 3.13. The suite has 378 tests.
+
+## Open decisions
+
+- Unit-explicit names (`wave_nm`, `E_cm`, ...; principle 5): would break the public API and the
+  paper's instructions. Proposed: drop.
+- Phase 5 leftovers: deprecate string result keys and migrate the examples to attribute access.
+- Phase 7 leftovers: an API reference, and the README keyword table generated from `InputDeck`.
+- Convolution performance (phase 6): not yet measured.
+- Releases: tag `v0.1.0.devN`, promote `development` to `main`, upstream the fixes to
+  `Lnofs/AtomSpect`.
+- Physics, outside the refactor: absolute radiative quantities (need a reduced radial matrix
+  element) and approximation spectra with hyperfine structure.
 - Naming: the package keeps the name `AtomSpect` (not `atomspect`). On Windows/macOS a
   lowercase package would collide with the existing module name, and keeping it means
   `from AtomSpect import ...` in all examples and user scripts is unchanged, so no shim file
@@ -135,17 +149,17 @@ hamiltonian/hfs -> polarization -> transitions -> convolution -> spectrum -> plo
 - Keep `tests/` as the safety net; add golden-output tests that run each example input deck
   through `AtomSpect_Main` and compare stick positions/strengths and convolved spectra
   (tolerance ~1e-10) against values saved before the refactor.
-- Add import tests: `import AtomSpect` must not import tkinter or matplotlib.
-- Add a test that every name exported by the old module still resolves via the shim.
+- Done: import tests check that `import AtomSpect` does not load tkinter or matplotlib.
+- Done: `tests/test_public_api.py` checks that every name of the old module still resolves.
 
 ## 6. Housekeeping
 
-- Untracked clutter (audit reports, PR descriptions, scratch tests, evidence scripts) now lives
-  in the git-ignored `audit/` folder. Still to relocate: `Flowchart.pptx`, `ExamplesList.xlsx`,
-  `__pycache__`.
-- Keep CRLF/LF consistent (add `.gitattributes`) so moves produce reviewable diffs.
+- Done: untracked clutter lives in the git-ignored `audit/` folder; `Flowchart.pptx` is replaced by
+  the README's Mermaid flowchart, `ExamplesList.xlsx` by `Examples/README.md`, and `__pycache__` is
+  ignored.
+- Done: `.gitattributes` keeps CRLF/LF consistent so moves produce reviewable diffs.
 - `Function Testing/` has moved into `Examples/LineShapes/` and `Examples/Polarization/`, with runnable examples using the package functions. `HFS Calcs/` has moved into `Examples/HFSConstants/`, with script-relative data paths and a shared table used by the estimator tests.
-- Make `Examples/` scripts independent of the working directory (He example already is).
+- Done: every `Examples/` script runs from any working directory.
 
 ## 7. Risks
 

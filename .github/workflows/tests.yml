@@ -22,3 +22,20 @@ jobs:
       - run: pip install -e ".[test]" pytest-github-actions-annotate-failures
       # Failing tests are also reported as annotations, readable without opening the log.
       - run: pytest -q -rf
+
+  minimum-versions:
+    # The oldest dependency versions allowed by pyproject.toml, on the oldest supported Python.
+    runs-on: ubuntu-latest
+    env:
+      MPLBACKEND: Agg
+      MPMATH_NOGMPY: "1"
+      SYMPY_GROUND_TYPES: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: sudo apt-get update && sudo apt-get install -y python3-tk
+      - run: pip install "numpy==1.23.*" "scipy==1.9.*" "sympy==1.10.*" "matplotlib==3.6.*" pytest pytest-github-actions-annotate-failures
+      - run: pip install --no-deps -e .
+      - run: pytest -q -rf

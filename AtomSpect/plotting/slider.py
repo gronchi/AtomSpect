@@ -2,13 +2,12 @@
 import sys
 
 import numpy as np
-import tkinter as tk
-from tkinter import simpledialog
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Slider
 
-from ..config import EV_TO_K
+from ..config import EV_TO_K, _approximation_enabled
 from ..lineshapes import Normalize
+from ..spectrum import AtomSpect_Main
 
 
 def _script_should_block():
@@ -29,7 +28,6 @@ def Zslider(B, thisTemp, thisRes, Input):
 
     Mutate Input in place, updating Temp in kelvin and any existing TempeV,
     then return AtomSpect_Main's SpectrumResult."""
-    from .. import AtomSpect_Main  # late import: the driver still lives in the package root
     Input['Bmag'] = B
     Input['specstep'] = thisRes
     Input['Temp'] = thisTemp*EV_TO_K
@@ -45,7 +43,6 @@ def Zslider_Pol(B, thisTemp, thisRes, Bangle, PolAngle, Input):
     B is in T, thisTemp in eV, thisRes in nm, and Bangle/PolAngle in degrees.
     PolAngle=None preserves the existing filter setting; zero enables the
     analyzer at zero degrees. Mutate Input and return a SpectrumResult."""
-    from .. import AtomSpect_Main  # late import: the driver still lives in the package root
     if PolAngle is not None:  # None: leave any filter angle in the deck untouched. 0 is a valid angle.
         Input['Pol_angle'] = PolAngle
 
@@ -65,6 +62,8 @@ def enable_manual_input(fig, slider):
 
     def on_double_click(event):
         if event.dblclick and valtext.contains(event)[0]:
+            import tkinter as tk  # only needed for this dialog
+            from tkinter import simpledialog
             # popup Tk dialog for numeric input
             root = tk.Tk()
             root.withdraw()  # hide main window
@@ -97,7 +96,6 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
     returns at once in IPython/Spyder; block=False always returns at once, so several
     windows can be opened and then shown together with plt.show(block=True).
     Returns the figure; its `sliders` attribute keeps the slider widgets alive."""
-    from .. import _approximation_enabled  # late import: the driver still lives in the package root
 
     init_B = 2.5  # Initial B field (T)
     init_Temp = Inputdict.get('TempeV', Inputdict.get('Temp', 0.05 * EV_TO_K) / EV_TO_K)
