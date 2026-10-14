@@ -19,5 +19,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: sudo apt-get update && sudo apt-get install -y python3-tk
-      - run: pip install -e ".[test]"
-      - run: pytest -q
+      - run: pip install -e ".[test]" pytest-github-actions-annotate-failures
+      # Failing tests are also reported as annotations, readable without opening the log.
+      - run: pytest -q -rf
