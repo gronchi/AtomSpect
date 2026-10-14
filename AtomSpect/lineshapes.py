@@ -2,7 +2,7 @@
 import numpy as np
 import scipy as scp
 
-from .constants import c_light, kboltz, m_prot
+from .constants import amu_kg, c_light, kboltz
 
 
 # =============================================================================
@@ -26,7 +26,7 @@ def Gaussian(x, x0, Temp_in, amu, v_ion=0, bidir=False):
     in K and amu is a positive mass number. v_ion is in m/s; with bidir=True,
     a scalar gives +/-v, or [v1,v2] gives +v1 and -v2, with equal weights.
     The returned density is per metre. Motion uses the first-order shift."""
-    tdop = x0*np.sqrt(kboltz*Temp_in/(amu*m_prot*c_light*c_light))
+    tdop = x0*np.sqrt(kboltz*Temp_in/(amu*amu_kg*c_light*c_light))
     if bidir == True:  # First try having v_ion be an array, so that the counter-streaming velocities can be different.
         try:
             mean1 = x0*(1 + v_ion[0]/c_light)
@@ -64,7 +64,7 @@ def GaussianInstrum(x, x0, Temp_in, amu, pixel_size=0, v_ion=0, bidir=False):
     Temp_in (K) and amu set the Doppler variance, added in quadrature to
     the instrument variance. v_ion (m/s) and bidir follow Gaussian.
     The returned density is per metre."""
-    tdop = (x0*np.sqrt(kboltz*Temp_in/(amu*m_prot*c_light*c_light)))**2
+    tdop = (x0*np.sqrt(kboltz*Temp_in/(amu*amu_kg*c_light*c_light)))**2
     W = np.sqrt((pixel_size)**2 + 8*np.log(2)*tdop)
     if bidir == True:
         try:  # First try having v_ion be an array, so that the counter-streaming velocities can be different.
@@ -99,7 +99,7 @@ def Voigt(x, x0, Temp_in, amu, pixel_size=1, v_ion=0, bidir=False):
     Doppler standard deviation; pixel_size is the Lorentzian FWHM,
     passed to SciPy as HWHM=pixel_size/2. v_ion (m/s) and bidir follow
     Gaussian. A finite evaluation window omits the remaining wings."""
-    tdop = (x0*np.sqrt(kboltz*Temp_in/(amu*m_prot*c_light*c_light)))
+    tdop = (x0*np.sqrt(kboltz*Temp_in/(amu*amu_kg*c_light*c_light)))
 
     # Calculate a Voigt profile using the dopler broadening as the sigma and pixel size as the gamma for the lorrentzian
     if bidir == True:

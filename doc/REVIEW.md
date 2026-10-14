@@ -85,6 +85,8 @@ Rewrote the main README in consistent technical English, with current installati
 
 - The He example decks used `amu: 2`; helium is mass 4. The Doppler width scales as $1/\sqrt{M}$, so the decks that use a Doppler profile (`GaussianInstrum` in `SpectPredict.py` and the two slider decks of `He_Example.py`) were too broad by $\sqrt2$. They now use 4.0026. The input check warns when a Doppler profile is selected without `amu`, because the default of 1 amu overstates the width by $\sqrt M$.
 
+- Doppler widths now use the atomic mass unit (1.66054e-27 kg) times the mass number and the exact Boltzmann constant. They previously used the rounded proton mass 1.667e-27 kg and 1.381e-23 J/K, which made the Gaussian width 0.2% too small; profile outputs change by up to 0.2%.
+
 ## Validation scope
 
 Analytic checks run by `scripts/make_figures.py` (see the manual) and the repository test suite (polarization, high field, hyperfine, flags, profiles, golden outputs). Continuous integration runs the tests on Python 3.11 and 3.13. None of this validates the model against experiment, and none of it covers the regimes in the manual's list of known limits.
