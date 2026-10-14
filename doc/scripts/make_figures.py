@@ -19,7 +19,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-import AtomSpect as A  # noqa: E402
+import AtomSpect  # noqa: E402
 
 FIG = ROOT / "doc" / "figures"
 DATA = FIG / "data"
@@ -34,7 +34,7 @@ RB = dict(s_ground=.5, s_excited=.5, l_ground=0, l_excited=1, E_ground=np.array(
 HE = dict(s_ground=1, s_excited=1, l_ground=1, l_excited=2, E_ground=HE_G, E_excited=HE_E,
           b_angle=90, amu=4, Temp=300, spec_window=[446.9, 447.4], plot_window=[447.0, 447.3],
           specstep=0.002222, specres=3, Convfxn="Skewed", Skewness=[1.24, 1.98], fxnwindow=0.1)
-HZ_TO_CM = 1/(100*A.c_light)
+HZ_TO_CM = 1/(100*AtomSpect.c_light)
 
 
 def write_csv(name, header, rows):
@@ -54,59 +54,59 @@ def run_checks():
     # 1. Weak-field slope of the 3P2 sublevels: dE = gJ * m * muB * B (cm^-1). J=2 is the lowest
     #    manifold for these inputs; a small field keeps the J-mixing (second-order) term below 1e-9.
     b = 1e-5
-    level = A.stateprocess(1, 1, HE_G, b)
-    energies = np.sort(A.Zeeman_func(level, b)[0])[:5]
-    gj = A.lande_gj2(2, 1, 1)
-    err = np.max(np.abs(energies - HE_G[2] - gj*A.muBcm*b*np.array([-2, -1, 0, 1, 2])))
+    level = AtomSpect.stateprocess(1, 1, HE_G, b)
+    energies = np.sort(AtomSpect.Zeeman_func(level, b)[0])[:5]
+    gj = AtomSpect.lande_gj2(2, 1, 1)
+    err = np.max(np.abs(energies - HE_G[2] - gj*AtomSpect.muBcm*b*np.array([-2, -1, 0, 1, 2])))
     checks.append(("weak_field_zeeman_3P2_cm-1", err, 1e-9))
 
     # 2. Hyperfine interval of 85Rb 5S1/2 at B = 0 equals A*(I + 1/2).
     deck = dict(RB, Bmag=np.array([0.0]))
-    fan = A.ZeemanFan(deck, "G")["G"][:, 0]
+    fan = AtomSpect.ZeemanFan(deck, "G")["G"][:, 0]
     interval = np.max(fan) - np.min(fan)
     expected = 1011.910813e6*(2.5 + .5)*HZ_TO_CM
     checks.append(("rb85_5S_hyperfine_interval_relative", abs(interval - expected)/expected, 1e-9))
 
     # 3. The relative strengths are normalized.
-    result = A.AtomSpect_Main(dict(HE, Bmag=0.5, b_angle=60))
+    result = AtomSpect.AtomSpect_Main(dict(HE, Bmag=0.5, b_angle=60))
     checks.append(("strength_normalization", abs(np.sum(result["signal"]) - 1), 1e-12))
 
     # 4. E1 has no |Delta M| > 1 component.
     checks.append(("no_forbidden_components", float(np.sum(result["other_sticks"][1])), 1e-14))
 
     # 5. Looking along the field only sigma light reaches the detector: pi strength vanishes.
-    along = A.AtomSpect_Main(dict(HE, Bmag=0.5, b_angle=0))
+    along = AtomSpect.AtomSpect_Main(dict(HE, Bmag=0.5, b_angle=0))
     checks.append(("pi_strength_along_field", float(np.sum(along["pi_sticks"][1])), 1e-12))
 
     # 6. Lineshapes carry unit area and the stated FWHM.
     x = np.linspace(600e-9 - 2e-9, 600e-9 + 2e-9, 400001)
     area = lambda y: np.trapezoid(y, x) if hasattr(np, "trapezoid") else np.trapz(y, x)  # noqa: E731
-    checks.append(("gaussian_unit_area", abs(area(A.Gaussian(x, 600e-9, 300, 40)) - 1), 1e-3))
-    checks.append(("voigt_unit_area", abs(area(A.Voigt(x, 600e-9, 300, 40, pixel_size=5e-12)) - 1), 1e-3))
-    lor = A.Lorrentzian(x, 600e-9, pixel_size=5e-12)
+    checks.append(("gaussian_unit_area", abs(area(AtomSpect.Gaussian(x, 600e-9, 300, 40)) - 1), 1e-3))
+    checks.append(("voigt_unit_area", abs(area(AtomSpect.Voigt(x, 600e-9, 300, 40, pixel_size=5e-12)) - 1), 1e-3))
+    lor = AtomSpect.Lorrentzian(x, 600e-9, pixel_size=5e-12)
     half = x[lor >= lor.max()/2]
     checks.append(("lorentzian_fwhm_m", abs((half[-1] - half[0]) - 5e-12), 2e-14))
 
     # 7. Compare weak-field gF*mF with direct projection of the exact operator.
-    gi = A.lande_gi(1.5, 1.)
-    hfs_level = A.stateprocess_HFS(0, .5, 1.5, {'HFSA': [1e6]}, gi, [0.], 0.)
-    operator = A.HZeeman_HFS(hfs_level, gi)['H_Z']
+    gi = AtomSpect.lande_gi(1.5, 1.)
+    hfs_level = AtomSpect.stateprocess_HFS(0, .5, 1.5, {'HFSA': [1e6]}, gi, [0.], 0.)
+    operator = AtomSpect.HZeeman_HFS(hfs_level, gi)['H_Z']
     errors = []
     for index, state in enumerate(hfs_level[-1]):
         F, mF, J, _, I, _, L, _, S, _ = state
-        errors.append(abs(A.lande_gf(F, I, J, L, S, gi)*mF - operator[index, index]))
+        errors.append(abs(AtomSpect.lande_gf(F, I, J, L, S, gi)*mF - operator[index, index]))
     checks.append(('hfs_weak_field_projection', max(errors), 1e-12))
 
     # 8. Bins with overlapping padding must not duplicate component profiles.
     waves = np.array([600., 600.15, 600.16])
-    spectrum, _, _ = A.Convol_Spect(waves, np.ones(3), [599, 601], [599, 601], 40, .002)
+    spectrum, _, _ = AtomSpect.Convol_Spect(waves, np.ones(3), [599, 601], [599, 601], 40, .002)
     grid = spectrum[0][1:-1]*1e-9
-    expected = sum(A.Lorrentzian(grid, wave*1e-9, pixel_size=.002e-9) for wave in waves)
+    expected = sum(AtomSpect.Lorrentzian(grid, wave*1e-9, pixel_size=.002e-9) for wave in waves)
     residual = np.max(np.abs(spectrum[1][1:-1] - expected))/np.max(expected)
     checks.append(('overlapping_bin_profile_sum', residual, 1e-12))
 
     # 9. An analyzer with zero transmission yields a dark spectrum, not NaN.
-    dark = A.AtomSpect_Main(dict(HE, Bmag=.5, TAlpha=0., TBeta=0.))
+    dark = AtomSpect.AtomSpect_Main(dict(HE, Bmag=.5, TAlpha=0., TBeta=0.))
     checks.append(('dark_spectrum_strength', float(np.max(np.abs(dark.signal))), 0.))
 
     for name, value, tol in checks:
@@ -127,7 +127,7 @@ def run_checks():
 def fig_zeeman_fan():
     """Write exact and weak-field He 3P fan data, relative to mean E_J."""
     fields = np.linspace(0, 1, 101)
-    fan = A.ZeemanFan(dict(HE, Bmag=fields), 'GL')
+    fan = AtomSpect.ZeemanFan(dict(HE, Bmag=fields), 'GL')
     offset = np.mean(HE_G)
     exact, low = fan['G']-offset, fan['LowG']-offset
     header = ['B_T'] + [f'exact{i}_cm-1' for i in range(len(exact))]
@@ -138,7 +138,7 @@ def fig_zeeman_fan():
 def fig_hfs_fan():
     """Write exact and hyperfine Paschen-Back Rb 5S fan data."""
     fields = np.linspace(0, .5, 101)
-    fan = A.ZeemanFan(dict(RB, Bmag=fields), 'GH')
+    fan = AtomSpect.ZeemanFan(dict(RB, Bmag=fields), 'GH')
     header = ['B_T'] + [f'exact{i}_cm-1' for i in range(len(fan['G']))]
     header += [f'high{i}_cm-1' for i in range(len(fan['HighG']))]
     write_csv('hfs_fan_rb85_5S.csv', header, np.column_stack([fields, fan['G'].T, fan['HighG'].T]))
@@ -148,7 +148,7 @@ def fig_polarization():
     """Write He 447 nm sticks for transverse and axial observation."""
     rows = []
     for angle in (90, 0):
-        result = A.AtomSpect_Main(dict(HE, Bmag=.5, b_angle=angle))
+        result = AtomSpect.AtomSpect_Main(dict(HE, Bmag=.5, b_angle=angle))
         for key in ('pi_sticks', 'sigmaminus_sticks', 'sigmaplus_sticks'):
             rows.extend((angle, key, w, s) for w, s in zip(*result[key]))
     write_csv('polarization_sticks.csv', ['b_angle_deg', 'component', 'wavelength_nm', 'strength'], rows)
@@ -157,10 +157,10 @@ def fig_polarization():
 def fig_lineshapes():
     """Write per-metre profile densities on a wavelength grid in nm."""
     x = np.linspace(600e-9 - 4e-11, 600e-9 + 4e-11, 2001)
-    curves = {'Gaussian (Doppler)': A.Gaussian(x, 600e-9, 3000, 40),
-              'Gaussian + instrument': A.GaussianInstrum(x, 600e-9, 3000, 40, pixel_size=1e-11),
-              'Voigt': A.Voigt(x, 600e-9, 3000, 40, pixel_size=1e-11),
-              'Lorentzian (FWHM 10 pm)': A.Lorrentzian(x, 600e-9, pixel_size=1e-11)}
+    curves = {'Gaussian (Doppler)': AtomSpect.Gaussian(x, 600e-9, 3000, 40),
+              'Gaussian + instrument': AtomSpect.GaussianInstrum(x, 600e-9, 3000, 40, pixel_size=1e-11),
+              'Voigt': AtomSpect.Voigt(x, 600e-9, 3000, 40, pixel_size=1e-11),
+              'Lorentzian (FWHM 10 pm)': AtomSpect.Lorrentzian(x, 600e-9, pixel_size=1e-11)}
     write_csv('lineshapes.csv', ['wavelength_nm'] + list(curves), np.column_stack([x*1e9] + list(curves.values())))
 
 

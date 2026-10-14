@@ -29,7 +29,7 @@ The package imports Tkinter for its slider interface. Use a Python installation 
 This example uses the Ar I line near 750.4 nm. Energies are supplied in cm^-1, ordered by increasing J within each term. `s_ground` and `s_excited` are the spin quantum numbers S; a triplet has S = 1.
 
 ```python
-import AtomSpect as A
+import AtomSpect
 
 deck = {
     "s_ground": 0, "s_excited": 0,
@@ -47,7 +47,7 @@ deck = {
     "plot_window": [750.2, 750.6],
 }
 
-result = A.AtomSpect_Main(deck)
+result = AtomSpect.AtomSpect_Main(deck)
 print(result.wave_air)         # component wavelengths in nm
 print(result.signal)           # normalized relative strengths
 wavelength, intensity = result.SpecOut
@@ -62,7 +62,7 @@ Continue from the example above:
 ```python
 from matplotlib import pyplot as plt
 
-axes = A.PlotFunction(
+axes = AtomSpect.PlotFunction(
     result,
     ["royalblue", 1.5, "solid", "Exact"],
     NormalizeSig=True,
@@ -122,7 +122,7 @@ To calculate an energy fan, continue from the Ar example and replace `Bmag` with
 import numpy as np
 
 fan_deck = dict(deck, Bmag=np.linspace(0, 1, 101))
-fan = A.ZeemanFan(fan_deck, flags="GL")
+fan = AtomSpect.ZeemanFan(fan_deck, flags="GL")
 print(fan["G"].shape)         # states × field samples
 ```
 
