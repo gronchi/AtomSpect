@@ -83,7 +83,7 @@ def test_invalid_flag_is_rejected_before_computation(value):
 
 
 def test_slider_with_false_flags_has_no_uninitialized_lines(monkeypatch):
-    monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'show', lambda *args, **kwargs: None)
     inputs = dict(deck(), DoLowSig=False, DoHighSig=False)
     AtomSpect.MakeSlider(inputs, [np.array([799., 801.]), np.array([0., 1.])],
                          [799., 801.], banglevary=0, polvary=0)

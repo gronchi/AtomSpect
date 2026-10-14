@@ -174,8 +174,27 @@ def test_invalid_profile_settings_fail_during_parsing(extra):
 
 def test_slider_startup_allows_missing_title_and_numpy_bounds(monkeypatch):
     from matplotlib import pyplot as plt
-    monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'show', lambda *args, **kwargs: None)
     A.MakeSlider(deck(), [[799., 801.], [0., 1.]], plotwind=np.array([799, 801]),
                  do_sticks=False, do_Polplot=False)
     np.testing.assert_array_equal(plt.gcf().axes[0].get_xlim(), [799, 801])
     plt.close('all')
+
+
+def test_slider_blocks_in_a_script_and_not_in_a_console(monkeypatch):
+    """The slider window must stay open when a plain script calls MakeSlider."""
+    import sys
+    from AtomSpect.plotting import slider
+
+    seen = {}
+    monkeypatch.setattr(slider.plt, 'show', lambda block=None: seen.setdefault('block', block))
+    assert slider._script_should_block() is True  # pytest is a plain, non-interactive process
+    monkeypatch.setattr(sys, 'ps1', '>>> ', raising=False)
+    assert slider._script_should_block() is False
+    monkeypatch.delattr(sys, 'ps1')
+
+    deck = dict(s_ground=0, s_excited=0, l_ground=0, l_excited=1, E_ground=np.array([0.]),
+                E_excited=np.array([12500.]), Bmag=.1, b_angle=90, amu=40, Temp=300,
+                Convfxn='Gaussian', spec_window=[799, 801], plot_window=[799, 801], specstep=.01, specres=1)
+    slider.MakeSlider(deck, [np.array([799., 801.]), np.array([0., 0.])], [799, 801])
+    assert seen['block'] is True

@@ -1,4 +1,6 @@
 """Interactive slider GUI (MakeSlider)."""
+import sys
+
 import numpy as np
 import tkinter as tk
 from tkinter import simpledialog
@@ -9,6 +11,19 @@ from ..lineshapes import Normalize
 
 
 # This section defines the plot_slider which creates interactve plots where parameters can be changed. This is a proof of concept, but is already looking very promising. Further UI work is needed.
+
+
+def _script_should_block():
+    """True when the process would exit right after the figure is shown (a plain script)."""
+    if hasattr(sys, 'ps1') or sys.flags.interactive:  # python -i or the plain interactive prompt
+        return False
+    try:
+        from IPython import get_ipython
+        if get_ipython() is not None:  # Spyder, Jupyter and IPython run their own event loop
+            return False
+    except ImportError:
+        pass
+    return True
 
 
 def Zslider(B, thisTemp, thisRes, Input):
@@ -312,4 +327,6 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
     axs.set_ylabel("Normalized Intensity (Arb units)", weight='semibold')
     axs.set_xlabel('Wavelength (nm)', weight='semibold')
 
-    plt.show()
+    # With interactive mode on, show() returns at once and a plain script would exit, closing the
+    # window. Keep the sliders alive in a script; a console that runs its own event loop needs no block.
+    plt.show(block=_script_should_block())
