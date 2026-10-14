@@ -6,6 +6,22 @@ from .hamiltonian import Zeemanlow
 from .hfs import Delta_E_HFS
 
 
+def _cg_matrix(states, match, coupled, target):
+    """Matrix of Clebsch-Gordan coefficients <coupled| target> between basis states.
+
+    Entry [i, j] couples state j's quantum numbers at positions `coupled`
+    (j1, m1, j2, m2) into state i's `target` (J, M), and is zero unless the
+    states agree at position `match` (the spectator quantum number).
+    """
+    dim = len(states)
+    out = np.zeros((dim, dim))
+    for i, state1 in enumerate(states):
+        for j, state2 in enumerate(states):
+            if state1[match] == state2[match]:
+                out[i, j] = CGw3(*[state2[k] for k in coupled], state1[target[0]], state1[target[1]])
+    return out
+
+
 def stateprocess(L_state, S_state, E_level, thisB, sortE=False):
     '''
     Takes input state values and magnetic field to expand the state space. 
@@ -55,7 +71,6 @@ def stateprocess(L_state, S_state, E_level, thisB, sortE=False):
     E_cm0 = [[E_level[x]]*int(2*Jvals[x] + 1) for x in range(len(E_level))]
     # Flatten the results out
     E_cm0_flat = [item for row in E_cm0 for item in row]
-    E_cm0_Mat = np.diagflat(E_cm0_flat)
     # This step uses a low field approximation in order to sort the state-list based on the given magnetic field such that the relative state function order is known.
     # This is used for signal strength calculation as otherwise we may not know what order the functions are after they get diagonalized. This step might not be needed.
     LowE = []
@@ -72,45 +87,16 @@ def stateprocess(L_state, S_state, E_level, thisB, sortE=False):
 
         sortedlist = sorted(biglist)  # Soted in ascending energy
         LowE = [x[0] for x in sortedlist]
-        sortedstates = [x[-1] for x in sortedlist]
-        E_cm_flat = [x[1] for x in sortedlist]  # This is the sorted energies, and is in cm^-1
-        # Jmjs = [x[2] for x in sortedlist]
-        # LS = [x[3] for x in sortedlist]
-        E_SO_cm_Mat = np.diagflat([item for item in E_cm_flat])  # Despite the name, these energies are actually in cm-1
-
-    # We now use wigner 3j to get an equivalent decoupling as per how CG coefficients work.
-    # The result is a 2d where the columns are the |J,mJ> states and the rows determine what the corresponding |L,mL,S,mS> state was.
-    # Eventually would like a way to convert this data to a more human readable form
-        dim = len(Jmjs0)
-        w3mat = np.zeros((dim, dim))
-        # [J,mJ,L,mL,S,mS]
-        for i, states1 in enumerate(sortedstates):
-
-            for j, states2 in enumerate(sortedstates):
-                # This conditional is saying that J != J', as otherwise the different J levels will cause duplicate CG's.
-                if states1[2] != states2[2]:
-                    CG1 = 0
-                else:
-                    # The CG coefficient couples J,mJ to L,mL, S mS
-                    CG1 = CGw3(states2[2], states2[3], states2[4], states2[5], states1[0], states1[1])
-                w3mat[i, j] = CG1
-        return [w3mat, E_SO_cm_Mat, LowE, E_cm_flat, sortedstates]
-
+        states = [x[-1] for x in sortedlist]
+        E_flat = [x[1] for x in sortedlist]  # This is the sorted energies, and is in cm^-1
     else:
-        dim = len(Jmjs0)
-        w3mat = np.zeros((dim, dim))
-        # [J,mJ,L,mL,S,mS]
-        for i, states1 in enumerate(bigstatelist):
+        states = bigstatelist
+        E_flat = E_cm0_flat
 
-            for j, states2 in enumerate(bigstatelist):
-                # This conditional is saying that J != J', as otherwise the different J levels will cause duplicate CG's.
-                if states1[2] != states2[2]:
-                    CG1 = 0
-                else:
-                    # The CG coefficient couples J,mJ to L,mL, S mS
-                    CG1 = CGw3(states2[2], states2[3], states2[4], states2[5], states1[0], states1[1])
-                w3mat[i, j] = CG1
-        return [w3mat, E_cm0_Mat, LowE, E_cm0_flat, bigstatelist]
+    # States are [J,mJ,L,mL,S,mS]: couple (L,mL,S,mS) into (J,mJ) within each J manifold.
+    w3mat = _cg_matrix(states, match=2, coupled=(2, 3, 4, 5), target=(0, 1))
+    E_mat = np.diagflat(E_flat)  # Despite the old name, these energies are in cm^-1
+    return [w3mat, E_mat, LowE, E_flat, states]
 
 
 def stateprocess_HFS(L_state, S_state, I_state, HFS_Const, g_I, E_level, thisB, sortE=False):
@@ -178,112 +164,32 @@ def stateprocess_HFS(L_state, S_state, I_state, HFS_Const, g_I, E_level, thisB, 
     if sortE:
         biglist = []
         for i, x in enumerate(E0_cm_flat):
-            # thislandegF = lande_gf(bigstatelist[i][0],I_state, bigstatelist[i][2], L_state,S_state,g_I) #Calculate lande gf factor for the given transition
             thislandegF = lande_gf(bigstatelist[i][0], bigstatelist[i][4], bigstatelist[i][2], bigstatelist[i][6], bigstatelist[i][8], g_I)  # Calculate lande gf factor for the given transition
 
-            # Lowfield zeeman approximation with hfs, which should be mf and gf.
             thisZeemanEnergy = Zeemanlow(thislandegF, bigstatelist[i][1], thisB) + x + Delta_E_HFS(I_state, bigstatelist[i][2], bigstatelist[i][0], HFS_Flat[i], HFS_FlatB[i])
 
-            # thisZeemanEnergy = Zeemanlow(thislandegJ,bigstatelist[i][3],thisB) + muBcm*g_I*thisB*bigstatelist[i][5] + x + Delta_E_HFS(I_state,bigstatelist[i][2],bigstatelist[i][0],HFS_Flat[i],HFS_FlatB[i])
             biglist.append([thisZeemanEnergy, x, bigstatelist[i], HFS_Flat[i], HFS_FlatB[i]])
-        # Sort the results and pull sorted values
         sortedlist = sorted(biglist)
-        sortedstates = [x[2] for x in sortedlist]
+        states = [x[2] for x in sortedlist]
         sortedHFC = [x[3] for x in sortedlist]  # Sorted hyperfine constants
         sortedHFCB = [x[4] for x in sortedlist]  # Sorted hyperfine constants
-
         E_cm = [x[1] for x in sortedlist]
-        E_low = [x[0] for x in sortedlist]
-
-        # Calculate Hyperfine energies with sorted states and values.
-        E_HFSFlat = [Delta_E_HFS(states1[4], states1[2], states1[0], sortedHFC[i], sortedHFCB[i]) for i, states1 in enumerate(sortedstates)]  # Hyperfine + E0 (spin orbital, Nist)
-
-        # E_HFSFlat = [E_cm[i] + Delta_E_HFS(states1[4],states1[2],states1[0], sortedHFC[i], sortedHFCB[i])    for i,states1 in enumerate(sortedstates)] #Hyperfine + E0 (spin orbital, Nist)
-        # E_HFSA = [Delta_E_HFS(states1[4],states1[2],states1[0], sortedHFC[i],0)    for i,states1 in enumerate(sortedstates)] #Just Hyperfine energy
-        # E_HFSB = [Delta_E_HFS(states1[4],states1[2],states1[0], 0, B=sortedHFCB[i])    for i,states1 in enumerate(sortedstates)] #Just Hyperfine energy
-
-        # E0_cm_Mat = np.diagflat([item for item in E_HFSFlat]) #Make the diagonal energy matrix
-        E0_cm_Mat = np.diagflat([item for item in E_cm])  # Make the diagonal energy matrix
-
-        # We now use wigner 3j to get an equivalent decoupling as per how CG coefficients work.
-        # There are two coefficients as we go from |F,mF> -> |J,mJ>|I,mI> then another set for |J,mJ>|I,mI> -> |L,mL>|S,mS>|I,mI>. Keeping track of constants is slightly tricky.
-        # There can be issues with overla
-        # Eventually would like a way to convert this data to a more human readable form
-        dimhfs = len(Fmfs0)
-        w3cg1 = np.zeros((dimhfs, dimhfs))
-        w3cg2 = np.zeros((dimhfs, dimhfs))
-        # Done in a single set of iterations. The check for states1[2] != states2[2] is saying that J != J' to calculate, otherwise it's zero.
-        for i, states1 in enumerate(sortedstates):
-
-            for j, states2 in enumerate(sortedstates):
-                # This conditional is saying that J != J', as otherwise the different J levels will cause duplicate CG's.
-                if states1[2] != states2[2]:
-                    CG1 = 0
-                else:
-                    # Make a large list of [F,mF,J,mJ,I,mI,L,mL,S,mS]
-
-                    # The CG coefficient couples F,mF to J,mJ;I,mI for CG1
-                    CG1 = CGw3(states2[2], states2[3], states2[4], states2[5], states1[0], states1[1])
-                # This conditional ensures we don't allow nuclear spin to flip or change between states. states[5] is mI.
-                if states1[5] != states2[5]:
-                    CG2 = 0
-                    # CG2 = CGw3(states2[6],states2[7],states2[8],states2[9],states1[2],states1[3])
-                    # w3cg2[i,j] = CG2
-
-                else:
-                    CG2 = CGw3(states2[6], states2[7], states2[8], states2[9], states1[2], states1[3])
-
-                    w3cg2[i, j] = CG2
-                w3cg1[i, j] = CG1
-
-        w3cgprod = np.matmul(w3cg1, w3cg2)
-
-        return [w3cgprod, E0_cm_Mat, E_HFSFlat, E_low, sortedstates]
+        # The fourth entry is the sorted low-field energies here, but the unsorted
+        # constants below (kept as the original returned them).
+        fourth = [x[0] for x in sortedlist]
     else:
+        states = bigstatelist
+        sortedHFC, sortedHFCB = HFS_Flat, HFS_FlatB
+        E_cm = E0_cm_flat
+        fourth = HFS_Flat
 
-        # E_cm = [x[1] for x in biglist]
+    E_HFSFlat = [Delta_E_HFS(st[4], st[2], st[0], sortedHFC[i], sortedHFCB[i]) for i, st in enumerate(states)]  # Hyperfine + E0 (spin orbital, Nist)
+    E0_cm_Mat = np.diagflat(E_cm)  # Make the diagonal energy matrix
 
-        # Calculate Hyperfine energies with sorted states and values.
-        E_HFSFlat = [Delta_E_HFS(states1[4], states1[2], states1[0], HFS_Flat[i], HFS_FlatB[i]) for i, states1 in enumerate(bigstatelist)]  # Hyperfine + E0 (spin orbital, Nist)
+    # States are [F,mF,J,mJ,I,mI,L,mL,S,mS]: couple (J,mJ) with (I,mI) into (F,mF) within a J manifold,
+    # and (L,mL) with (S,mS) into (J,mJ) at fixed mI.
+    w3cg1 = _cg_matrix(states, match=2, coupled=(2, 3, 4, 5), target=(0, 1))
+    w3cg2 = _cg_matrix(states, match=5, coupled=(6, 7, 8, 9), target=(2, 3))
+    w3cgprod = np.matmul(w3cg1, w3cg2)
 
-        #Holdovers from work with HFS energy contributions. Left for future possible use.
-        # E0_HFSFlat = [E_cm[i] + Delta_E_HFS(states1[4],states1[2],states1[0], HFS_Flat[i], HFS_FlatB[i])    for i,states1 in enumerate(bigstatelist)] #Hyperfine + E0 (spin orbital, Nist)
-        # E_HFSA = [Delta_E_HFS(states1[4],states1[2],states1[0], sortedHFC[i],0)    for i,states1 in enumerate(sortedstates)] #Just Hyperfine energy
-        # E_HFSB = [Delta_E_HFS(states1[4],states1[2],states1[0], 0, B=sortedHFCB[i])    for i,states1 in enumerate(sortedstates)] #Just Hyperfine energy
-
-        E0_cm_Mat = np.diagflat([item for item in E0_cm_flat])  # Make the diagonal energy matrix
-
-        # We now use wigner 3j to get an equivalent decoupling as per how CG coefficients work.
-        # There are two coefficients as we go from |F,mF> -> |J,mJ>|I,mI> then another set for |J,mJ>|I,mI> -> |L,mL>|S,mS>|I,mI>. Keeping track of constants is slightly tricky.
-        # There can be issues with overla
-        # Eventually would like a way to convert this data to a more human readable form
-        dimhfs = len(Fmfs0)
-        w3cg1 = np.zeros((dimhfs, dimhfs))
-        w3cg2 = np.zeros((dimhfs, dimhfs))
-        # Done in a single set of iterations. The check for states1[2] != states2[2] is saying that J != J' to calculate, otherwise it's zero.
-        for i, states1 in enumerate(bigstatelist):
-
-            for j, states2 in enumerate(bigstatelist):
-                # This conditional is saying that J != J', as otherwise the different J levels will cause duplicate CG's.
-                if states1[2] != states2[2]:
-                    CG1 = 0
-
-                else:
-                    # Make a large list of [F,mF,J,mJ,I,mI,L,mL,S,mS]
-
-                    # The CG coefficient couples F,mF to J,mJ;I,mI for CG1
-                    CG1 = CGw3(states2[2], states2[3], states2[4], states2[5], states1[0], states1[1])
-                # This conditional ensures we don't allow nuclear spin to flip or change between states. states[5] is mI.
-                if states1[5] != states2[5]:
-                    CG2 = 0
-                    # CG2 = CGw3(states2[6],states2[7],states2[8],states2[9],states1[2],states1[3])
-                    # w3cg2[i,j] = CG2
-
-                else:
-                    CG2 = CGw3(states2[6], states2[7], states2[8], states2[9], states1[2], states1[3])
-
-                    w3cg2[i, j] = CG2
-                w3cg1[i, j] = CG1
-
-        w3cgprod = np.matmul(w3cg1, w3cg2)
-        return [w3cgprod, E0_cm_Mat, E_HFSFlat, HFS_Flat, bigstatelist]
+    return [w3cgprod, E0_cm_Mat, E_HFSFlat, fourth, states]

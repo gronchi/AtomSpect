@@ -84,7 +84,8 @@ def cases():
         eg, ee = ({"Eterm": 169087.}, {"Eterm": 191444.}) if kw.get("Highfield") else ({}, {})
         zg, ze = AtomSpect.Zeeman_func(lg, 0.5, **kw, **eg), AtomSpect.Zeeman_func(le, 0.5, **kw, **ee)
         flatten([zg[0], ze[0]], f"zfunc/he/{regime}/energies", out)
-        flatten(AtomSpect.Zeeman_signal(lg, zg, le, ze, Bangle=70, gamma=20, Filter=True), f"zsig/he/{regime}", out)
+        if regime != "high":  # Exactly degenerate levels have no unique per-eigenpair labelling.
+            flatten(AtomSpect.Zeeman_signal(lg, zg, le, ze, Bangle=70, gamma=20, Filter=True), f"zsig/he/{regime}", out)
         flatten(AtomSpect._zeeman_signal(lg, zg, le, ze, label_eigenpairs=False), f"zsig/he/{regime}/unlabelled", out)
     zg, ze = AtomSpect.Zeeman_func(lg, 0.5), AtomSpect.Zeeman_func(le, 0.5)
     flatten(AtomSpect.Zeeman_sig_norad(lg, zg, le, ze), "zsig/he/norad", out)

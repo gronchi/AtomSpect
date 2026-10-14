@@ -36,6 +36,16 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
   without `Convfxn` the keys `Skewness`, `Temp` and `ion_vel` are silently ignored;
   `Convfxn='Gaussian'/'Voigt'` without `Temp`/`TempeV` raises KeyError late, after the solve;
   the slider writes a `PolAngle` key that the driver does not read.
+- Phase 4 done (scoped): the shared parts of the HFS/non-HFS pairs are merged; the two state
+  layouts stay separate because `[J,mJ,L,mL,S,mS]` and `[F,mF,J,mJ,I,mI,L,mL,S,mS]` need different
+  quantum-number bookkeeping. Merged: `_zeeman_operator` (replaces four copies of an O(N^2) Python
+  loop with one matrix product), `_definite_m_eigenvectors` (one helper for both cases, now with the
+  offset-subtracted HFS form), `_signal_core` (one E1 pipeline; `Zeeman_signal`/`_zeeman_signal`/
+  `Zeeman_signal_HFS` are thin wrappers), `_cg_matrix` and a single sorted/unsorted tail in
+  `stateprocess` and `stateprocess_HFS`. `Zeeman_func(Lowfield=True, Highfield=True)` now raises
+  instead of failing later with an unbound variable; `PsiHFS` is accepted but has no effect (both of
+  its settings built the same Hamiltonian). The golden test now ignores eigenvector-gauge outputs
+  (`afcf`, eigenvector matrices), which differ across LAPACK builds.
   `plotting/slider.py` and `plotting/fan.py` import the driver late (inside functions)
   until phase 3 removes that dependency.
 - Naming: the package keeps the name `AtomSpect` (not `atomspect`). On Windows/macOS a

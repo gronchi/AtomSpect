@@ -1,4 +1,6 @@
 """Numerical output must not change during pure code moves (see golden_cases.py)."""
+import re
+
 import numpy as np
 import pytest
 
@@ -14,7 +16,8 @@ GAUGE_DEPENDENT = ("EigGround[1]", "EigExcited[1]", "afcf", "Red_Dipole", "RedDi
 
 
 def comparable(key):
-    return not key.endswith(GAUGE_DEPENDENT)
+    # zsig/... entry [4] is the eigenvector (afcf) matrix of the signal functions.
+    return not key.endswith(GAUGE_DEPENDENT) and not re.search(r"^zsig/.*\[4\]$", key)
 
 
 @pytest.fixture(scope="module")
