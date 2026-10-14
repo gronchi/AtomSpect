@@ -6,8 +6,11 @@ LS/jj coupling relations of Kuhn. `Ahfs(Input)` returns the estimated A in MHz f
 
 The estimates are rough: P levels are typically within a few percent of experiment and some s
 levels are off by more than 10%. The routines are pinned by `tests/test_hfs_estimate.py`, which
-guards the numbers but does not validate the model. Known open issues from the audit are marked
-below (`qe`, the units of `Bhfsconst`, `gI_kopf`).
+guards the numbers but does not validate the model.
+
+Units: A constants are in MHz, B constants in the unit of the A they are derived from (MHz when
+`Bhfsconst` is used), energies in eV or cm^-1 as named, nuclear quadrupole moments Q in barns and
+magnetic moments in nuclear magnetons.
 
 @author: Leo Nofs
 """
@@ -18,14 +21,13 @@ import numpy as np
 from scipy.special import gamma
 
 from .constants import (a_o, c_light, eps0, g_L, g_S, hbar, hh, kboltz, m_elec, m_prot,  # noqa: F401
-                        mu_0, muB, muN, muN2, muP, mu_B, q_charge)
+                        mu_0, muB, muN, muN2, muP, mu_B, q_charge)  # noqa: F401
 from .io import read_HFSInput  # noqa: F401
 from .units import Hz_to_nm, cm_to_ev, cm_to_nm, cm_to_Hz, ev_to_cm, ev_to_MHz  # noqa: F401
 
 # Constants specific to this estimator.
 Rfreq = 3.28984196025e15  # Rydberg frequency
 alpha = 0.0072973525643  # Fine-structure constant
-qe = 1.602e-16  # Elementary charge as used by the estimator (note: not 1.602e-19; unresolved audit item)
 mu_Bhh = muB/hh
 hhc = 1240e-13  # eV m for hc.
 hcRyd = 13.605693122990  # hcRyd_inf - Infinite mass Rydberg energy (CODATA), eV
@@ -215,32 +217,35 @@ def Ahfs_Kopf2(Z,deltaFS,muI,I,l_in,j):
         tempval = deltaFS*l_in*(l_in+1)*thisgI/((l_in+0.5)*j*(j+1)*Z)
     return ev_to_MHz(tempval)
 
-def gI_kopf(I,L,S,muI,Mass):
-    #Not sure what this is, doesn't seem to be gI actually?
-    tgi = g_S*(I*(I+1) + S*(S+1) - L*(L+1))/(2*I*(I+1)) +g_L*(I*(I+1) - S*(S+1) + L*(L+1))/(2*I*(I+1))
-    # extrafactors = I*(I+1)*muI/(Mass*m_prot/m_elec)
-    print('Do not use this function, it does not seem to correspond to anything')
-    return tgi
+BARN = 1e-28  # m^2
 
 
+def Bhfs_kopf(A_in, l, j, I, mu_I, Qin):
+    """Quadrupole constant B from the magnetic constant A of the same single-electron level.
 
-def Bhfs_kopf(A_in,l,j,I,mu_I,Qin):
-    #Trying 30.13 to get b from Q and a.... generally seems to work well enough.
+    Uses the ratio of the two interactions for one electron with the same <r^-3> (Kopfermann 30.13):
+    B/A = e^2 Q (2j-1) j I m_p / (4 eps0 mu0 muB^2 m_e mu_I l(l+1)).
+    A_in and the returned B share one unit (for example MHz); Qin is in barns and mu_I in nuclear
+    magnetons. Valid for l > 0 and j > 1/2.
+    """
+    ratio = (q_charge**2*Qin*BARN*j*(2*j - 1)*m_prot*I
+             / (4*eps0*mu_0*muB**2*m_elec*mu_I*l*(l + 1)))
+    return A_in*ratio
 
-    InvB = eps0*mu_0*muB*muB * 4 * l*(l+1)*mu_I * m_elec /(A_in*qe*qe*Qin*j * (2*j- 1)  * m_prot * I)
-    tempB = 1/InvB
-    return hbar*tempB
 
-def Bhfsconst(Z,n,l,J,Q,Rcorr,Z_a=1):
-    #Eq 30.11 (pg 154) in Kopf -- Need to do unit analysis to get this working
-    #This also is in Kuhn, and works, but is off by a factor of 10 it seems for p states?
-    
-    if l==0 or J==0 or J==0.5:
-        Btmp = 0
-    else:
-        rexpected = (Z* Z_a**2)/ (a_o**3 * n**3 *(l+.5)*l*(l+1))
-        Btmp = 0.5*Rcorr*rexpected*Q*(qe**2)*((2*J -1)/(2*J +2))
-    return cm_to_MHz(Btmp)  # Converts to MHz (units of the model are unresolved; see the audit)
+def Bhfsconst(Z, n, l, J, Q, Rcorr, Z_a=1):
+    """Quadrupole constant B (MHz) of a single-electron level, B = e Q V_zz (Kopfermann 30.11).
+
+    <r^-3> = Z Z_a^2 / (a0^3 n*^3 l (l+1/2)(l+1)), with n the effective principal quantum number n*
+    and Z the screened charge seen at the nucleus. The angular factor <jj|3cos^2(theta)-1|jj> equals
+    -(2J-1)/(2J+2) for both j = l +/- 1/2, so B = e^2 Q <r^-3> (2J-1)/(2J+2) / (4 pi eps0 h) * Rcorr.
+    Q is in barns; Rcorr is the relativistic correction. B vanishes for l = 0 and J <= 1/2.
+    """
+    if l == 0 or J == 0 or J == 0.5:
+        return 0
+    rexpected = (Z*Z_a**2)/(a_o**3*n**3*(l + .5)*l*(l + 1))  # <r^-3> in m^-3
+    energy = Rcorr*q_charge**2*(Q*BARN)*rexpected*((2*J - 1)/(2*J + 2))/(4*np.pi*eps0)  # J
+    return energy/hh/1e6
 
 def A_Bransden(Z,n,ndef,muI,I,MnucAMU,l,j,Za=1):
     nucmass = reducedmass(m_elec,MnucAMU)

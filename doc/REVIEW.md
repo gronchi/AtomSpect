@@ -47,7 +47,7 @@ These cases are covered by [test_review_regressions.py](../tests/test_review_reg
 
 ## Still open
 
-- The hyperfine-constant estimator (now `AtomSpect/hfs_estimate.py`, formerly the root script `HFS_Const_Calcs.py`) was moved into the package with its duplicated constants and unit helpers removed. Its numbers are pinned by `tests/test_hfs_estimate.py`, but its model and unit defects (`qe`, the units of `Bhfsconst`, `gI_kopf`) are not repaired.
+- The hyperfine-constant estimator (now `AtomSpect/hfs_estimate.py`, formerly the root script `HFS_Const_Calcs.py`) was moved into the package with its duplicated constants and unit helpers removed. Its numbers are pinned by `tests/test_hfs_estimate.py`. The quadrupole routines were repaired: the elementary charge was 1.602e-16 instead of 1.602e-19 and a missing 1/(4 pi eps0) and a J-to-Hz conversion were absorbed into odd factors, so `Bhfsconst` was about 11 times too large and `Bhfs_kopf` carried a spurious factor of 1.0546; both now evaluate the SI expression B = e Q V_zz, `qe` is gone, and the misapplied `gI_kopf` was removed. The A-constant model itself (hydrogenic with corrections) is unchanged and not validated beyond its table.
 - Absolute radiative quantities need a reduced radial matrix element as input.
 - Approximation spectra (`DoLowSig`, `DoHighSig`) are not implemented with hyperfine structure.
 - Equal-energy eigenvectors receive a reconstructed basis, so only summed strength at coincident lines is meaningful.

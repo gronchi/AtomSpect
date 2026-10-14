@@ -85,13 +85,8 @@ Code author & Leo Nofs\\
 Manual date & October 2026
 \end{tabular}
 \vfill
-
-\vspace{1.5cm}
-\end{titlepage}
-
-\pagenumbering{roman}
-\hypersetup{pageanchor=true}
-\begingroup\small
+\begin{minipage}{0.88\linewidth}
+\raggedright\small
 This manual describes the physics and numerical methods implemented in
 AtomSpect: the within-term Zeeman Hamiltonian, hyperfine structure,
 relative electric-dipole strengths, observation geometry, and continuous
@@ -102,10 +97,13 @@ Known limitations are collected in Section~\ref{sec:limitations}; input
 options are listed in Appendix~\ref{app:options}. The physical model is
 presented in the AtomSpect paper, \doiurl{10.1016/j.jqsrt.2026.110015};
 implementation conventions and departures are identified here.
-\par
-\endgroup
-\vspace{0.5cm}
-\begingroup\small
+\end{minipage}
+\vspace{1.5cm}
+\end{titlepage}
+
+\pagenumbering{roman}
+\hypersetup{pageanchor=true}
+\begingroup
 \setlength{\parskip}{0pt}
 \tableofcontents
 \endgroup
@@ -460,7 +458,7 @@ The repository's test suite adds regression tests for the polarization labels (w
 \begin{itemize}\setlength\itemsep{0pt}
 \item Only relative strengths are meaningful. No radial matrix elements, populations or photon-energy weighting.
 \item Each term is isolated. Mixing between terms of different $L$ or $S$ and configuration interaction are not modelled.
-\item Hyperfine constants and moments are user inputs. The estimator module \code{hfs\_estimate} (semi-empirical A and B constants) is a research aid whose numbers are pinned by tests but whose model and units are not validated.
+\item Hyperfine constants and moments are user inputs. The estimator module \code{hfs\_estimate} (semi-empirical A and B constants) is a research aid. Its B-constant routines evaluate $B=eQV_{zz}$ in SI units; the underlying hydrogenic A-constant model is pinned by tests but not validated.
 \item The non-HFS high-field approximation neglects fine structure and uses $g_S=2$.
 \item \code{sortE} changes only the order in which basis states are listed, not the eigenvalues, and is slow.
 \item Without \code{Convfxn} the symmetric Lorentzian is used and \code{Temp} is ignored. \code{Skewness} is used only by \code{Skewed}.
