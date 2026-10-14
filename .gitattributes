@@ -1,0 +1,26 @@
+# Store text files with LF line endings in the repository; Git converts them to the
+# platform's line endings on checkout. This keeps diffs free of CRLF/LF noise.
+* text=auto
+
+*.py text
+*.md text
+*.tex text
+*.toml text
+*.yml text
+*.cfg text
+*.txt text
+*.csv text
+*.json text
+*.svg text
+Makefile text eol=lf
+*.sh text eol=lf
+
+# Binary data and figures: never convert.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.npy binary
+*.npz binary
+*.nc binary
+*.xlsx binary
+*.pptx binary
