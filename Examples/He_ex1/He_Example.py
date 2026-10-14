@@ -97,7 +97,7 @@ if doHePol2 == True:
                           'spec_window': [447.1, 447.2],  # Min and max for convolutions
                           'SpectrumData': [He_PolShift, He_Pol_Spec[i]],  # Spectrometer Data.
                           'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
-                          'amu': 2,  # Weight in AMU
+                          'amu': 4.0026,  # Weight in AMU
                           'specres': 10,  # How many steps per resolution are calculated. Higher makes a smoother curve.
                             'TAlpha' : 0.65, #Beam Splitter Film Correction
                             'TBeta' : 0.35, #Beam Splitter Film Coating Correction
@@ -176,7 +176,7 @@ if doHePol == True:
                         
                           'SpectrumData': [He_PolShift, He_Pol_Spec['signals'][i]],  # Spectrometer Data.
                           'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
-                          'amu': 2,  # Weight in AMU
+                          'amu': 4.0026,  # Weight in AMU
                           'specres':3,  # How many steps per resolution are calculated. Higher makes a smoother curve.
                           # 'sortE' : True
                             'TAlpha' : 0.65, #Beam Splitter Film Correction
@@ -245,7 +245,7 @@ if doHePol3 == True:
                           'spec_window': [447, 447.2],  # Min and max for convolutions
                         
                           'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
-                          'amu': 2,  # Weight in AMU
+                          'amu': 4.0026,  # Weight in AMU
                           'specres':3,  # How many steps per resolution are calculated. Higher makes a smoother curve.
                           # 'sortE' : True
                           'SpectrumData': [He_PolShift, He_Pol_Spec['signals'][i]],  # Spectrometer Data.
@@ -278,7 +278,7 @@ if doHePol3 == True:
                              'Pol_angle': angles,  # Angle polarizing filter makes with max linear transmission, Optional
                           'specres':3,  # How many steps per resolution are calculated. Higher makes a smoother curve.
 
-                             'amu': 2,  # Weight in AMU
+                             'amu': 4.0026,  # Weight in AMU
                           'SpectrumData': [He_PolShift, He_Pol_Spec['signals'][i]],  # Spectrometer Data.
 
                              # 'DoLowSig' : 'Y' , #If this exists in the input, lowfield signal strength will be calculated.
@@ -355,7 +355,7 @@ if doHeNonPol == True:
                              'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                              'spec_window': [447, 447.2],  # Min and max for convolutions
 
-                             'amu': 2,  # Weight in AMU
+                             'amu': 4.0026,  # Weight in AMU
                              'SpectrumData': [He_NonPol_Spec['wavelength'], He_NonPol_Spec['signals'][i]],  # Spectrometer Data.
 
                              'DoLowSig' : 'Y' , #If this exists in the input, lowfield signal strength will be calculated.
@@ -435,7 +435,7 @@ if doHeNonPol2 == True:
                              'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                              'spec_window': [447, 447.2],  # Min and max for convolutions
 
-                             'amu': 2,  # Weight in AMU
+                             'amu': 4.0026,  # Weight in AMU
                              'SpectrumData': [He_NonPol_Spec['wavelength'], He_NonPol_Spec['signals'][i]],  # Spectrometer Data.
 
                              # 'DoLowSig' : 'Y' , #If this exists in the input, lowfield signal strength will be calculated.
@@ -461,7 +461,7 @@ if doHeNonPol2 == True:
                              'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
                              'spec_window': [447, 447.2],  # Min and max for convolutions
 
-                             'amu': 2,  # Weight in AMU
+                             'amu': 4.0026,  # Weight in AMU
                              'SpectrumData': [He_NonPol_Spec['wavelength'], He_NonPol_Spec['signals'][i]],  # Spectrometer Data.
 
                              # 'DoLowSig' : 'Y' , #If this exists in the input, lowfield signal strength will be calculated.
@@ -530,7 +530,7 @@ if doHeNonPol3 == True:
                       'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                       'plottitle': 'He I 1s2p -> 1s4d: B=3.2T, Non-Dipole',  # Title for plotting (optional)
                       'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
-                      'amu': 2,  # Weight in AMU
+                      'amu': 4.0026,  # Weight in AMU
                       'SpectrumData': [He_NonPol_Spec['wavelength'], He_NonPol_Spec['signals'][0]],  # Spectrometer Data.
                       'spec_window': [447, 447.2],  # Min and max for convolutions
                             'TAlpha' : 0.65, #Beam Splitter Film Correction
@@ -576,7 +576,7 @@ if fanplot == True:
                          'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                          'plottitle': 'He I 1s2p -> 1s4d',  # Title for plotting (optional)
                          'plot_window': [447, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
-                         'amu': 2,  # Weight in AMU
+                         'amu': 4.0026,  # Weight in AMU
                          'spec_window': [447, 447.2],  # Min and max for convolutions
 
                          'DoLowSig': 'Y',  # If this exists in the input, lowfield signal strength will be calculated.
@@ -630,7 +630,7 @@ if fanplot2 == True:
                          'Skewness': [1.24, 1.98],  # How non-symmetric the Lorrentzian is
                          'plottitle': 'He I 1s2p -> 1s4d',  # Title for plotting (optional)
                          'plot_window': [447, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
-                         'amu': 2,  # Weight in AMU
+                         'amu': 4.0026,  # Weight in AMU
                          'spec_window': [447, 447.2],  # Min and max for convolutions
 
                          'DoLowSig': 'Y',  # If this exists in the input, lowfield signal strength will be calculated.
@@ -680,7 +680,7 @@ if do_HeSlider:
                 'spec_window': [447, 447.2],  # Min and max for convolutions
 
                 'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
-                'amu': 2,  # Weight in AMU
+                'amu': 4.0026,  # Weight in AMU
                 'specres': 10,  # How many steps per resolution are calculated. Higher makes a smoother curve.
                 'DoLowSig': 'Yes',  # If this exists in the input, lowfield signal strength will be calculated.
                 'DoHighSig': 'Yes',  # If this exists in the input, lowfield signal strength will be calculated.
@@ -722,7 +722,7 @@ if do_Hepolslider:
                    'spec_window': [447, 447.2],  # Min and max for convolutions
                    'plottitle': 'He I 1s2p -> 1s4d: B=1.5T, Polarized',  # Title for plotting (optional)
                    'plot_window': [447.1, 447.2],  # Min and max for plot window range (nm), convolutions will only take place within this range
-                   'amu': 2,  # Weight in AMU
+                   'amu': 4.0026,  # Weight in AMU
                    'specres': 10,  # How many steps per resolution are calculated. Higher makes a smoother curve.
                    'fxnwindow': 0.25, #How far the convolution evaluates from the last stick in nm
 

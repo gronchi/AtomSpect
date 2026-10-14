@@ -35,7 +35,7 @@ def test_unknown_key_warns_with_suggestion():
 def test_known_keys_do_not_warn():
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        InputDeck.from_dict(deck(Pol_angle=10, Temp=300, Convfxn='Gaussian', DoLowSig=True))
+        InputDeck.from_dict(deck(Pol_angle=10, Temp=300, amu=12, Convfxn='Gaussian', DoLowSig=True))
 
 
 def test_defaults_and_input_passthrough():
@@ -94,7 +94,7 @@ def test_wing_truncation_warning():
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         InputDeck.from_dict(deck(Convfxn='Lorrentzian', specstep=.002, fxnwindow=.5))
-        InputDeck.from_dict(deck(Convfxn='Gaussian', Temp=300, specstep=.002, fxnwindow=.005))
+        InputDeck.from_dict(deck(Convfxn='Gaussian', Temp=300, amu=12, specstep=.002, fxnwindow=.005))
 
 
 def test_radiative_placeholders_are_opt_in():
@@ -104,3 +104,25 @@ def test_radiative_placeholders_are_opt_in():
     with pytest.warns(UserWarning, match="RadiativePlaceholders"):
         extra = AtomSpect.AtomSpect_Main(deck(RadiativePlaceholders=True, **flags))
     assert {'A_Ein', 'A_Ein_polavg', 'sigavgs', 'f_osc', 'S_line'} <= set(extra)
+
+
+def test_missing_mass_warns_for_doppler_profiles_only():
+    with pytest.warns(UserWarning, match="'amu' is missing.*Gaussian"):
+        InputDeck.from_dict(deck(Convfxn='Gaussian', Temp=300))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        InputDeck.from_dict(deck(Convfxn='Lorrentzian'))          # width does not depend on the mass
+        InputDeck.from_dict(deck(Convfxn='Voigt', Temp=300, amu=4.0026))
+
+
+def test_doppler_width_scales_as_inverse_root_mass():
+    import AtomSpect as A
+    x = np.linspace(446.9e-9, 447.3e-9, 200001)
+
+    def fwhm(mass):
+        y = A.Gaussian(x, 447.1e-9, 11604.5, mass)
+        half = x[y >= y.max()/2]
+        return half[-1] - half[0]
+    assert fwhm(2.0)/fwhm(4.0) == pytest.approx(np.sqrt(2), rel=1e-4)
+    # He I at 1 eV: 7.16e-7 * lambda * sqrt(T[K]/M[amu])
+    assert fwhm(4.0026)*1e9 == pytest.approx(7.1623e-7*447.1*np.sqrt(11604.5/4.0026), rel=5e-3)

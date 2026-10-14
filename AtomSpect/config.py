@@ -133,6 +133,10 @@ class InputDeck:
             raise NotImplementedError('HFS approximation spectra are not implemented; omit or disable DoLowSig/DoHighSig')
 
         if 'amu' not in deck:
+            if deck.get('Convfxn') in _TEMPERATURE_PROFILES:
+                warnings.warn(f"'amu' is missing for the Doppler profile '{deck['Convfxn']}': a mass of 1 amu is "
+                              "assumed, which overstates the Doppler width by sqrt(M); give the mass number "
+                              "(for example 4 for helium, 12 for carbon).", UserWarning, stacklevel=3)
             deck['amu'] = 1  # Default so that it is not required; visible in data['Input'].
 
         # Resolve windows: deck value > spectrometer range > default.

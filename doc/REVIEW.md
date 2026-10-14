@@ -83,6 +83,8 @@ The cover now contains the title and version details; the descriptive summary an
 
 Rewrote the main README in consistent technical English, with current installation instructions, a self-contained Ar spectrum example, plotting and fan examples, input/output tables, density-unit guidance, and a concise statement of limitations. Removed stale claims about HFS polarization labeling, non-dipole emission, and implementation status. Updated the examples guide and retained the publication, data acknowledgments, contact, and license information. All three Python blocks in the main README executed successfully with the noninteractive plotting backend; their result arrays and shapes were checked. Local documentation links resolve.
 
+- The He example decks used `amu: 2`; helium is mass 4. The Doppler width scales as $1/\sqrt{M}$, so the decks that use a Doppler profile (`GaussianInstrum` in `SpectPredict.py` and the two slider decks of `He_Example.py`) were too broad by $\sqrt2$. They now use 4.0026. The input check warns when a Doppler profile is selected without `amu`, because the default of 1 amu overstates the width by $\sqrt M$.
+
 ## Validation scope
 
 Analytic checks run by `scripts/make_figures.py` (see the manual) and the repository test suite (polarization, high field, hyperfine, flags, profiles, golden outputs). Continuous integration runs the tests on Python 3.11 and 3.13. None of this validates the model against experiment, and none of it covers the regimes in the manual's list of known limits.

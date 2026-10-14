@@ -51,7 +51,7 @@ InputHe = {'s_ground': 1 ,#Spin multiplicity,s, for ground state ^(2s +1)L_J , i
               # 'Pol_angle': 90 ,#Angle polarizing filter makes with max linear transmission, Optional
               'plottitle': 'He I 1s2p -> 1s4d: B=3.2T, UnPolarized'  , #Title for plotting (optional)     
               'plot_window' : [447.1,447.2], #Min and max for plot window range (nm), convolutions will only take place within this range
-              'amu' : 2  ,#Weight in AMU
+              'amu' : 4.0026  ,#Weight in AMU
               'specres' : 10 , #How many steps per resolution are calculated. Higher makes a smoother curve.
               # 'DoLowSig' : 'Yes' , #If this exists in the input, lowfield signal strength will be calculated. 
               # 'DoHighSig': 'Yes' , #To use Strong field approximation, you MUST include EtermE and EtermG keys for term energy
