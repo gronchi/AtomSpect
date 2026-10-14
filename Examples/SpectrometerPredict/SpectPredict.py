@@ -135,11 +135,16 @@ CIII_wavL= Spec_Raw['wavelength']
 
 
 
-MakeSlider(InputHe,[He_NonPol_Spec['wavelength'],He_NonPol_Spec['signals'][0]],[447.1,447.2],do_sticks = 1,do_Polplot=0,polvary=0,banglevary=1)
+# Three slider windows: He I with the non-polarized He data, and C III 465 nm with the
+# high-temperature and the low-temperature C III spectra. block=False opens each window without
+# waiting; the final plt.show keeps all of them open until they are closed.
+MakeSlider(InputHe,[He_NonPol_Spec['wavelength'],He_NonPol_Spec['signals'][0]],[447.1,447.2],do_sticks = 1,do_Polplot=0,polvary=0,banglevary=1, block=False)
 
-# MakeSlider(InputdeckCIII_4649,[CIIIwaveH,CIIISigH],[464.5,465.5],do_sticks = 1,do_Polplot=1,polvary=0,banglevary=1)
+MakeSlider(InputdeckCIII_4649,[CIIIwaveH,CIIISigH],[464.5,465.5],do_sticks = 1,do_Polplot=1,polvary=0,banglevary=1, block=False)
 
-# MakeSlider(InputdeckCIII_4649L,[CIII_wavL,CIIISpecL],[464.5,465.5],do_sticks = 1,do_Polplot=1,polvary=0,banglevary=1)
+MakeSlider(InputdeckCIII_4649L,[CIII_wavL,CIIISpecL],[464.5,465.5],do_sticks = 1,do_Polplot=1,polvary=0,banglevary=1, block=False)
+
+plt.show(block=True)
 
 
 

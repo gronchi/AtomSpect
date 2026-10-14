@@ -83,7 +83,7 @@ def enable_manual_input(fig, slider):
 
 
 def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=True, banglevary=False
-               , polvary=False, do_other = False, Tmax = 30, Bmax = 5):
+               , polvary=False, do_other = False, Tmax = 30, Bmax = 5, block=None):
     """Display an interactive spectrum with field, temperature, and width sliders.
     
     Inputdict is mutated during updates. Spectra is measured [wavelength_nm,
@@ -95,7 +95,10 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
     
     The GUI starts at hard-coded B=2.5 T, T=0.05 eV, and width=0.002 nm.
     It needs an interactive Matplotlib backend; manual-value dialogs use Tk.
-    The call shows the figure and returns None; it does not return the sliders."""
+    block=None blocks until the window is closed when run as a plain script and
+    returns at once in IPython/Spyder; block=False always returns at once, so several
+    windows can be opened and then shown together with plt.show(block=True).
+    Returns the figure; its `sliders` attribute keeps the slider widgets alive."""
     from .. import _approximation_enabled  # late import: the driver still lives in the package root
     
     # Initial params
@@ -329,4 +332,10 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
 
     # With interactive mode on, show() returns at once and a plain script would exit, closing the
     # window. Keep the sliders alive in a script; a console that runs its own event loop needs no block.
-    plt.show(block=_script_should_block())
+    # Matplotlib holds widget callbacks weakly: keep the sliders referenced from the figure so they
+    # stay responsive after this function returns.
+    figs.sliders = {name: widget for name, widget in (('B', B_Slider), ('T', Te_Slider), ('Wi', Res_Slider),
+                    ('angle', locals().get('Bang_Slider')), ('polarizer', locals().get('Polang_Slider')))
+                    if widget is not None}
+    plt.show(block=_script_should_block() if block is None else block)
+    return figs

@@ -216,3 +216,24 @@ def test_curve_is_not_forced_to_zero_at_a_window_edge_inside_a_line():
                             wind_size=0.05, specres=5)
     assert s2[0] == 0 and s2[-1] == 0
     assert np.all(np.diff(w2) > 0)
+
+
+def test_nonblocking_slider_returns_a_responsive_figure(monkeypatch):
+    """block=False returns the figure; the kept sliders still drive the curve after the call."""
+    import gc
+    from AtomSpect.plotting import slider
+
+    monkeypatch.setattr(slider.plt, 'show', lambda *args, **kwargs: None)
+    deck = dict(s_ground=0, s_excited=0, l_ground=0, l_excited=1, E_ground=np.array([0.]),
+                E_excited=np.array([12500.]), Bmag=.1, b_angle=90, amu=40, Temp=300,
+                Convfxn='Gaussian', spec_window=[799, 801], plot_window=[799, 801], specstep=.01, specres=1)
+    fig = slider.MakeSlider(deck, [np.array([799., 801.]), np.array([0., 0.])], [799, 801],
+                            do_Polplot=0, banglevary=1, block=False)
+    assert {'B', 'T', 'Wi', 'angle'} <= set(fig.sliders)
+    gc.collect()
+    curve = fig.axes[0].get_lines()[1]
+    before = np.array(curve.get_ydata(), dtype=float).copy()
+    fig.sliders['T'].set_val(25.0)    # much hotter: the normalized line must broaden
+    after = np.array(curve.get_ydata(), dtype=float)
+    assert np.sum(after > 0.5) > np.sum(before > 0.5)
+    slider.plt.close(fig)
