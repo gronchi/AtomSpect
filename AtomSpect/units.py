@@ -4,26 +4,31 @@ from .constants import c_light
 
 def Hz_to_nm(Ediff):
     # Converts from Hz to nm
+    """Convert a frequency in Hz to vacuum wavelength in nm (scalar or NumPy array)."""
     return 2.99792458E17 / Ediff
 
 
 def nm_to_Hz(Ediff):
     # Converts from nm to Hz
+    """Convert vacuum wavelength in nm to frequency in Hz (scalar or NumPy array)."""
     return 2.99792458E17 / Ediff
 
 
 def ev_to_MHz(Ediff):
     # Converts from eV to MHz
+    """Convert an energy in eV to frequency in MHz using the legacy rounded constant."""
     return (1e-6)*Ediff*2.41804e14
 
 
 def cm_to_nm(E_diff):
     # Converts from energy in cm^-1 to wavelength in nm.
+    """Convert an energy difference in cm^-1 to vacuum wavelength in nm."""
     return 1e7/E_diff
 
 
 def cm_to_Hz(E_diff, MHz=False):
     # Converts from energy in cm^-1 to energy in Hz (E = hf = hc/lambda)
+    """Convert wavenumber in cm^-1 to frequency in Hz, or MHz when MHz=True."""
     if MHz:
         return 100*c_light*E_diff/1e6  # Return result in MHz.
     else:
@@ -32,33 +37,23 @@ def cm_to_Hz(E_diff, MHz=False):
 
 def cm_to_ev(E_diff):
     # Convert from cm^-1 to eV
+    """Convert wavenumber in cm^-1 to eV using the legacy rounded constant."""
     return 1.2398e-4*E_diff
 
 
 def ev_to_cm(E_diff):
     # Convert from eV to cm^-1
+    """Convert energy in eV to cm^-1 using the legacy rounded constant."""
     return E_diff/(1.2398e-4)
 # %%Wavelength
 
 
 def Vac_to_air(wavein):
-    '''
-    Converts wavelength from vacuum to air by using the index of refaction.
+    """Convert vacuum wavelengths in nm to air wavelengths in nm.
     
-    The calculation is based on Morton2000, so is done for "dry" air and
-    1 atmosphere of presure, 14% C and 0.045%CO_2 by volume.
-    
-    Parameters
-    ----------
-    wavein : TYPE
-        Wavelength in (assumed in nm)
-
-    Returns
-    -------
-    TYPE
-        Wavelength_out in nm
-
-    '''
+    Evaluate the implemented Morton refractive-index expression at the
+    vacuum wavelength. Inputs may be scalars or NumPy arrays. This empirical
+    relation is not validated over arbitrary wavelengths; avoid its poles."""
 
     # Using Morton2000
     wavevac_angs = wavein*10 #Convert to angstrom to match the paper
@@ -73,22 +68,11 @@ def Vac_to_air(wavein):
 
 
 def air_to_vac(wavein):
-    '''
-    Converts wavelength from vacuum to air, doing the opposite of Vac_to_air
-    The calculation is based on Morton2000, so is done for "dry" air and
-    1 atmosphere of presure, 14% C and 0.045%CO_2 by volume.
+    """Approximately convert air wavelengths in nm to vacuum wavelengths in nm.
     
-    Parameters
-    ----------
-    wavein : TYPE
-        Wavelength in (assumed in nm)
-    
-    Returns
-    -------
-    TYPE
-        Wavelength_out in nm
-
-    '''
+    Evaluate the same refractive-index expression as Vac_to_air at the air
+    wavelength, then multiply. This legacy approximation is not the exact
+    numerical inverse of Vac_to_air. Inputs may be scalars or NumPy arrays."""
 
     # Using Morton2000
     wavevac_angs = wavein*10 #Convert to angstrom to match the paper

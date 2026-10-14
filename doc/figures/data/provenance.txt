@@ -1,0 +1,9 @@
+Generated UTC: 2026-10-14T01:56:08.938998+00:00
+Source commit: aab00bb7f99942913dc7202b84984d704e3cb8ed; SHA256 of package and documentation scripts: 66c4954900823b9c72104f898587c4d600e5cb04d138681043e875e5c2aa2000
+Python 3.13.9, numpy 2.4.6, scipy 1.18.0, sympy 1.14.0, matplotlib 3.10.6
+Platform: Windows-2019Server-10.0.17763-SP0; SymPy backend: python
+Inputs: He I 1s2p 3P / 1s4d 3D and 85Rb 5S1/2 -> 5P energies and hyperfine constants from repository examples.
+Fan grids: 101 points, He 0..1 T and Rb 0..0.5 T. Polarization: B=0.5 T, angles 90 and 0 degrees.
+Profiles: 600 nm, 3000 K, mass 40, instrument FWHM 0.01 nm; 2001 samples over +/-0.04 nm.
+Analytic checks passed: 11
+Figures illustrate the model; they are not a validation against experiment.

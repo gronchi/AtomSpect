@@ -5,6 +5,25 @@ from .angular import CGw3, lande_gf, lande_gj, make_Jmj
 from .hamiltonian import Zeemanlow
 from .hfs import Delta_E_HFS
 
+def _level_inputs(L, S, energies):
+    """Validate angular momenta and one finite energy per ascending J."""
+    for name, value in (('L', L), ('S', S)):
+        if not np.isscalar(value) or not np.isfinite(value) or value < 0 or 2*value != round(2*value):
+            raise ValueError(f'{name} must be a nonnegative integer or half integer')
+    values = np.atleast_1d(np.asarray(energies, dtype=float))
+    count = int(2*min(L, S) + 1)
+    if values.shape != (count,) or not np.all(np.isfinite(values)):
+        raise ValueError(f'E_level requires {count} finite energies, lowest J first')
+    return values
+
+def _hfs_constants(values, count, name):
+    """Broadcast a scalar HFS constant, or validate one value per J."""
+    values = np.asarray(values, dtype=float)
+    if values.ndim == 0:
+        values = np.full(count, values.item())
+    if values.shape != (count,) or not np.all(np.isfinite(values)):
+        raise ValueError(f'{name} requires a scalar or {count} finite constants, lowest J first')
+    return values
 
 def _cg_matrix(states, match, coupled, target):
     """Matrix of Clebsch-Gordan coefficients <coupled| target> between basis states.
@@ -23,37 +42,28 @@ def _cg_matrix(states, match, coupled, target):
 
 
 def stateprocess(L_state, S_state, E_level, thisB, sortE=False):
-    '''
-    Takes input state values and magnetic field to expand the state space. 
-    L and S are used to calculate possible J values. all possible mJ values are also created. 
-    E_level is an np.array and must match the length of possible J values. Since the values are pulled from NIST, this will likely happen.
-
+    """Build the coupled and uncoupled bases for one LS term.
 
     Parameters
     ----------
-    L_state : Int or half int
-        Orbital angular quantum number. S=0, P=1, D=2, F=3, etc
-    S_state : Int or half int
-        Spin quantum number, n = 2s+1 for multiplicity, so ^2S_J has (2*s +1) =2, so s=0.5, L=0
-    E_level : np.array
-        Energy in cm^-1, Lowest J value first.
-    thisB : 
-        Magnetic field in T
+    L_state, S_state : float
+        Nonnegative integer or half integer angular momenta; S is spin,
+        not the multiplicity 2S+1.
+    E_level : array-like
+        One zero-field energy in cm^-1 per J, lowest J first.
+    thisB : float
+        Magnetic field in T, used only for the optional basis ordering.
+    sortE : bool, optional
+        Order the basis by its weak-field energies; default False.
 
     Returns
     -------
     list
-       [w3mat, Jmjs, LS,E_low, E_cm,E_SO_cm_Mat,sortedstates]
-    w3mat is the state array of w3 coefficients corresponding to CG coefficients.
-    Jmjs are the possible Jmjs #Deprecated
-    LS is the L,mL,S,mS states. #Deprecated
-    E_low is a list of energies corresponding to the lowfield zeeman approx
-    E_cm is the sorted energies in cm^-1
-    E_SO_cm_Mat is the sorted (diagonal) matrix of energies with repeated values for degeneracy of mJ
-    sortedstates is [J,mJ,L,mL,S,mS] states corresponding to the sorted energies in the matrix. Off diagonals are excluded to this point.
+        [Psi, E0_matrix, low_energies, E0_flat, states]. Psi transforms
+        uncoupled columns to coupled rows; states are [J,mJ,L,mL,S,mS].
+        low_energies is empty unless sortE=True. Energies are in cm^-1."""
 
-    '''
-
+    E_level = _level_inputs(L_state, S_state, E_level)
     # Create an array that contains [L,ml,S,ms] for the given L,S values. Starts with highest ml,mS values and itereates through ms first.
     LS0 = [[float(L_state), float(x), float(S_state), float(y)] for x in np.linspace(L_state, -L_state, int(2*L_state+1), dtype=float) for y in np.linspace(S_state, -S_state, int(2*S_state+1), dtype=float)]
     # LS0 = [[L_state, x, S_state, y] for x in np.linspace(L_state, -L_state, int(2*L_state+1),dtype=float) for y in np.linspace(S_state, -S_state, int(2*S_state+1),dtype=float) ]
@@ -101,6 +111,20 @@ def stateprocess(L_state, S_state, E_level, thisB, sortE=False):
 
 def stateprocess_HFS(L_state, S_state, I_state, HFS_Const, g_I, E_level, thisB, sortE=False):
 
+    """Build the |F,mF> basis and coupling matrix for one hyperfine LS term.
+
+    L_state, S_state and I_state are nonnegative angular momenta. E_level
+    contains one energy in cm^-1 per J, lowest J first. HFS_Const contains
+    HFSA and optional HFSB in Hz, each a scalar or one value per J.
+    g_I follows lande_gi; thisB (T) is used only when sortE=True.
+
+    Return [Psi, E0_matrix, HFS_shifts, fourth, states], with energies in
+    cm^-1 and states [F,mF,J,mJ,I,mI,L,mL,S,mS]. Psi maps uncoupled columns
+    to coupled rows. The legacy fourth entry is sorted weak-field energies
+    when sortE=True, otherwise the expanded A constants in Hz."""
+    E_level = _level_inputs(L_state, S_state, E_level)
+    if not np.isscalar(I_state) or not np.isfinite(I_state) or I_state < 0 or 2*I_state != round(2*I_state):
+        raise ValueError('I_state must be a nonnegative integer or half integer')
     # Create an array that contains [L,ml,S,ms] for the given L,S values. Starts with lowest ml,mS values and itereates through ms first.
     # LS0 = [[L_state, x, S_state, y] for x in np.linspace(-L_state, L_state, int(2*L_state+1)) for y in np.linspace(-S_state, S_state, int(2*S_state+1)) ]
     # Create an array that contains [L,ml,S,ms,I,mI] for the given L,S,I values. Starts with Highest mL,mS values and itereates through mI first, then mS, then mL
@@ -128,27 +152,11 @@ def stateprocess_HFS(L_state, S_state, I_state, HFS_Const, g_I, E_level, thisB, 
     E_cm0 = [[E_level[x]]*int(2*Jvals[x] + 1)*int(2*I_state + 1) for x in range(len(E_level))]
     E0_cm_flat = [item for row in E_cm0 for item in row]
 
-    HFS_A_In = HFS_Const['HFSA']
-    try:
-        HFSConst = [[HFS_A_In[x]]*int(2*Jvals[x] + 1)*int(2*I_state + 1) for x in range(len(E_level))]
-        HFS_Flat = [item for row in HFSConst for item in row]
-    except:
-        # This handles the case of single length HFS inputs
-        HFSConst = [[HFS_A_In]*int(2*Jvals[x] + 1)*int(2*I_state + 1) for x in range(len(E_level))]
-        HFS_Flat = [item for row in HFSConst for item in row]
-
-        # HFS_Flat = HFSConst
-    # print(HFSConst)
-
-    if 'HFSB' in HFS_Const:
-        try:
-            HFSConstB = [[HFS_Const['HFSB'][x]]*int(2*Jvals[x] + 1)*int(2*I_state + 1) for x in range(len(E_level))]
-            HFS_FlatB = [item for row in HFSConstB for item in row]
-        except:
-            HFSConstB = [list(HFS_Const['HFSB'])*int(2*Jvals[x] + 1)*int(2*I_state + 1) for x in range(len(E_level))]
-            HFS_FlatB = [item for row in HFSConstB for item in row]
-    else:
-        HFS_FlatB = np.zeros_like(E0_cm_flat)
+    HFS_A_In = _hfs_constants(HFS_Const['HFSA'], len(Jvals), 'HFSA')
+    HFS_B_In = _hfs_constants(HFS_Const.get('HFSB', 0), len(Jvals), 'HFSB')
+    degeneracy = [int(2*j + 1)*int(2*I_state + 1) for j in Jvals]
+    HFS_Flat = np.repeat(HFS_A_In, degeneracy).tolist()
+    HFS_FlatB = np.repeat(HFS_B_In, degeneracy).tolist()
     # Duplicate energies based on degeneracy and flatten the results
 
     # Duplicate HFS constants to match F levels based on degeneracy and flatten the results

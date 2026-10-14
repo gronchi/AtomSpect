@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-AtomSpect main function definitions.
-@author: Leo Nofs
-This contains all of the functions for operating the code. This file is NOT run directly.
-For details, updates, questions, bug reports, refer to the project github: https://github.com/Lnofs/AtomSpect
+"""Public AtomSpect API for relative Zeeman and hyperfine E1 spectra.
 
-
+Import AtomSpect_Main, SpectrumResult, and the legacy calculation/plotting
+helpers from this module. Implementations live in the corresponding package
+modules; see doc/README.md for the manual, examples, and validity limits.
 """
 
 import numpy as np

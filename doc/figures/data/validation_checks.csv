@@ -1,0 +1,12 @@
+check,measured,tolerance
+weak_field_zeeman_3P2_cm-1,1.648e-10,1e-09
+rb85_5S_hyperfine_interval_relative,1.370e-16,1e-09
+strength_normalization,0.000e+00,1e-12
+no_forbidden_components,0.000e+00,1e-14
+pi_strength_along_field,0.000e+00,1e-12
+gaussian_unit_area,0.000e+00,1e-03
+voigt_unit_area,7.958e-04,1e-03
+lorentzian_fwhm_m,7.374e-23,2e-14
+hfs_weak_field_projection,4.441e-16,1e-12
+overlapping_bin_profile_sum,3.808e-16,1e-12
+dark_spectrum_strength,0.000e+00,0e+00

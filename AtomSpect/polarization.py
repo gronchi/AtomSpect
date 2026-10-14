@@ -1,7 +1,6 @@
 """Polarization of E1 components and eigenstate-pair labelling."""
 import numpy as np
 
-from .constants import eps0
 
 
 def polarization(mupper, mlower, Btheta, gamma=0, Pol_Filter=False, TAlpha=1, TBeta=1, pol1 = 1, pol2 = 0):

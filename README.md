@@ -1,216 +1,184 @@
-# What is AtomSpect?
-AtomSpect is a newly developed Python package designed for simplify the spectroscopic analysis for diagnostic purposes. It has been developed to be lightweight and easy to implement into any diagnostic pipepline - aided by being fully open source with GPL-3.0 licensing.
+# AtomSpect
 
-AtomSpect is NOT intended to be a replacement for the robust ab-initio atomic structure calculations for energy levels. 
+AtomSpect is a Python package for Zeeman and hyperfine spectra in plasma diagnostics. It calculates relative electric-dipole (E1) strengths from supplied atomic level energies and broadens the resulting components with Doppler and instrumental profiles.
 
-Please see the corresponding publication for further details of the physics and math: https://doi.org/10.1016/j.jqsrt.2026.110015
+The model treats one lower and one upper LS term in a static magnetic field, with optional nuclear spin and hyperfine constants. Calculations use NumPy, SciPy, and SymPy; plotting uses Matplotlib. The code is distributed under GPL-3.0-or-later.
 
-# Installation
-To use: Unzip the repository and open one of the example scripts in the examples folder. Run the example script, not AtomSpect.py.
+See the [theory manual](doc/AtomSpect_theory_manual.pdf), [documentation guide](doc/README.md), and [review record](doc/REVIEW.md) for the equations, conventions, validation, and known limitations.
 
+## Installation
 
-# Using AtomSpect
-AtomSpect uses an Input Dictionary with several keyword arguments for the calculation. This includes a vast amount of optional keywords that can be passed. A full list and description of the keywords is provided below and in the function description for AtomSpect_Main.
+Use Python 3.10 or newer. From the repository root:
 
-The InputDict can be passed to either: MakeSlider, plotZfan, or AtomSpect_Main. MakeSlider and plotZfan will directly generate plots from the input file.
-
-```mermaid
-flowchart LR
-    A[Input Dictionary] --> B[MakeSlider]
-    A --> C[AtomSpect_Main]
-    A --> D[plotZfan]
-    C --> E[Plotting]
+```sh
+python -m pip install -e .
+python doc/scripts/example_minimal.py
 ```
 
-Unknown keys in the input dictionary raise a warning with a suggestion, and the Gaussian, GaussianInstrum and Voigt profiles require `Temp` (K) or `TempeV` (eV). `A_Ein`, `f_osc` and `S_line` are not valid absolute radiative quantities, so they are only returned with `'RadiativePlaceholders': True`. A warning is raised when `fxnwindow` cuts off more than 2% of a Lorentzian line's area.
+To install the test dependency and run the suite:
 
-AtomSpect_Main outputs a dictionary with many results and intermediary steps. The entries can also be read as attributes (`result.signal`, `result.wave_air`), and `result.describe()` explains each key. This output is passed into the PlotFunction to generate the plot. There are additional optional plot flags as well.
-
-For HFS calculations, `rad` and the polarization stick partitions follow
-eigenstate pairs, with q = mF_upper - mF_lower. The sigma stick keys retain
-their emitted-light sign convention. Equal-energy eigenvectors can be
-replaced by a definite-mF basis; only the summed intensity of coincident
-lines has a basis-independent meaning. The returned `bigstatelist` remains
-a list of basis-state pairs, rather than eigenstate labels.
-
-PlotFunction requires a PlotObject and plot_vars. The PlotObject can be either the AtomSpect_Main output or a list of [wavelength,intensity].
-The PlotFunction is robust with a lot of optional arguments. It is an array of plot axes which can be addressed via index. This gives the flexability of a generalized 2D plot array. You can feed this axis, which is the output of PlotFunction into PlotFunction.
-
-In addition to the PlotObject, several plotting parameters are set with the plot_vars = [color, linewidth,linestyle, legendlabel, markerstyle(optional)]
-
-Image showing a very simple example of operation. Additional spectra can be added but ensure to set makefig=False and axisin=thisaxs (per the Argon example shown here).
-```python
-InputdeckAr1 = {'s_ground': 0 ,  #Spin quantum number S of ground state (2S+1 is the multiplicity), int or half int
-                's_excited': 0 , #Spin quantum number S of excited state (2S+1 is the multiplicity), int or half int
-                'l_ground': 1 ,  #Orbital Angular Momentum of ground state, int or half int
-                'l_excited': 0 , #Orbital Angular Momentum of excited state, int or half int
-                'E_ground': np.array([95399.8276]) ,   #Lowest J first, in cm^-1
-                'E_excited': np.array([108722.6194]) , #Lowest J first, in cm^-1
-                'Bmag': 2.018 ,   #Magnetic Field [T]
-                'b_angle': 90 ,   #Angle between LoS and Bmax
-                'plottitle': 'Ar I 3p5 4s (1P) -> 3p5 4p (1S)' , #Title for plotting (optional)
-                'spec_window' : [745,755], #Min and max convolutions
-                'plot_window': [750.25,750.5], #Min and max for plot window range (nm)
-                'amu': 40  , #Weight in AMU
-                'specstep': 0.004 , #Pixel resolution of spectrometer in nm
-                'SpectrumData': [shiftedAr, Ar_Spec['signals'][0]] ,
-                }
-
-Ar1 = AtomSpect_Main(InputdeckAr1)
-
-plotvars = ['royalblue', 1.5, 'solid', 'Exact']
-thisaxs = PlotFunction(Ar1, plotvars, NormalizeSig=True, makefig=True, plotlabel='B=2.018T')
+```sh
+python -m pip install -e ".[test]"
+python -m pytest -q
 ```
 
-The versatility of the plotting function is showcased across several of the included examples.
+The package imports Tkinter for its slider interface. Use a Python installation with Tk support. The slider and manual-entry dialogs require an interactive plotting environment. The documentation example runs without opening a window; add `--plot` to display its spectrum.
 
-## Slider GUI!
-An input dictionary can be fed into MakeSlider. Boolean flags exist for:
-do_sticks - Plotting component "stick" lines. Default True
-do_Polplot - Labels the polarization of each component stick. Default True
-do_other - whether other_sticks are plotted (purple star sticks). Default False. This legacy option does not imply non-dipole emission.
-banglevary - Whether angle of magnetic field is allowed to vary
-polvary - Whether a polarization filter is along the line of sight and if the filter angle can vary.
-Tmax - Maximum temperature [eV]. Default 30
-Bmax - Maxium field strength [T]. Default 5
+## Calculate a spectrum
 
-For the non-hyperfine axial Zeeman calculation, polarization labels follow the energy eigenstate pairs, using Delta M = M_upper - M_lower. Active E1 components have Delta M = 0 or +/-1. Earlier versions attached labels using basis-pair order, which could place allowed He I components in other_sticks. The emitted-light convention in the existing sigmaplus_sticks and sigmaminus_sticks keys is retained. Hyperfine polarization labeling requires a separate correction.
-
-The Slider always lets: Bfield strength (in T), Temperature (eV), and Wi (~Spectrometer pixel resolution in nm) vary.
-If you double click on the numerical value under the slider, you can enter a value directly to be calculated. The value entered here CAN be outside the normal slider ranges!
-
-Each change in the slider currently (April 2026) causes a full recalculation, diagonalization, convolution, and re-plotting of the spectra.
-Fortunately, this is optimized enough to be real-time viable.
-
-Default ranges:
-B: [0,5] T, dB: 0.01
-T: [0.01,30] , dT: 0.01
-Wi: [0.002,0.1] , dWi: 0.001
-Bangle: , dBangle: 0.5
-PolAngle: , dPolAngle: 0.5
-
-Max Value 
-<img width="1549" height="948" alt="image" src="https://github.com/user-attachments/assets/566f9ece-7355-41d1-9492-0816b87c07d2" />
-
-## Input Dictionary Keys
-
-                     's_ground': 3  , #Spin quantum number S (not the multiplicity 2S+1) of the ground state, e.g. 1 for a triplet; int or half int
-                     's_excited': 3 , #Spin quantum number S (not the multiplicity 2S+1) of the excited state, e.g. 1 for a triplet; int or half int
-                     'l_ground': 0  , #Orbital Angular Momentum of ground state, int or half int
-                     'l_excited': 1 , #Orbital Angular Momentum of excited state, int or half int
-                     'E_ground': np.array([2951.29 ]) , #np.array of lower state, Lowest J first, cm^-1
-                     'E_excited': np.array([26229.77,27488.11,27889.68]) ,  #np.array of upper state, Lowest J first, cm^-1
-                     'Bmag': .6 , #Magnetic Field  [T]
-                     'b_angle': 60 , #Angle between LoS and Bmax
-                     'Pol_angle': 0 , #Angle polarizing filter makes with max linear transmission
-                     'amu' : 183 , #Weight in AMU
-                     'Convfxn': 'Gaussian' , #Optional: 'Gaussian', 'GaussianInstrum'', 'Skewed' , 'Lorrentzian', 'Voigt'.
-                     'Skewness' : [1.24,1.98] #Optional, [Left,Right] constant for the skewness of the lorrentzian function. Multiples of specstep, which is the FWHM of the lorrentzian (so 1 gives FWHM = specstep). If both are 1, it is a symmetric lorrentzian.
-                     'Temp' : 300, #Temperature in K. Used for Gaussian, Gaussian Instrum, Voigt convolutions
-                     'TempeV' : 20 , #Temperature in eV. Can be passed instead of Temp in K. Converted as needed internally.
-                     'specstep' : 0.002222 , #stepsize of linefunction [nm]
-                     'specres' : 10 , #How many points are evaluated per spectrometer pixel window. Higher means smoother curve.
-                     'fxnwindow': 0.5 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                     'plottitle': 'Excample Title' , #Title for plotting (optional).                      
-                     'SpectrumData' : [[Wavelength],[Intensity]] , #List of arrays for wavelength (nm) and intensity (arb)
-                     'spec_window' : [425,435], #Min and max for convolution window (nm)
-                     'plot_window' : [425,435], #Min and max for plot window range (nm)
-                     'HFS_G' : [505.5e6] , #Optional: Hyperfine A constant for the lower level, need one entry per J level, lowest J first [Hz]
-                     'HFS_E': [0, 496.2e6, 440.5e6] , #Optional: Hyperfine A constants for upper level, need one entery per J level, lowest J first [Hz]
-                     'I_spin' : 0.5, #Optional: nuclear spin, I. Tabulated by Stone et al.
-                     'mu_I' :  .11778476 , #Optional: Nuclear dipole moment as tabulated by Stone.              
-                     'HFSB_G' : [505.5e6] , #OPtional: Hyperfine B constant for the lower level, need one entry per J level, lowest J first [Hz]
-                     'HFSB_E': [0, 496.2e6, 440.5e6] , #Optional: Hyperfine B constants for upper level, need one entery per J level, lowest J first [Hz]
-                     'Calc_HFS_Vals': [False,False], #Optional. Passed regarding wether HFS constants A and B should be approximated for values of 0 above. NOT YET IMPLEMENTED
-                     'ion_vel' : Float or [Float1,Float2] , #Velocity of particles, mono and bidirectional allowed. A single value can be passed and used for bidirectional splitting if bidir flag is set.
-                     'bidir' : True , #Bool as to whether ion motion generates bidirection doppler shift
-                     'PsiHFS' : True , #Bool, testing flag left in for completeness
-                     'DoLowSig' : True , #Bool for whether Lowfield approximation and signal are included and plotted
-                     'DoHighSig' : True , #REQUIRES TERM ENERGY!Bool for whether Highfield approximation and signal are included and plotted
-                     'EtermG': 169086.9076, #Term energy of lower state in cm^-1 - Required for DoHighSig
-                     'EtermE' : 191444.47832914, #Term energy of upper state in cm^-1 - Required for DoHighSig
-                     'sortE' : True , #Bool as to whether the wavefunctions will attempt to be sorted based on expected resulting energy before diagonalization. This significantly slows down operations. 
-                      }
-                      
-
-
-For non-HFS high-field spectra, provide both `EtermG` and `EtermE` in cm^-1; zero is a valid term energy. This electronic Paschen-Back approximation neglects fine-structure splitting and uses the existing ideal factors g_L=1 and g_S=2. Eigenvectors are returned in the coupled basis used by the transition-strength calculation. Missing term energies raise a clear error.
-
-# Plotting Zfans
-
-`DoLowSig` and `DoHighSig` enable approximation spectra when True and skip
-them when False or omitted. Legacy yes/no strings are also accepted,
-case-insensitively (`Y`/`Yes`/`True` and `N`/`No`/`False`), as are 1 and 0.
-Disabled approximations add no output keys and need no term-energy inputs.
-HFS approximation spectra are not implemented: enabling these flags with
-`I_spin` raises `NotImplementedError`. These spectrum flags are separate
-from the `L`/`H` flags used by the fan functions.
-
-AtomSpect can do typical Zeeman Fan plots with a dedicated set of functions which has been optimized for significant speed.
-Compared to a normal InputDictionary, 'Bmag' needs to be an array of magnetic field values. The flags refer to:
-"G" - Ground
-"E" - Excited
-"H" - Add High-field approximation. Without HFS, this requires Term Energy.
-"L" - Add Low-field approximation (no diagonalization)
-
-At least "G" or "E" are required, otherwise, any combination of the flags, in any order, may be passed into plotZfan.
-
-For HFS, "H" uses the hyperfine Paschen–Back approximation in the
-`|J,mJ;I,mI>` basis, with the A/B constants in Hz and energies in cm^-1.
-It includes the diagonal dipole and quadrupole shifts and the nuclear
-Zeeman contribution. It uses each J level's supplied fine-structure energy;
-`EtermG`/`EtermE` are not needed. This approximation applies when the Zeeman
-interaction dominates hyperfine splitting while remaining small relative
-to fine-structure splitting. It does not describe the electronic
-Paschen–Back regime where J levels mix. See
-[Steck's Rb85 data, Eq. (25)](https://steck.us/alkalidata/rubidium85numbers.pdf).
+This example uses the Ar I line near 750.4 nm. Energies are supplied in cm^-1, ordered by increasing J within each term. `s_ground` and `s_excited` are the spin quantum numbers S; a triplet has S = 1.
 
 ```python
-Bfan = np.linspace(0, 1, 5000)
-InputdeckRbHFS_fan = {'s_ground': .5 ,  #Spin quantum number S of ground state (2S+1 is the multiplicity), int or half int
-                      's_excited': .5 , #Spin quantum number S of excited state (2S+1 is the multiplicity), int or half int
-                      'l_ground': 0 ,   #Orbital Angular Momentum of ground state, int or half int
-                      'l_excited': 1 ,  #Orbital Angular Momentum of excited state, int or half int
-                      'E_ground': np.array([0]) ,  #Lowest J first, in cm^-1
-                      'E_excited': np.array([12578.95, 12816.545]) ,  #Lowest J first, in cm^-1
-                      'Bmag': Bfan,    #Magnetic Field  [T]
-                      'b_angle': 90 ,  #Angle between LoS and Bmax
-                      'plottitle': 'Rb85, I = 5/2, S = 1/2, L = 1' , #Title for plotting (optional)
-                      'plot_window' : [775,799] , #Min and max for plot window range (nm)
-                      'amu' : 85 ,  #Weight in AMU
-                      'Temp' : 300,
-                      'HFS_G' : [1011e6] ,  #Optional: Hyperfine A constant for the lower level, need one entry per J level
-                      'HFS_E': [120.527e6, 25.0354e6], #Optional: Hyperfine A constants for upper level, need one entry per J level
-                      'HFSB_E': [0, 25.898e6] ,
-                      'I_spin' : 5/2, #Optional: nuclear spin, I, including parity. Tabulated by Stone et al.
-                      'mu_I' :  1.35298, #Optional: Nuclear dipole moment as tabulated by Stone.
-                      }
+import AtomSpect as A
 
-# InputRb['Bmag'] = Bfan
-RBFanG = plotZfan(InputdeckRbHFS_fan, flags='G', markercount=0)
-plt.xlim(0, .5)
-plt.ylim(-.4, .4)
-plt.tight_layout()
+deck = {
+    "s_ground": 0, "s_excited": 0,
+    "l_ground": 1, "l_excited": 0,
+    "E_ground": [95399.8276],
+    "E_excited": [108722.6194],
+    "Bmag": 2.018,             # tesla
+    "b_angle": 90,            # degrees between field and line of sight
+    "amu": 40,
+    "Convfxn": "GaussianInstrum",
+    "Temp": 300,              # kelvin
+    "specstep": 0.004,        # instrument FWHM in nm
+    "specres": 10,            # nominal samples per pixel
+    "spec_window": [750.0, 750.8],
+    "plot_window": [750.2, 750.6],
+}
+
+result = A.AtomSpect_Main(deck)
+print(result.wave_air)         # component wavelengths in nm
+print(result.signal)           # normalized relative strengths
+wavelength, intensity = result.SpecOut
+```
+
+`AtomSpect_Main` returns a `SpectrumResult`. Entries support both dictionary access (`result["signal"]`) and attribute access (`result.signal`). Call `result.describe()` for descriptions of the available keys. The driver fills in a default `amu` when it is absent and retains a reference to the input dictionary.
+
+## Plot the result
+
+Continue from the example above:
+
+```python
+from matplotlib import pyplot as plt
+
+axes = A.PlotFunction(
+    result,
+    ["royalblue", 1.5, "solid", "Exact"],
+    NormalizeSig=True,
+    show=False,
+)
 plt.show()
 ```
 
-<img width="443" height="361" alt="image" src="https://github.com/user-attachments/assets/cc4a162e-5524-4922-82e0-025ab29ecf32" />
+A plot style contains `[color, linewidth, linestyle, optional label, optional marker]`. `PlotFunction` returns a two-dimensional array of axes. To add a curve to an existing plot, pass `makefig=False`, `axsin=axes`, and `position=[row, column]`. `NormalizeSig=True` scales the displayed peak and leaves the calculated result unchanged.
 
-# Future Developement
-Stark Shift. Work is already well underway for implementing the DC stark shift for electric fields into the package.
-Hyperfine Constants. Preliminary work is done and results are sound, just need to simplify and streamline the calculation into AtomSpect_Main
-Importing/saving data. We plan to allow for importing of atomic energy level data such as from then Open ADAS work. This also includes building up a database of atoms and energies for quick use such that the user doesn't need to type in the details for every line they are interested. This goes great with the next feature...
-Fancy GUI! The Slider GUI is okay, but is unable to handle multiple species/lines. A robust GUI is in the initial stages of design which would transform everything about using AtomSpect.
+`MakeSlider(deck, [measured_wavelengths, measured_intensities])` opens the interactive interface. It varies magnetic field, temperature in eV, and instrument width. `banglevary=True` adds a viewing-angle slider; `polvary=True` adds a linear-analyzer slider. The interface starts from its own fixed settings and changes the input dictionary during updates. See its docstring for the remaining options.
 
-# Data Use
-The spectromter data provided in the He and Ar spectra was collected by Tommy Gonda, Matt Kriete, and David Ennis. This data is used and included here with their permission. 
+## Inputs and units
 
-The CIII data is from the Aurora public data set: http://dx.doi.org/10.35099/aurora-70
+The eight required keys describe the terms and observation geometry:
 
-All data provided here is open source and free to use. Additional spectrometer data is always welcome.
+| Keys | Meaning and unit |
+|---|---|
+| `s_ground`, `s_excited` | Electronic spin S, a nonnegative integer or half integer |
+| `l_ground`, `l_excited` | Orbital angular momentum L |
+| `E_ground`, `E_excited` | One zero-field energy per allowed J in cm^-1, lowest J first |
+| `Bmag` | Scalar magnetic field in T; use an array for energy fans |
+| `b_angle` | Angle between the field and line of sight in degrees |
 
+Common optional settings are listed below. The manual's options appendix and the `AtomSpect_Main` docstring describe the full interface.
 
-I kindly request that any works that utilize this code reference the AtomSpect publication:(https://doi.org/10.1016/j.jqsrt.2026.110015)
+| Keys | Behavior |
+|---|---|
+| `amu` | Emitter mass number; default 1 |
+| `Pol_angle` | Linear-analyzer angle in degrees; supplying zero also enables the analyzer |
+| `TAlpha`, `TBeta` | Nonnegative intensity transmissions; both default to 1 |
+| `Temp`, `TempeV` | Temperature in K or eV; `TempeV` takes precedence, using 11602 K/eV |
+| `Convfxn` | `Gaussian`, `GaussianInstrum`, `Voigt`, `Skewed`, or `Lorrentzian` |
+| `specstep`, `specres` | Instrument FWHM in nm and nominal samples per pixel; default width 0.002222 nm, or 0.002 nm when `Convfxn` is supplied; default sampling factor 10 |
+| `Skewness` | Left/right half-width multipliers for `Skewed`; default `[1, 1]` |
+| `fxnwindow` | Padding around rest-wavelength bins in nm; default 0.1 |
+| `ion_vel`, `bidir` | Velocity in m/s; `bidir=True` averages ±v, or +v1 and −v2 for a velocity pair |
+| `spec_window`, `plot_window` | Physics-selection and plotting bounds in nm; defaults follow `SpectrumData` or `[1, 1000]` |
+| `SpectrumData` | Measured `[wavelengths_nm, intensities]` used by plotting and window defaults |
+| `DoLowSig`, `DoHighSig` | Optional non-HFS weak- and high-field spectra; both default to False |
+| `EtermG`, `EtermE` | Term energies in cm^-1 for non-HFS high-field calculations; zero is valid |
+| `sortE` | Order approximation bases by weak-field energy; default False |
+| `RadiativePlaceholders` | Opt-in legacy radiative outputs with a warning; default False |
+| `plottitle` | Optional plot title |
 
-Contact me at: lmn0022@auburn.edu
+The historical spelling `Lorrentzian` is retained in the API. It selects a symmetric Lorentzian; use `Skewed` for unequal half widths. `Gaussian`, `GaussianInstrum`, and `Voigt` require an explicit temperature. With no `Convfxn`, the symmetric Lorentzian is used. Unknown profile names also fall back to it; unknown input keys produce a warning.
 
+## Hyperfine structure and energy fans
+
+Supplying `I_spin` enables hyperfine structure. Also provide `mu_I` in nuclear magnetons and `HFS_G`/`HFS_E`, the A constants in Hz. Optional `HFSB_G`/`HFSB_E` supply B constants in Hz and default to zero. Each constant can be a scalar or an array with one value per J, lowest J first.
+
+`PsiHFS` is a compatibility setting; both values use the same Hamiltonian. `Calc_HFS_Vals` is reserved and does not estimate constants. The [Rb example](Examples/Rb_ex1/Rb_ex.py) demonstrates hyperfine spectra and fans.
+
+To calculate an energy fan, continue from the Ar example and replace `Bmag` with field samples:
+
+```python
+import numpy as np
+
+fan_deck = dict(deck, Bmag=np.linspace(0, 1, 101))
+fan = A.ZeemanFan(fan_deck, flags="GL")
+print(fan["G"].shape)         # states × field samples
+```
+
+Fan flags select `G` (lower term), `E` (upper term), `L` (weak-field approximation), and `H` (high-field approximation). Include G or E. `plotZfan` plots the selected fans and returns the energy arrays. Exact rows follow energy rank at each field sample; they do not track states through crossings.
+
+Non-HFS high-field fans require the selected term's `EtermG` or `EtermE`. The electronic Paschen–Back approximation neglects fine structure and uses gL = 1 and gS = 2. HFS high-field fans use the hyperfine Paschen–Back approximation, which keeps J coupled and decouples it from I. They use the supplied fine-structure energies and A/B constants; term-energy inputs are unnecessary.
+
+The spectrum flags `DoLowSig` and `DoHighSig` accept Booleans, 0/1, and case-insensitive yes/no strings. Approximation spectra with HFS raise `NotImplementedError`; the fan approximations are separate options.
+
+## Interpret the output
+
+| Entry | Contents |
+|---|---|
+| `signal` | Relative E1 strength per eigenstate pair; sums to 1, or remains zero for a dark observation |
+| `wave_air`, `wave_vac` | Air and vacuum wavelengths in nm |
+| `rad` | Polarization amplitude and q label per eigenstate pair |
+| `SpecOut` | `[wavelength_nm, intensity_per_metre]` for the broadened spectrum |
+| `pi_sticks`, `sigmaplus_sticks`, `sigmaminus_sticks` | Wavelength/strength arrays split by polarization |
+| `reduced_sticks`, `bin_windows` | Retained plot components and convolution windows |
+| `ZeemanSplits_G` | Lower-level eigenvalues in cm^-1 |
+| `Input` | Input dictionary, including defaults supplied by the driver |
+
+**Density units:** `SpecOut` uses a wavelength axis in nm but retains profile densities per metre. Multiply intensity values by `1e-9` for a density per nm. Integrating against a nm axis without this conversion gives an area `1e9` times the integral against metres. Filtering, finite windows, and sampling affect the captured area.
+
+Polarization labels use q = M_upper − M_lower, with M = mJ or mF. The emitted-light convention assigns q = −1 to `sigmaplus_sticks` and q = +1 to `sigmaminus_sticks`. Exact spectra with and without HFS use dressed eigenstate labels. Coincident transitions have meaningful summed strengths; individual identities at degeneracy can depend on the chosen basis. `other_sticks` contains pairs without an E1 component and does not identify non-dipole emission.
+
+`MultiSpec` combines result sticks with one scale per spectrum and returns wavelength, strength, temperature, and mass arrays. Pass these metadata arrays to `Convol_Spect` when combining emitters with different temperatures or masses. `read_Spectra` imports CSV measurements, and `Savenpy_Dict`/`Loadnpy_Dict` save and reload NumPy dictionary files.
+
+## Examples and documentation
+
+Start with the [minimal documentation example](doc/scripts/example_minimal.py). The [examples guide](Examples/README.md) describes the Ar, He, Rb, and C III workflows, including measured spectra, combined lines, polarization, and sliders.
+
+Rebuild the documentation from the repository root:
+
+```sh
+python doc/scripts/build_manual.py --rebuild
+```
+
+This runs the documentation checks, regenerates numerical data and figures, and compiles the manual twice. It requires `pdflatex` and the LaTeX packages in the manual's preamble. The [documentation guide](doc/README.md) describes separate data/plot commands and equivalent Makefile targets.
+
+## Validation and limitations
+
+The repository includes regression tests and documentation checks for selected analytic limits. Their scope and measured errors are recorded in [REVIEW.md](doc/REVIEW.md) and the manual. They do not establish agreement with experiment across all supported inputs.
+
+- Strengths are relative. Radial matrix elements, populations, and photon-energy weighting are absent; opt-in `A_Ein`, `f_osc`, and `S_line` outputs are unvalidated placeholders.
+- Each LS term is isolated. Mixing between different terms, Stark interactions, and collisional effects are outside the implemented spectrum model.
+- Convolution uses finite bins around rest wavelengths and removes weak components. Broad wings and large velocity shifts can leave the bins; check convergence with `fxnwindow`, the selection windows, and `specres`.
+- The Voigt wing warning estimates the Lorentzian contribution only. Gaussian-tail losses are not automatically reported.
+- The air-to-vacuum helper is approximate. The standalone hyperfine-constant estimator remains a research aid outside the validated workflow.
+
+Planned extensions include Stark interactions, validated hyperfine-constant estimation, atomic-data import, and a GUI for multiple lines or species.
+
+## Data, citation, and contact
+
+The He and Ar spectrometer measurements were collected by Tommy Gonda, Matt Kriete, and David Ennis and are included with their permission. The C III measurements come from the [Aurora dataset](https://doi.org/10.35099/aurora-70).
+
+Please cite the [AtomSpect publication](https://doi.org/10.1016/j.jqsrt.2026.110015) when using the code in published work. For questions or bug reports, use the repository issue tracker or contact [lmn0022@auburn.edu](mailto:lmn0022@auburn.edu).
+
+See [LICENSE](LICENSE) for the code's GPL-3.0-or-later license.

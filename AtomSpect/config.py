@@ -65,7 +65,7 @@ def lorentzian_wing_loss(window, stepsize, skewness=(1, 1)):
 
 def _warn_if_wings_truncated(settings):
     if settings.function in ('Skewed', 'Lorrentzian', 'Voigt'):
-        skew = settings.skewness if settings.function != 'Voigt' else (1, 1)
+        skew = settings.skewness if settings.function == 'Skewed' else (1, 1)
         loss = lorentzian_wing_loss(settings.window, settings.stepsize, skew)
         if loss > WING_LOSS_WARNING:
             warnings.warn(f"fxnwindow={settings.window} nm truncates about {100*loss:.1f}% of each "
@@ -165,6 +165,22 @@ class InputDeck:
         out.radiative_placeholders = _approximation_enabled(deck.get('RadiativePlaceholders', False))
         # Resolve the convolution now so that a missing temperature fails before the solve.
         out.convolution = out.convolution_settings()
+        settings = out.convolution
+        for name, value in (('specstep', settings.stepsize), ('specres', settings.specres),
+                            ('fxnwindow', settings.window), ('amu', deck['amu'])):
+            if not np.all(np.isfinite(value)) or np.any(np.asarray(value) <= 0):
+                raise ValueError(f'{name} must be finite and positive')
+        for name, value in (('TAlpha', out.Talpha), ('TBeta', out.Tbeta)):
+            if not np.isfinite(value) or value < 0:
+                raise ValueError(f'{name} must be finite and nonnegative')
+        if settings.function in _TEMPERATURE_PROFILES:
+            temp = np.asarray(settings.temperature)
+            if not np.all(np.isfinite(temp)) or np.any(temp < 0) or (settings.function == 'Gaussian' and np.any(temp == 0)):
+                raise ValueError('Temperature must be finite and nonnegative (positive for Gaussian)')
+        if settings.function == 'Skewed':
+            skew = np.asarray(settings.skewness)
+            if skew.shape != (2,) or not np.all(np.isfinite(skew)) or np.any(skew <= 0):
+                raise ValueError('Skewness requires two finite positive factors')
         _warn_if_wings_truncated(out.convolution)
         return out
 

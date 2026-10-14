@@ -8,34 +8,23 @@ from .constants import g_L, g_S, m_elec, m_prot
 
 
 def lande_gi(I, u_I):
-    '''
-    Generates the lande g_i factor given the spin (I)and nuclear moment.
-    All of these factors can be obtained from Stone (2005)
-    https://doi.org/10.1016/j.adt.2005.04.001
+    """Return the nuclear g factor in Bohr-magneton units.
 
-    Parameters
-    ----------
-    I : Nuclear Spin (Integer or Half Integer)
-        Nuclear Spin of the atom. 
-    I_par : TYPE
-        DESCRIPTION.
-    u_I : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    thisgi : g_i
-        The lande g_i factor for use in the zeeman shift.
-
-    '''
+    I is the nuclear spin and u_I the magnetic moment in nuclear magnetons.
+    The Hamiltonian uses -g_I I_z. A spin-zero nucleus requires u_I=0."""
     # Technically, this should be the reduced mass here.
-    thisgi = (u_I/I)*(m_elec/m_prot)  # This is gi_prime and is used in zeeman calculations.
+    if I == 0:
+        if u_I != 0:
+            raise ValueError('A spin-zero nucleus must have zero magnetic moment')
+        return 0.0
+    thisgi = (u_I/I)*(m_elec/m_prot)
     return thisgi
 
 
 def lande_gj2(J, L, S):
     # Lande gJ as derived in Griffiths and others. Comes from projection of angular momentum and averaging of L and S
     #This has one less step of calculation than lande_gj function but should be equivalent.
+    """Return the electronic Lande g_J using the package g_L and g_S constants."""
     if J == 0:
         return 0
     else:
@@ -44,6 +33,7 @@ def lande_gj2(J, L, S):
 
 def lande_gj(J, L, S):
     # Lande gJ as derived in Griffiths and others. Comes from projection of angular momentum and averaging of L and S
+    """Return the electronic Lande g_J for quantum numbers J, L, S; zero for J=0."""
     if J == 0: #There is no lande effect if J=0 due to a singularity (1/J)
         return 0
     else:
@@ -53,12 +43,16 @@ def lande_gj(J, L, S):
 
 def lande_gf(F, I, J, L, S, g_I):
     # Lande gF, comes from averaging I, L, and S similar to gJ.
+    """Return the weak-field hyperfine g_F; zero for F=0.
+
+    F, I, J, L and S are angular momenta. g_I is returned by lande_gi;
+    the nuclear contribution carries the same minus sign as the exact Hamiltonian."""
     thisgj = lande_gj(J, L, S)
     #There is no lande effect if F=0, due to a singularity (1/F)
     if F == 0:
         return 0
     else:
-        thisgf = thisgj*(F*(F+1) - I*(I+1) + J*(J+1)) / (2*F*(F+1)) + g_I*(F*(F+1) + I*(I+1) - J*(J+1)) / (2*F*(F+1))
+        thisgf = thisgj*(F*(F+1) - I*(I+1) + J*(J+1)) / (2*F*(F+1)) - g_I*(F*(F+1) + I*(I+1) - J*(J+1)) / (2*F*(F+1))
         return thisgf
 
 
@@ -73,7 +67,8 @@ def make_Jmj(J_am):
     #     'with energy ordering and states as tracking past diagonalization is not possible.'
     # =============================================================================
     ###
-    if type(J_am) == int or type(J_am) == float:
+    """Return [J, mJ] pairs for a scalar or iterable J, with ascending mJ within each J."""
+    if np.isscalar(J_am):
         Jtmp = [[float(J_am), float(x)] for x in np.linspace(-J_am, J_am, int(2*J_am+1))]
     else:
         Jtmp = [[float(jvs), float(x)] for jvs in J_am for x in np.linspace(-jvs, jvs, int(2*jvs+1))]
@@ -82,32 +77,22 @@ def make_Jmj(J_am):
 
 def CGCoeff(j1, m1, j2, m2, j3, m3):
     # Calculates Clebsch-Gordan Coefficient and outputs a float instead of sympy result
+    """Return the real Clebsch-Gordan coefficient <j1,m1;j2,m2|j3,m3> as a float."""
     thisCG = float(CG(j1, m1, j2, m2, j3, m3).doit())
     return thisCG
 
 
 def CGw3(j1, m1, j2, m2, j3, m3):
     # Clebsh Gordon Coeff using wigner3j
+    """Return <j1,m1;j2,m2|j3,m3> as a float using a Wigner 3j symbol."""
     return ((-1)**(-j1 + j2 - m3))*np.sqrt(2*j3 + 1)*float(w3j(float(j1), float(j2), float(j3), float(m1), float(m2), -float(m3)))
 
 
 def dipolestr(LG, LE):
-    '''
-    Wigner3j = (J'    J    1  )
-               (-m_j' m_j  q  )   
-    Wigner6j = {S    L'  J'  }
-               {1    J    L  }                   
+    """Return the signed angular E1 amplitude for a fine-structure basis pair.
 
-    Parameters
-    ----------
-    LG, LE are arrays of quantum numbers. Formatted as LG=[J,mJ,L,mL,S,mS]
-
-    Returns
-    -------
-    tdp3 : float
-        Returns the relative dipole strength factor as a multiple of the reduced dipole matrix. Metcalf 4.32
-
-    '''
+    LG and LE each contain [J,mJ,L,mL,S,mS]. The radial reduced matrix
+    element is omitted; square the amplitude to obtain an angular strength."""
     thisq = LE[1] - LG[1]
     # if thisq == -1 or thisq== 0 or thisq== 1:
 
@@ -120,26 +105,10 @@ def dipolestr(LG, LE):
 
 
 def dipolestr_HFS(LG, LE):
-    '''
-    Wigner3j =  (F     1    F'  )
-                (-m_f  q   -m_F )   
-    Wigner6j1 = {L'    J'  S  }
-                {J    L    1  } 
-    Wigner6j2 = {J'   F'   I  }
-                {F    J    1  }                   
-    Per Metcalf 4.33 
+    """Return the signed angular E1 amplitude for a hyperfine basis pair.
 
-    Input state objects are [F,mF,J,mJ,I,mI,L,mL,S,mS]               
-    Parameters
-    ----------
-
-    Returns
-    -------
-    tdp3 : float
-        This is the u_eg dipole scalar for a specific transition between states (m-resolved)
-        For use with nuclear spin only.
-
-    '''
+    LG and LE each contain [F,mF,J,mJ,I,mI,L,mL,S,mS]. The radial reduced
+    matrix element is omitted. The expression uses one 3j and two 6j symbols."""
     # States are from bigsortedlist = [F,mF,J,mJ,I,mI,L,mL,S,mS]
     # [0,1 ,2,3 ,4,5 ,6,7 ,8,9 ]
 

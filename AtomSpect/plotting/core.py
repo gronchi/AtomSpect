@@ -6,30 +6,12 @@ from matplotlib import pyplot as plt
 
 
 def plotarray(shape, figure_size=(10, 8),fontsize=18):
-    '''
-    This is a general function which makes a blank array of plots with shape (rows,col)
-    and returns the fig object and array of plots. This is used with PlotFunction to feed plot data
-    towards a streamlined plotting experience.
-    A generalized version of these functions would be ideal, but the scope here is for use
-    in this code.
+    """Create a shared-axis (rows, columns) plot grid and return (figure, axes_array).
 
-    Parameters
-    ----------
-    shape : tuple
-        Dimensions of the plot (Rows, Colums)
-    figure_size : tuple (Width, Height)
-        Plot size in inches for the resulting figure. The default is (10, 8).
-    fontsize : Int
-        Size for the font in the figure. The default is 18.
-
-    Returns
-    -------
-    fig : natplotlib figure object
-        callable and assignable figure object.
-    plotmat : array
-        Array of plots where individual axes can be indexed for plotting on.
-
-    '''
+    shape is a two-element sequence. figure_size is in inches and fontsize
+    in points. The axes array is always two-dimensional, including for 1x1.
+    Rows share x by column; all axes share y. The function sets wavelength
+    and intensity labels and changes Matplotlib's global font defaults."""
     
     fig = plt.figure(figsize=figure_size)  #Make the main figure
     plotmat = np.zeros(shape, dtype='O') #Make an empty np array of datatype 'Object"
@@ -81,6 +63,7 @@ def parse_plot_data(Plotobject):
     
     # Case 1: Already a list of objects
     # Check if first element is a dictionary or a nested list
+    """Wrap a single spectrum dictionary or [x,y] array into a list of spectra."""
     if isinstance(Plotobject, list):
         if len(Plotobject) > 0 and isinstance(Plotobject[0], (dict, list, np.ndarray)):
             # If it's [ [wavs, sigs] ], we are good.
@@ -101,10 +84,7 @@ def parse_plot_data(Plotobject):
     return Plotobject
 
 def get_target_axis(taxs, position):
-    '''
-    Safely extracts a single target axis regardless of taxs array dimensions.
-    This is for use with PlotFunction with multiple calls for overlapping plotting of different objects etc.
-    '''
+    """Return one axes from an axes object or array, using position=[row,column]."""
     # If taxs is already a single axis object (e.g. from a manual slice), return it
     if not isinstance(taxs, np.ndarray):
         return taxs
@@ -122,10 +102,10 @@ def get_target_axis(taxs, position):
         return taxs[row, col]
 
 def consolidate_legend(tfig, plotpol=True, plotnondip=False, legcols=None, fontsize=18):
-    '''
-    Gathers all handles and labels from EVERY axis in the figure (including twins)
-    and generates a single, unique legend at the top.
-    '''
+    """Collect unique labels from all figure axes, including twins, into one legend.
+
+    legcols sets the column count; otherwise plotpol and plotnondip select
+    the default layout. fontsize is in points. Return the supplied figure."""
     tfig.legends = [] # Clear existing legends
     all_handles = []
     all_labels = []
@@ -175,85 +155,24 @@ def PlotFunction(Plotobject, plot_vars, plottitle='', plotwind=None, SpectrumPlo
                  SpectrometerLabel='Spectrometer', SpectrometerMarker=None, SpectrometerColor='black', 
                  SpectrometerLS='solid', legcols=None, show=True):
          
-    '''
-    Author note: This function was refactored by Gemini AI from a previous iteration. The changes add a pre-processing step
-    which helps generalize usage and make it easier to parse what the plot function is doing. This code has been reviewed prior to publication
+    """Plot one or more spectra and return an array of Matplotlib axes.
     
-    Parameters
-    ----------
-    Plotobject : What is being plotted.
-        This can be [x,y] data or a Zeeman Object dictionary output. It used to handle lists of possible inputs
-        But I would suggest using the ability to define an existing axes or plotarray instead.
-    plot_vars : list [color,linethickness, linestyle, label (optional), markerstyle (optional)]
-        List of definable parameters for a given plot such as color, linestyle, label, line thickness, and marker style
-    plottitle : str, optional
-        String for the plot title
-    plotwind : list or array, optional
-        Sets the limits for upper and lower bound of the plot window. If not defined, will try to see if there is an 
-        PlotObject['input'] which is the input dictionary for the main code which is contained in the output of the main function.
-        This input can include the plot_window keyword.
-        Otherwise, defaults to either the limits of the spectrometer data or the full range of the spectra convolution
-    SpectrumPlot : Array, optional
-        This is an array of spectrometer data [wavelength(nm),intensity]. Does not need to be normalized, can be using ScaleSpectrometer flag.
-        This gets plotted in black, but can be changed.
-    Shape : list or tuple, optional
-        Shape of the plot array that is to be created if makefig=True is set. Ignored otherwise.
-    position : index (list or int), optional [row,column]
-        Position in the plot array for the given object to be plotted. Useful for making one plot then adding many overplots
-    axsin : array of plot objects, optional
-        This is the plotmatrix as output from PlotArray or returned as an otput of PlotFunction
-        If this is fed into PlotFunction here, this is where the object will be plotted. position information is thus required.
-    NormalizeSig : BOOL, optional
-        Whether a pass is done on the data to normalize it (making the maximum height as 1).
-        Note that the sums of the signal strenghts are already normalized to equal 1. This just uniformly scales the plot outputs.
-        The default is False.
-    NormalizeScale : INT, optional
-        A given curve can be scaled so that the maximum height is different than 1.
-        Useful for relative intensities of multiple species to match the observed spectra. The default is 1.
-    makefig : BOOL, optional
-        Whether a figure object should be created. Need Shape unless 1x1 plot is desired. The default is True.
-        Set to FALSE 
-    show : BOOL, optional
-        Display a new figure immediately. Default True. Set False when adding
-        overlays or saving the completed figure before displaying it.
-    fig_size : tuple (Width, Height)
-        Plot size in inches for the resulting figure. The default is (10, 8).
-    plotpol : BOOL, optional
-        Whether the polarization components are plotted as stems in addition to the spectra. The default is True.
-    plotlabel : STR, optional
-        Label for the plot. The default is ''.
-    plotnondip : BOOL, optional
-        Whether other_sticks should be plotted as purple stars. Default False.
-        This is a legacy option name, not evidence for non-dipole emission.
-    dotwin : BOOL, optional
-        Whether a twin axis is plotted with a separate scale for the sticks than the main plot. The default is False.
-    marker : INT, optional
-        Index of markerlist. These are ['o','8','D','s','P','^','v','X']. Can also be 
-    marker_count : INT, optional
-        How many points between each marker on the plot. Allows for easier reading of the plot. The default is None.
-    fontsize : TYPE, optional
-       Size of the font
-    ScaleSpectrometer : float, optional
-       If provided, scales the spectrometer height so that the maximum value is that as provided. Default would be 1.
-    SpectrometerLabel : STR, optional
-        Optional label for spectrometer data. The default is 'Spectrometer'.
-    SpectrometerMarker : STR, optional
-        Ability to change the spectrometer data marker. The default is 'd'.
-    SpectrometerColor : STR, optional
-        Color for spectrometer data. The default is 'black'.
-    SpectrometerLS : STR, optional
-        Spectrometer Linestyle. The default is 'solid'.
-    legcols : INT, optional
-        How many columns the legend will have.. The default is None.
+    Plotobject is a SpectrumResult/dictionary, [x,y], or a list of these.
+    plot_vars is [color, linewidth, linestyle, optional label, optional marker],
+    shared by all spectra or supplied once per spectrum. SpectrumPlot is
+    optional measured [wavelength_nm, signal] data. Shape and fig_size set
+    the new axes array and figure size in inches; makefig=False draws on
+    axsin at position=[row,column]. show controls display of a new figure.
     
-    Returns
-    -------
-    The plot array of axes objects that can be called and indexed for adding plot objects.
-    After creation, this array can be fed in as axsin multiple times to keep adding data.
-    From an index axes, it is possible to get additional information with axes operators.
-   
-   
-    '''
+    NormalizeSig scales calculated spectra to NormalizeScale (scalar or a
+    list per spectrum). ScaleSpectrometer sets measured peak height; zero
+    is allowed. Raw calculated intensities otherwise use automatic y limits.
+    plotwind sets wavelength bounds in nm, falling back to Input.plot_window.
+    plottitle and plotlabel add text. marker, marker_count and marker_size
+    control calculated curve markers; the Spectrometer options style measured
+    data. plotpol adds pi/sigma sticks; dotwin uses a separate stick axis.
+    plotnondip displays other_sticks, a legacy name for forbidden E1 channels.
+    fontsize and legcols control text and the consolidated figure legend."""
 
     # --- 1. Standardize Input and Initialization --- 
     # Use the intput parser to ensure we always have a list of objects to loop over
@@ -261,13 +180,17 @@ def PlotFunction(Plotobject, plot_vars, plottitle='', plotwind=None, SpectrumPlo
     
     font_size = fontsize if fontsize else 18 
     markcount = marker_count if marker_count else 50
-    spectrometer_scale = ScaleSpectrometer if ScaleSpectrometer else 1 
-    marker_size_ = marker_size if marker_size else 10  
+    spectrometer_scale = ScaleSpectrometer if ScaleSpectrometer is not None else 1
+    marker_size_ = marker_size if marker_size is not None else 10
     
     if len(np.shape(plot_vars)) == 1: 
         working_vars = [plot_vars] 
     else: 
         working_vars = plot_vars 
+    if len(working_vars) == 1 and len(Plotobject) > 1:
+        working_vars = working_vars * len(Plotobject)
+    if len(working_vars) != len(Plotobject):
+        raise ValueError('Provide one shared plot style or one style per spectrum')
 
     #Setting up the marker styles if input, otherwise default to circles.
     resolved_markers = [] 
@@ -310,7 +233,8 @@ def PlotFunction(Plotobject, plot_vars, plottitle='', plotwind=None, SpectrumPlo
     if len(final_spec_data) > 0: 
         # Vectorized Normalize to prevent iteration errors
         spec_y = np.asarray(final_spec_data[1])
-        spec_norm = (spec_y / np.max(spec_y)) * spectrometer_scale if np.max(spec_y) != 0 else spec_y
+        from ..lineshapes import Normalize
+        spec_norm = Normalize(spec_y, spectrometer_scale)
         
         target_axis.plot(final_spec_data[0], spec_norm,  
                          color=SpectrometerColor, marker=SpectrometerMarker, markevery=10,  
@@ -322,22 +246,26 @@ def PlotFunction(Plotobject, plot_vars, plottitle='', plotwind=None, SpectrumPlo
         if NormalizeSig: 
             scale_val = NormalizeScale[i] if isinstance(NormalizeScale, list) else NormalizeScale 
             # Vectorized Normalization: Scaling * (Data / Max)
-            y_data = (y_raw / np.max(y_raw)) * scale_val if np.max(y_raw) != 0 else y_raw
+            from ..lineshapes import Normalize
+            y_data = Normalize(y_raw, scale_val)
         else: 
             y_data = y_raw 
              
         target_axis.plot(tplot_data[0], y_data, color=p_vars[0], linestyle=p_vars[2],  
-                         linewidth=p_vars[1], label=p_vars[3], alpha=0.8, 
+                         linewidth=p_vars[1], label=p_vars[3] if len(p_vars) > 3 else None, alpha=0.8,
                          marker=resolved_markers[i], markevery=markcount, markersize=marker_size_) 
 
     # --- 5. Styling and Limits --- 
     plottingwind = plotwind 
-    if main_dict and 'Input' in main_dict and not plotwind: 
+    if main_dict and 'Input' in main_dict and plotwind is None:
         plottingwind = main_dict['Input'].get('plot_window', None) 
 
-    if plottingwind: 
+    if plottingwind is not None and len(plottingwind) > 0:
         target_axis.set_xlim(np.min(plottingwind), np.max(plottingwind)) 
-    target_axis.set_ylim(-0.1, 1.1) 
+    if NormalizeSig:
+        scales = np.asarray(NormalizeScale)
+        top = max(1., float(np.max(scales)), float(spectrometer_scale))
+        target_axis.set_ylim(-0.1*top, 1.1*top)
      
     if plottitle:  
         target_axis.set_title(plottitle) 
@@ -349,9 +277,10 @@ def PlotFunction(Plotobject, plot_vars, plottitle='', plotwind=None, SpectrumPlo
     if plotpol and main_dict and 'pi_sticks' in main_dict: 
         stem_ax = target_axis.twinx() if dotwin else target_axis 
          
-        if dotwin and 'reduced_sticks' in main_dict: 
-            stem_ax.set_ylim(-0.1 * np.max(main_dict['reduced_sticks'][1]),  
-                             np.max(main_dict['reduced_sticks'][1])) 
+        if dotwin and 'reduced_sticks' in main_dict and len(main_dict['reduced_sticks'][1]):
+            peak = np.max(main_dict['reduced_sticks'][1])
+            if peak > 0:
+                stem_ax.set_ylim(-0.1*peak, 1.1*peak)
          
         stem_ax.stem(main_dict['pi_sticks'][0], main_dict['pi_sticks'][1],  
                      linefmt='C0', basefmt=" ", label=r'$\pi$') 

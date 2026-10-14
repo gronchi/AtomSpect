@@ -256,7 +256,7 @@ if doHighTemp:
         
         multispecs = [CIII_4649,CIII_4663,OII_465,OIII_465]
         #This allows for scaling of the differeint possible contributions.
-        scalers = [1,.1,.02,0.02, 0]
+        scalers = [1,.1,.02,0.02]
         temp_list = np.array([thisTemp,])*11602
         # scalers = [0,0,1,1]
         combspect = MultiSpec(multispecs,scalers)

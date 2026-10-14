@@ -9,38 +9,11 @@ from .units import nm_to_Hz
 
 
 def A_Ein(E_in, dipolesig):
-    '''
-    Calculate the Einstein A coefficient using the dipole moment.
-    Bransden QM 
-    A_ab = (womega^3 * e*2)/(3\pi eps0hbar*c**3) * |<a|r|b>|^2
-
-    There is also the intensity expression from Bethe and Salpeter - 59.10
+    """Return the legacy radiative placeholder for wavelength E_in in nm.
     
-    I = (4 q^2 omega^4)/(3 c^3) |r|^2 - again pol and spacially averaged.
-    
-    Compare to 59.11 for Einstein A as
-    A = (4 q^2 omega^3)/(3 hbarc^3) |r|^2 - again pol and spacially averaged.
-    
-    These are in erg/sec units.
-    There is definitely interesting physics and math to discover in these relations
-    As well as why the expected expressions do not precisely yield the A coefficients.
-    What is the missing component, and what is my calulation from the dipolestr actually giving?
-    
-    
-    The e
-    Parameters
-    ----------
-    E_in : float
-        Energy in wavelength (nm) for the given line
-    dipolesig : float
-        Scalar of the dipole sig strength for the given transition.
-
-    Returns
-    -------
-    tAein : TYPE
-        DESCRIPTION.
-
-    '''
+    The implementation multiplies dipolesig by a frequency-squared factor.
+    A normalized angular strength omits the radial matrix element, so this
+    value is not a physical absolute Einstein A coefficient or rate."""
  
     # omega = (Ea-Eb)/hbar
     tomega = nm_to_Hz(E_in)/(2*np.pi) #Note also the lack of hbar here, just h.
@@ -51,39 +24,11 @@ def A_Ein(E_in, dipolesig):
 
 
 def A_Ein2(E_in, dipolesig):
-    '''
-    This is done explicitly as written without the change to the factoring.
-    Calculate the Einstein A coefficient using the dipole moment.
-    Bransden QM 
-    A_ab = (womega^3 * e*2)/(3\pi eps0hbar*c**3) * |<a|r|b>|^2
-
-    There is also the intensity expression from Bethe and Salpeter - 59.10
+    """Return the alternate legacy frequency-cubed radiative placeholder.
     
-    I = (4 q^2 omega^4)/(3 c^3) |r|^2 - again pol and spacially averaged.
-    
-    Compare to 59.11 for Einstein A as
-    A = (4 q^2 omega^3)/(3 hbarc^3) |r|^2 - again pol and spacially averaged.
-    
-    These are in erg/sec units.
-    There is definitely interesting physics and math to discover in these relations
-    As well as why the expected expressions do not precisely yield the A coefficients.
-    What is the missing component, and what is my calulation from the dipolestr actually giving?
-    
-    
-    The e
-    Parameters
-    ----------
-    E_in : float
-        Energy in wavelength (nm) for the given line
-    dipolesig : float
-        Scalar of the dipole sig strength for the given transition.
-
-    Returns
-    -------
-    tAein : TYPE
-        DESCRIPTION.
-
-    '''
+    E_in is wavelength in nm; dipolesig is the supplied angular strength.
+    The prefactor and missing radial matrix element prevent interpreting
+    the result as a validated absolute Einstein coefficient."""
  
     # omega = (Ea-Eb)/hbar
     tomega = nm_to_Hz(E_in)*(2*np.pi) #Note also the

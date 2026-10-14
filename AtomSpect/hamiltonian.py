@@ -24,11 +24,13 @@ def _zeeman_operator(Psi, states, l_index, s_index, i_index=None, gI=0.0):
 
 def Zeemanlow(gf, mf, B):
     # Lowfield Zeeman approximation. Valid for J or F total AM.
+    """Return the weak-field Zeeman shift g*m*muB*B in cm^-1, for B in T."""
     return (muBcm*gf*mf*B)
 
 
 def ZeemanHigh(ms, ml, B):
     # Highfield Zeeman approximation, excluding Hyperfine splitting. Energy is still diagonal.
+    """Return the electronic Paschen-Back shift in cm^-1 for B in T, using g_S=2."""
     return muBcm*B*(2*ms + ml)
 
 
@@ -93,28 +95,16 @@ _hfs_magnetic_eigenvectors = _definite_m_eigenvectors
 
 
 def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
-    '''
-    Calculates the Zeeman shift hamiltonian and combines it with the Eo energy before diagonalizing to get the eig vec/vals.
+    """Solve a fine-structure LS term in a magnetic field.
 
-    Parameters
-    ----------
-    Level_in : TYPE
-        DESCRIPTION.
-    Binput : TYPE
-        DESCRIPTION.
-    Eterm : float, optional
-        Term energy in cm^-1, required when Highfield=True. Zero is valid.
-        The non-HFS high-field approximation neglects fine-structure splitting
-        and retains ZeemanHigh's g_L=1, g_S=2 convention.
+    Level_in is returned by stateprocess; Binput is in T. With neither
+    approximation flag enabled, diagonalize the full within-term Hamiltonian.
+    Lowfield uses g_J mJ shifts. Highfield neglects fine structure and requires
+    Eterm in cm^-1 (zero is valid), with ideal g_L=1 and g_S=2.
+    The flags are mutually exclusive.
 
-    Returns
-    -------
-    list
-        Eigenvalues and eigenvector columns in the coupled |J,mJ> basis.
-        High-field energies are diagonalized in |mL,mS>, then the vectors are
-        transformed back to the coupled basis used by Zeeman_signal.
-
-    '''
+    Return [energies_cm, vectors], with ascending energies and eigenvectors
+    in columns of the coupled |J,mJ> basis, including in the high-field case."""
     # Level=[CGmat, Eo_mat,E0_flat,bigstatelist]; bigstatelist entries are [J,mJ,L,mL,S,mS].
     Psi = Level_in[0]  # Wavefunction basis matrix, comprised of CG coefficients.
 
@@ -147,48 +137,22 @@ def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
 
 
 def HZeeman(Level_in):
-    '''
-    Calculates the Zeeman Energy from the Hamiltonian using perturbation theory of <psi' |H'|psi> for H' = H_Zeeman for each m (ml, ms)
-    This just outputs the Zeeman Hamiltonian, assuming B = 1T. This Zeeman component can be scaled based on the magnetic field strength.
+    """Return [E0, H_Z] for repeated fine-structure field solves.
 
-
-    Parameters
-    ----------
-    Level_in : List
-        This is the output of the StateProcess function of the format Level=[w3mat, Eo_mat,E0_flat,bigstatelist]
-
-
-    Returns
-    -------
-    list
-        [E0, H_Zeeman], where E0 is the zero-field energies and H_Zeeman is the Zeeman energies at 1T.
-
-    '''
+    Level_in is returned by stateprocess. E0 is in cm^-1; H_Z is dimensionless.
+    The Hamiltonian is E0 + B_T*muBcm*H_Z, not E0 + B_T*H_Z."""
     # Level=[CGmat, Eo_mat,E0_flat,bigstatelist]; bigstatelist entries are [J,mJ,L,mL,S,mS].
     H_Zeeman = _zeeman_operator(Level_in[0], Level_in[-1], l_index=3, s_index=5)
     return [Level_in[1], H_Zeeman]
 
 
 def Zeeman_func_HFS(Level_in, Binput, gI, PsiHFS=True):
-    '''
-    Calcualte the Zeeman shift including hyperfine effects.
+    """Solve the exact within-term hyperfine Zeeman Hamiltonian.
 
-    Parameters
-    ----------
-    Level_in : TYPE
-        DESCRIPTION.
-    Binput : TYPE
-        DESCRIPTION.
-    gI : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    list containing the eigenvalues and eigenvectores after matrix diagonalization
-        [eigZ,eigvecZ]
-
-
-    '''
+    Level_in is returned by stateprocess_HFS, Binput is in T and gI follows
+    lande_gi. PsiHFS is retained for compatibility; both values select the
+    same Hamiltonian. Return [energies_cm, vectors] in ascending energy order,
+    with eigenvector columns in the coupled |F,mF> basis."""
     # Level=[w3mat, E0 matrix, HFS energies, ...]; states are [F,mF,J,mJ,I,mI,L,mL,S,mS].
     H_Zeeman = _zeeman_operator(Level_in[0], Level_in[-1], l_index=7, s_index=9, i_index=5, gI=gI)
 
@@ -201,25 +165,13 @@ def Zeeman_func_HFS(Level_in, Binput, gI, PsiHFS=True):
 
 
 def HZeeman_HFS(Level_in, gI):
-    '''
-    Calcualte the Zeeman shift including hyperfine effects.
+    """Return hyperfine Hamiltonian components for repeated field solves.
 
-    Parameters
-    ----------
-    Level_in : TYPE
-        DESCRIPTION.
-    Binput : TYPE
-        DESCRIPTION.
-    gI : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    list containing the eigenvalues and eigenvectores after matrix diagonalization
-        [eigZ,eigvecZ]
-
-
-    '''
+    Level_in is returned by stateprocess_HFS; gI follows lande_gi.
+    Return a dictionary with E0 (cm^-1 matrix), H_Z (dimensionless),
+    PsiHFS (diagonal HFS shifts in cm^-1), EHF0 (the shift vector), and
+    AHFS0 (the legacy diagonal of Level_in[3], whose units depend on sortE).
+    The exact Hamiltonian is E0 + PsiHFS + B_T*muBcm*H_Z."""
     # stateprocess outputs [w3mat, E_0, E_HFS,HHFS,statelist]
     H_Zeeman = _zeeman_operator(Level_in[0], Level_in[-1], l_index=7, s_index=9, i_index=5, gI=gI)
 

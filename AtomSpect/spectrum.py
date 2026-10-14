@@ -43,7 +43,7 @@ def _solve_hfs(deck):
     data['RedDipoleOp'] = Z_sig_HFS[-3]  # This is the tensor/kronecker product of the upper and lower state matrices after the field has been included. afcf in calculations. Might not be what is expected.
     data['w3coeffs_ground'] = Ground_Level_HFS[0]
     data['w3coeffs_excited'] = Excited_Level_HFS[0]
-    data['ZeemanSplits_G'] = Ground_Zeeman_HFS[-1]
+    data['ZeemanSplits_G'] = Ground_Zeeman_HFS[0]
     data['Red_Dipole'] = Z_sig_HFS[4]
 
     data['rad'] = Z_sig_HFS[2]  # Given out so that it can be used to plot specific polarizations.
@@ -54,7 +54,7 @@ def _approximation_signals(deck, data):
     """Optional low-field and high-field approximation sticks (non-HFS only).
 
     Returns the level lists built last (or None, None when no approximation is
-    requested); the driver reports those as the state lists, as it always has.
+    requested). The driver retains its exact basis metadata independently.
     """
     sig_kwargs = dict(Bangle=deck.Bangle, gamma=deck.Polangle, Filter=deck.Polfilter,
                       T_Alpha=deck.Talpha, T_Beta=deck.Tbeta)
@@ -115,13 +115,11 @@ def _solve_fine(deck):
                           gamma=deck.Polangle, Filter=deck.Polfilter, T_Alpha=deck.Talpha, T_Beta=deck.Tbeta)
     Z_sig_norad = Zeeman_sig_norad(Ground_Level, Ground_Zeeman, Excited_Level, Excited_Zeeman)
 
-    approx_ground, approx_excited = _approximation_signals(deck, data)
-    if approx_ground is not None:
-        Ground_Level, Excited_Level = approx_ground, approx_excited
+    _approximation_signals(deck, data)
 
     data['EigGround'] = Ground_Zeeman
     data['EigExcited'] = Excited_Zeeman
-    data['ZeemanSplits_G'] = Ground_Zeeman[-1]
+    data['ZeemanSplits_G'] = Ground_Zeeman[0]
 
     data['sigsum'] = Z_sig[7]
     data['SigNotNorm'] = Z_sig[8]
@@ -180,58 +178,63 @@ def _convolve(deck, data, settings):
 
 
 def AtomSpect_Main(Inputdeck):
-    '''
-    This is the main zeeman function. THe input is a dictionary with many optional keywords for more modular functionaly. These optional keywords are checked for to branch the function.
-
+    """Compute relative E1 sticks and a broadened spectrum for two LS terms.
 
     Parameters
     ----------
-    Inputdeck :     InputdeckExample = {
-                     's_ground': 1  , #Spin quantum number S of ground state (2S+1 is the multiplicity), int or half int
-                     's_excited': 1 , #Spin quantum number S of excited state (2S+1 is the multiplicity), int or half int
-                     'l_ground': 0  , #Orbital Angular Momentum of ground state, int or half int
-                     'l_excited': 1 , #Orbital Angular Momentum of excited state, int or half int
-                     'E_ground': np.array([2951.29 ]) , #np.array of lower state, Lowest J first, cm^-1
-                     'E_excited': np.array([26229.77,27488.11,27889.68]) ,  #np.array of upper state, Lowest J first, cm^-1
-                     'Bmag': .6 , #Magnetic Field  [T]
-                     'b_angle': 60 , #Angle between LoS and Bmax
-                     'Pol_angle': 0 , #Angle polarizing filter makes with max linear transmission
-                     'amu' : 183 , #Weight in AMU
-                     'Convfxn': 'Gaussian' , #Optional: 'Gaussian', 'GaussianInstrum'', 'Skewed' , 'Lorrentzian', 'Voigt'.
-                     'Skewness' : [1.24,1.98] #Optional, [Left,Right] multiples of specstep for the FWHM of each side of the lorrentzian. If both are 1, it is a symmetric lorrentzian.
-                     'Temp' : 300, #Temperature in K. Used for Gaussian, Gaussian Instrum, Voigt convolutions
-                     'TempeV' : 20 , #Temperature in eV. Can be passed instead of Temp in K. Converted as needed internally.
-                     'specstep' : 0.002222 , #stepsize of linefunction [nm]
-                     'specres' : 10 , #How many points are evaluated per spectrometer pixel window. Higher means smoother curve.
-                     'fxnwindow': 0.5 , #How far from the central peak the convolution will be calculated. Also related to how stick binning works. 
-                     'plottitle': 'Excample Title' , #Title for plotting (optional).                      
-                     'SpectrumData' : [[Wavelength],[Intensity]] , #List of arrays for wavelength (nm) and intensity (arb)
-                     'spec_window' : [425,435], #Min and max for convolution window (nm)
-                     'plot_window' : [425,435], #Min and max for plot window range (nm)
-                     'HFS_G' : [505.5e6] , #Optional: Hyperfine A constant for the lower level, need one entry per J level, lowest J first [Hz]
-                     'HFS_E': [0, 496.2e6, 440.5e6] , #Optional: Hyperfine A constants for upper level, need one entery per J level, lowest J first [Hz]
-                     'I_spin' : 0.5, #Optional: nuclear spin, I. Tabulated by Stone et al.
-                     'mu_I' :  .11778476 , #Optional: Nuclear dipole moment as tabulated by Stone.              
-                     'HFSB_G' : [505.5e6] , #OPtional: Hyperfine B constant for the lower level, need one entry per J level, lowest J first [Hz]
-                     'HFSB_E': [0, 496.2e6, 440.5e6] , #Optional: Hyperfine B constants for upper level, need one entery per J level, lowest J first [Hz]
-                     'Calc_HFS_Vals': [False,False], #Optional. Passed regarding wether HFS constants A and B should be approximated for values of 0 above. NOT YET IMPLEMENTED
-                     'ion_vel' : Float or [Float1,Float2] , #Velocity of particles, mono and bidirectional allowed. A single value can be passed and used for bidirectional splitting if bidir flag is set.
-                     'bidir' : True , #Bool as to whether ion motion generates bidirection doppler shift
-                     'PsiHFS' : True , #Bool, testing flag left in for completeness
-                     'DoLowSig' : True , #Bool for whether Lowfield approximation and signal are included and plotted
-                     'DoHighSig' : True , #REQUIRES TERM ENERGY!Bool for whether Highfield approximation and signal are included and plotted
-                     'EtermG': 169086.9076, #Term energy of lower state in cm^-1 - Required for DoHighSig
-                     'EtermE' : 191444.47832914, #Term energy of upper state in cm^-1 - Required for DoHighSig
-                     'RadiativePlaceholders' : False , #Bool. If True also returns A_Ein, A_Ein_polavg, sigavgs, f_osc and S_line. These are NOT valid absolute radiative quantities; a warning is raised.
-                     'sortE' : True , #Bool as to whether the wavefunctions will attempt to be sorted based on expected resulting energy before diagonalization. This significantly slows down operations. 
-                      }
+    Inputdeck : dict
+        Required: s_ground/s_excited are S (not 2S+1), l_ground/l_excited
+        are L, E_ground/E_excited contain one energy per J in cm^-1,
+        lowest J first, Bmag is a scalar field in T, and b_angle is the
+        angle between field and line of sight in degrees.
+
+        Pol_angle (degrees) enables a linear analyzer even when zero;
+        TAlpha/TBeta are intensity transmissions (default 1). amu is the
+        mass number (default 1). spec_window and plot_window are nm bounds,
+        defaulting to the SpectrumData wavelength range or [1,1000].
+        SpectrumData is [wavelengths_nm, signals].
+
+        Convfxn selects Gaussian, GaussianInstrum, Voigt, Skewed, or the
+        symmetric Lorrentzian (also the default and unknown-name fallback).
+        Temp is in K; TempeV takes precedence, at 11602 K/eV. Temperature
+        is required only by the Gaussian and Voigt profiles. specstep is
+        the instrument FWHM and sampling pixel width in nm (0.002 when
+        Convfxn is supplied, otherwise 0.002222); specres defaults to 10
+        samples per pixel. fxnwindow pads bins by 0.1 nm. Skewness=[1,1]
+        scales half widths only for Skewed. ion_vel is in m/s (default 0);
+        bidir=False, or True to average +/-v or [+v1,-v2].
+
+        I_spin enables HFS and requires mu_I (nuclear magnetons) and
+        HFS_G/HFS_E (A constants in Hz, one per J or scalar). HFSB_G/E
+        are optional B constants in Hz (default zero). PsiHFS is accepted
+        for compatibility and does not change the Hamiltonian.
+        Calc_HFS_Vals is reserved and ignored; constants are not estimated.
+
+        DoLowSig/DoHighSig default False and accept Booleans or yes/no
+        strings. Non-HFS DoHighSig requires EtermG/EtermE in cm^-1; zero
+        is valid. HFS approximation spectra raise NotImplementedError.
+        sortE orders approximation bases (default False). plottitle is
+        plotting metadata. RadiativePlaceholders=False; enabling it emits
+        unvalidated legacy radiative quantities with a warning.
 
     Returns
     -------
-    data : Dictionary
-        DESCRIPTION.
+    SpectrumResult
+        Dictionary with attribute access. signal, wave_air and wave_vac
+        share upper-then-lower eigenpair order. Strengths sum to one when
+        transmission is nonzero, or remain zero for a dark observation.
+        SpecOut is [wavelength_nm, intensity_per_m]; integrate against
+        metres. rad contains [polarization_amplitude, q_label] per pair;
+        the sigma stick keys use the emitted-light sign convention.
+        describe() explains all present keys. Input references the supplied
+        dictionary, which receives an amu default if absent.
 
-    '''
+    Notes
+    -----
+    Only relative strengths are physical: radial matrix elements and level
+    populations are absent. Finite bins truncate profiles; large Doppler
+    shifts may leave the evaluation windows. Degenerate transitions have
+    meaningful summed strengths, but no unique individual identity."""
 
     deck = InputDeck.from_dict(Inputdeck)
     data = _solve_hfs(deck) if deck.is_hfs else _solve_fine(deck)

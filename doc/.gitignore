@@ -1,0 +1,8 @@
+# Retain the manual, figures, and numerical data; ignore LaTeX auxiliaries.
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz

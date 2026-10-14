@@ -59,6 +59,11 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
   Lorentzian line's area (`lorentzian_wing_loss`). Not done: the HFS-constant estimator
   (`HFS_Const_Calcs.py`, a research script whose unit and model issues need a physics decision), and
   absolute radiative quantities (needs a reduced radial matrix element as input).
+- Phase 7 (documentation) done: `doc/` mirrors the EZSSS layout (LaTeX manual with PDF, README,
+  REVIEW, Makefile, `scripts/{make_figures,plot_figures,build_manual,example_minimal}.py`, figure data
+  and 11 analytic checks). A repository review after phase 6 (see `doc/REVIEW.md`) added
+  `tests/test_review_regressions.py`; the suite has 311 tests. The audit working files stay in the
+  git-ignored `audit/`. Remaining: the HFS-constant estimator and absolute radiative quantities.
   `plotting/slider.py` and `plotting/fan.py` import the driver late (inside functions)
   until phase 3 removes that dependency.
 - Naming: the package keeps the name `AtomSpect` (not `atomspect`). On Windows/macOS a

@@ -12,24 +12,26 @@ from ..lineshapes import Normalize
 
 
 def Zslider(B, thisTemp, thisRes, Input):
-    '''
-    This function is used in the Slider iteration. It takes the input values and then feeds the value into Zeeman_Main
-    This is for the calculations each time the slider is changed.
-    Bmag, spectrometer resolution, and Temperature (eV) are all allowed to change.
-    '''
+    """Recompute a spectrum after changing B (T), temperature (eV), and width (nm).
+
+    Mutate Input in place, updating Temp in kelvin and any existing TempeV,
+    then return AtomSpect_Main's SpectrumResult."""
     from .. import AtomSpect_Main  # late import: the driver still lives in the package root
     Input['Bmag'] = B
     Input['specstep'] = thisRes
     Input['Temp'] = thisTemp*11602
+    if 'TempeV' in Input:
+        Input['TempeV'] = thisTemp
 
     return AtomSpect_Main(Input)
 
 
 def Zslider_Pol(B, thisTemp, thisRes, Bangle, PolAngle, Input):
-    '''
-    Due to the nature of the polarization complexity in the computation, this function is separate from the main slider.
-    This is used when polarization is included.
-    '''
+    """Recompute after changing the field, temperature, width, and geometry.
+
+    B is in T, thisTemp in eV, thisRes in nm, and Bangle/PolAngle in degrees.
+    PolAngle=None preserves the existing filter setting; zero enables the
+    analyzer at zero degrees. Mutate Input and return a SpectrumResult."""
     from .. import AtomSpect_Main  # late import: the driver still lives in the package root
     if PolAngle is not None:  # None: leave any filter angle in the deck untouched. 0 is a valid angle.
         Input['Pol_angle'] = PolAngle
@@ -37,6 +39,8 @@ def Zslider_Pol(B, thisTemp, thisRes, Bangle, PolAngle, Input):
     Input['Bmag'] = B
     Input['specstep'] = thisRes
     Input['Temp'] = thisTemp*11602
+    if 'TempeV' in Input:
+        Input['TempeV'] = thisTemp
     Input['b_angle'] = Bangle
 
     return AtomSpect_Main(Input)
@@ -65,13 +69,18 @@ def enable_manual_input(fig, slider):
 
 def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=True, banglevary=False
                , polvary=False, do_other = False, Tmax = 30, Bmax = 5):
-    '''
-    Generate the plot with changeable sliders that allow for real-time interaction with the spectral results.
-    do_other shows other_sticks; its legacy name does not imply non-dipole emission.
+    """Display an interactive spectrum with field, temperature, and width sliders.
     
+    Inputdict is mutated during updates. Spectra is measured [wavelength_nm,
+    intensity] data; plotwind optionally supplies two wavelength bounds.
+    do_sticks adds stems, do_Polplot splits them by polarization (and enables
+    stems), and do_other includes forbidden E1 channels. banglevary and
+    polvary add observation and analyzer angles in degrees. Tmax is the
+    maximum temperature in eV and Bmax the maximum field in T.
     
-    
-    '''
+    The GUI starts at hard-coded B=2.5 T, T=0.05 eV, and width=0.002 nm.
+    It needs an interactive Matplotlib backend; manual-value dialogs use Tk.
+    The call shows the figure and returns None; it does not return the sliders."""
     from .. import _approximation_enabled  # late import: the driver still lives in the package root
     
     # Initial params
@@ -134,7 +143,7 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
                          marker='x', markevery=25, markersize=5)
         numcols = 3 if line2 is not None else 4
 
-    if plotwind == None:
+    if plotwind is None:
         try:
             axs.set_xlim(Inputdict['plot_window'][0], Inputdict['plot_window'][1])
         except:
@@ -298,7 +307,7 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
     enable_manual_input(figs, B_Slider)
     enable_manual_input(figs, Te_Slider)
     enable_manual_input(figs, Res_Slider)
-    plt.suptitle(f'{Inputdict["plottitle"]}')
+    plt.suptitle(Inputdict.get('plottitle', ''))
 
     axs.set_ylabel("Normalized Intensity (Arb units)", weight='semibold')
     axs.set_xlabel('Wavelength (nm)', weight='semibold')

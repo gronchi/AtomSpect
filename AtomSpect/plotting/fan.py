@@ -5,34 +5,13 @@ from matplotlib import ticker
 
 def plotZfan(Inputdeck, flags='', savefig=False, figname='placeholder',markercount = 15,
              markersize_ = 6,markersize_H = 6,markersize_L = 6):
-    '''
-    Takes the input deck (which should have Bmag as a range of values), and calculates the typical zeeman fan.
-    Both exact solution and lowfield are plotted on the same figure if dolow=True.
+    """Plot the energy fans selected by G/E/L/H flags and return ZeemanFan's dictionary.
 
-    Parameters
-    ----------
-    Inputdeck : dict
-        DESCRIPTION.
-    dolow : Boolean, optional
-        DESCRIPTION. The default is True.
-    savefig : Boolean, optional
-        DESCRIPTION. The default is False.
-    flags : String
-        Can be any combination of G,E,L,H. The default is ''.
-        G: Fan plot Ground
-        E: Fan Plot of Excited
-        L: Include Lowfield Approx
-        H: Include Highfield Approx (hyperfine Paschen-Back for HFS).
-
-    figname : String, optional
-        DESCRIPTION. The default is 'placeholder'.
-
-    Returns
-    -------
-    Returns exact and lowfield zeeman fan incase different plotting is required.
-    [Gfan,Efan,Gfan_low,Efan_low]
-
-    '''
+    Inputdeck['Bmag'] contains field samples in T. Energies are in cm^-1.
+    markercount controls marker spacing; zero hides markers. The marker-size
+    arguments set exact, high- and weak-field marker sizes. savefig writes
+    the current figure to figname + '_Excited.png' (legacy naming); if both
+    G and E are selected, separate figures are opened and only E is saved."""
     from .. import ZeemanFan  # late import: the driver still lives in the package root
     # Takes the inputdeck and a range of magnetic fields to calculate a typical zeeman fan.
     # Exact and lowfield are plotted on the same figure if that option is requested.

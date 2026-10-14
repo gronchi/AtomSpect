@@ -16,6 +16,13 @@ def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=None, B_HFS=0):
     # Only the required calculation steps are taken for each magnetic field as the E0 and wavefunctions for zero-field don't change.
     # So make the wavefunctions once only before diagonalization.
     # Make a large list of [F,mF,J,mJ,I,mI,L,mL,S,mS] HFS or [J,mJ,L,mL,S,mS] no HFS
+    """Return [weak_field_energies, high_field_energies] in cm^-1 at Bfield (T).
+
+    States_in comes from stateprocess or stateprocess_HFS. Without HFS,
+    Eterm_ sets the high-field term energy in cm^-1. With HFS, supply g_I
+    from lande_gi and A_HFS/B_HFS in Hz (scalars or one value per J).
+    The HFS high-field branch keeps J coupled and decouples J from I;
+    it does not model the electronic Paschen-Back limit."""
     ZfansLow = []
     ZfansHigh = []
     is_hfs = len(States_in[-1][0]) == 10
@@ -58,15 +65,14 @@ def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=None, B_HFS=0):
 def ZeemanFan(Inputdeck, flags=''):
     # Take the Inputdeck, generate states, then calculate energy for each value. Transpose and put it out.
     # Take the required values from the input deck.
-    '''
-    flags : String
-        Can be any combination of G,E,L,H. The default is ''.
-        G: Fan plot Ground
-        E: Fan Plot of Excited
-        L: Include Lowfield Approx
-        H: Include Highfield Approx. With HFS, this is the hyperfine
-           Paschen-Back approximation (J remains a good quantum number).
-    '''
+    """Return energy fans versus the magnetic fields in Inputdeck['Bmag'].
+
+    flags selects G (lower), E (upper), L (weak-field approximation), and
+    H (high-field approximation). Return a dictionary with selected G/E,
+    LowG/LowE and HighG/HighE arrays, shaped (states, field samples), in
+    cm^-1. Exact rows follow energy rank; they do not track eigenstates
+    through crossings. Non-HFS H requires the selected term's EtermG or
+    EtermE, including zero. HFS H uses supplied A/B constants and keeps J."""
 
     S_ground = Inputdeck['s_ground']
     S_excited = Inputdeck['s_excited']
@@ -76,12 +82,12 @@ def ZeemanFan(Inputdeck, flags=''):
     E_excited = Inputdeck['E_excited']
     Bfield_ext = Inputdeck['Bmag']
     # Bext_angle = Inputdeck['b_angle']
-    try:
-        EtermE = Inputdeck['EtermE']
-        EtermG = Inputdeck['EtermG']
-    except:
-        EtermE = None
-        EtermG = None
+    EtermE = Inputdeck.get('EtermE')
+    EtermG = Inputdeck.get('EtermG')
+    if 'I_spin' not in Inputdeck and 'H' in flags:
+        for flag, key in (('G', 'EtermG'), ('E', 'EtermE')):
+            if flag in flags and Inputdeck.get(key) is None:
+                raise ValueError(f'Non-HFS high-field {flag} fan requires {key} in cm^-1')
     # Generate empty lists for storing values in later. Ground, excited, low and exact. Look to add high approximation too.
     # GZ_fan = []
     # EZ_fan = []

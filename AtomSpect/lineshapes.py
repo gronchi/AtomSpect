@@ -20,6 +20,12 @@ from .constants import c_light, kboltz, m_prot
 def Gaussian(x, x0, Temp_in, amu, v_ion=0, bidir=False):
     # Dickhauer, but added the ion velocity shift to the mean calculation
     # Gradic2022 including velocity addition+-
+    """Return a unit-area Doppler Gaussian, evaluated at x in metres.
+
+    x0 is the rest wavelength in metres, Temp_in is a positive temperature
+    in K and amu is a positive mass number. v_ion is in m/s; with bidir=True,
+    a scalar gives +/-v, or [v1,v2] gives +v1 and -v2, with equal weights.
+    The returned density is per metre. Motion uses the first-order shift."""
     tdop = x0*np.sqrt(kboltz*Temp_in/(amu*m_prot*c_light*c_light))
     if bidir == True:  # First try having v_ion be an array, so that the counter-streaming velocities can be different.
         try:
@@ -52,6 +58,12 @@ def GaussianInstrum(x, x0, Temp_in, amu, pixel_size=0, v_ion=0, bidir=False):
     # Hey1996 for including instrum as W, but added the ion velocity shift to the mean calculation
     # Gradic2022 including velocity addition+-
 
+    """Return a unit-area Gaussian with Doppler and instrument widths.
+
+    x, x0 and pixel_size are in metres; pixel_size is the instrument FWHM.
+    Temp_in (K) and amu set the Doppler variance, added in quadrature to
+    the instrument variance. v_ion (m/s) and bidir follow Gaussian.
+    The returned density is per metre."""
     tdop = (x0*np.sqrt(kboltz*Temp_in/(amu*m_prot*c_light*c_light)))**2
     W = np.sqrt((pixel_size)**2 + 8*np.log(2)*tdop)
     if bidir == True:
@@ -81,6 +93,12 @@ def GaussianInstrum(x, x0, Temp_in, amu, pixel_size=0, v_ion=0, bidir=False):
 
 
 def Voigt(x, x0, Temp_in, amu, pixel_size=1, v_ion=0, bidir=False):
+    """Return a unit-area Doppler/Lorentzian convolution in inverse metres.
+
+    x, x0 and pixel_size are in metres. Temp_in (K) and amu set the
+    Doppler standard deviation; pixel_size is the Lorentzian FWHM,
+    passed to SciPy as HWHM=pixel_size/2. v_ion (m/s) and bidir follow
+    Gaussian. A finite evaluation window omits the remaining wings."""
     tdop = (x0*np.sqrt(kboltz*Temp_in/(amu*m_prot*c_light*c_light)))
 
     # Calculate a Voigt profile using the dopler broadening as the sigma and pixel size as the gamma for the lorrentzian
@@ -102,27 +120,14 @@ def Voigt(x, x0, Temp_in, amu, pixel_size=1, v_ion=0, bidir=False):
 
 
 def Lorrentzian(xrange, peak, pixel_size=0.002222, Skewness=[1, 1], v_ion=0, bidir=False):
-    '''
-    Calculates a Lorrentzian function (Can be skewed/stepped with uneven left and right sides)
+    """Return a unit-area split Lorentzian in inverse metres.
 
-    Parameters
-    ----------
-    xrange : Array
-        Range over which to calculate the  lorrenztian
-    peak : TYPE
-        DESCRIPTION.
-    pixel_size : TYPE, optional
-        DESCRIPTION. The default is 0.002222.
-    Skewness : TYPE, List [Left,Right]
-        Controls how skewed the left and right tapers are, respectively. Based on the drop off ratio and pixel_size. The default is [1,1].
-    pixel_size : the full width at half maximum (FWHM) of the symmetric profile.
-
-    Returns
-    -------
-    sl_func : TYPE
-        DESCRIPTION.
-
-    '''
+    xrange, peak and pixel_size are in metres. The historical spelling is
+    retained. pixel_size is the symmetric FWHM; Skewness=[left,right]
+    multiplies the two half widths pixel_size/2. Both factors must be positive.
+    v_ion is in m/s; bidir averages scalar +/-v or the pair [+v1,-v2].
+    The profile has a single continuous peak and integrates to one on the
+    infinite wavelength axis."""
     # The Skewness is the left and right constants [left,right], and change the skewness of the lorrentzian. If both are 1, it is a normal lorrentzian. These values can be modified to fit the instrument profile.
 
     # pixel_size is the FWHM; the half-widths on each side are therefore half of it.
@@ -150,9 +155,12 @@ def Lorrentzian(xrange, peak, pixel_size=0.002222, Skewness=[1, 1], v_ion=0, bid
 
 def Normalize(list_in, scaling=1.0):
     # Convert input to a numpy array immediately
+    """Scale an array to peak scaling; return zeros and empty arrays unchanged."""
     data = np.asarray(list_in)
     
     # Get the max value, safely handling potential zeros
+    if data.size == 0:
+        return data.copy()
     max_val = np.max(data)
     
     if max_val == 0:

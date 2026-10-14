@@ -1,5 +1,6 @@
 """Reading and saving spectra and input decks."""
 import csv
+from pathlib import Path
 
 import numpy as np
 
@@ -12,30 +13,13 @@ from .lineshapes import Normalize
 
 
 def read_Spectra(filename, scalewave=1, headercount=1, keepheaders=False):
-    '''
-    read_Spectra is a general spectra import that is flexible enough for multiple columns of spectrometer data (Say for multiple field strengths)
-    The default assumption is that the wavelengths are in nm, but you can set scalewave to adjust as you input if needed.
-    If your data file has headers with details you wish to keep correlated, the keepheaders flag will keep all headers as an output.
+    """Read a CSV whose first column is wavelength and remaining columns are signals.
 
-    Parameters
-    ----------
-    filename : string/path
-        Destination/name of the file to be imported
-    scalewave : float, optional
-        Scaling for wavelengths in should it be desired to quickly convert from A to nm or etc.The default is 1.
-    headercount : float, optional
-        How many header rows are in the data.The default is 1.
-    keepheaders : BOOL, optional
-        Flag for whether the data within the header of the file is kept and returned for the user.The default is False.
-
-    Returns
-    -------
-    specdata_out : TYPE
-        If the header data is not kept:
-            Output is [wavelengths,signals]
-        If headers are kept, output is [[wavelengths,signals],[headers]]
-
-    '''
+    filename is a path; headercount is the number of leading rows to skip.
+    scalewave multiplies wavelengths (use 0.1 for angstroms to nm).
+    Return a dictionary with wavelength and signals. A single signal column
+    is an array; multiple columns form a list of arrays. If keepheaders=True,
+    return [dictionary, header_rows]. All data cells must be numeric."""
     with open(f'{filename}', mode='r', newline='') as readme:
         reader = csv.reader(readme, delimiter=',', quoting=csv.QUOTE_NONE)
         headers = []
@@ -72,6 +56,7 @@ def read_Spectra(filename, scalewave=1, headercount=1, keepheaders=False):
 
 def read_dict(filename):
 
+    """Read CSV records, omit empty cells, and convert numeric cells to floats."""
     with open(f'{filename}', mode='r', newline='') as readme:
         reader = csv.DictReader(readme, delimiter=',', quoting=csv.QUOTE_NONE)
         # headers = []
@@ -86,7 +71,7 @@ def read_dict(filename):
             for keys in trow.keys():
                 try:
                     trow[keys] = float(trow[keys])
-                except:
+                except (ValueError, TypeError):
                     pass
 
             datraw.append(trow)
@@ -95,84 +80,41 @@ def read_dict(filename):
 
 def read_HFSInput(filename):
 
-    with open(f'{filename}', mode='r', newline='') as readme:
-        reader = csv.DictReader(readme, delimiter=',', quoting=csv.QUOTE_NONE)
-        # headers = []
-        # for i in range(headercount):
-        #     headers.append(next(reader))
-        datraw = []
-
-        # Read through the rows and scale the wavelength by the scalefactor.
-        for rows in reader:
-            trow = {k: v for k, v in rows.items() if v}
-
-            for keys in trow.keys():
-                try:
-                    trow[keys] = float(trow[keys])
-                except:
-                    pass
-
-            datraw.append(trow)
-
-    return datraw
+    """Read hyperfine CSV records using the same conversion rules as read_dict."""
+    return read_dict(filename)
 #%% Save and Load
 def Savenpy_Dict(filename, Dict_in,spectra = None, Normalize_sig = False):
     #This function should allow for saving of data so it doesn't need to be re-input everytime.
     #This includes the input dictionary, which could then be easily compiled and re-called later.
     #Work on this has not been fleshed out and it should be treated as such.
-    savedat = {}
-
-    if spectra:
-        specdat = {}
-        try: #Try assuming spectra is a dictionary with keys['wavelength' and 'signals'
-           specdat['wavelength'] = np.array(spectra['wavelength'] )
-        except: #Else, spectra should be [wavelength,signals] , with each as arrays. 
-            specdat['wavelength'] = np.array(spectra[0] )
-        #Allow for signals to be multiple lists
-        try :
-            len(np.shape(spectra['signals']))
-            if len(np.shape(spectra['signals']))==2:
-                if Normalize_sig:
-                    specdat['signals'] = [Normalize(x) for x in spectra['signals']] 
-                else:
-                    specdat['signals'] = [x for x in spectra['signals']] 
-
-            else:
-                if Normalize_sig:
-
-                    specdat['signals'] = Normalize(spectra['signals'])
-                else:
-                    specdat['signals'] = spectra['signals']
-
-        except:
-            if len(np.shape(spectra[1]))==2:
-                if Normalize_sig:
-                    specdat['signals'] = [Normalize(x) for x in spectra[1]] 
-                else:
-                    specdat['signals'] = [x for x in spectra[1]] 
-
-            else:
-                if Normalize_sig:
-                    specdat['signals'] = Normalize(spectra[1])
-                else:
-                    specdat['signals'] = spectra[1]
-
-  
+    """Save a plain copy of Dict_in and optional spectra to a NumPy .npy file.
     
-        savedat['Specdata'] = specdat
-    savedat['data'] = dict(Dict_in)  # plain dict, so saved files do not depend on the result class
-    np.save(f'{filename}',savedat,allow_pickle=True)
-    return
+    spectra can be a dictionary with wavelength/signals or a two-row
+    array-like [wavelength, signals]. Normalize_sig scales each signal to
+    unit peak. NumPy appends .npy when filename does not already have it.
+    The format uses pickle; load files only from trusted sources."""
+    savedat = {'data': dict(Dict_in)}
+    if spectra is not None:
+        if isinstance(spectra, dict):
+            wavelength, signals = spectra['wavelength'], spectra['signals']
+        else:
+            wavelength, signals = spectra[0], spectra[1]
+        signal_array = np.asarray(signals)
+        if Normalize_sig:
+            signals = ([Normalize(row) for row in signal_array] if signal_array.ndim == 2
+                       else Normalize(signal_array))
+        savedat['Specdata'] = {'wavelength': np.asarray(wavelength), 'signals': signals}
+    np.save(str(filename), savedat, allow_pickle=True)
 
 def Loadnpy_Dict(filepath):
     #This function takes the numpy.save dictionary and loads it, including the spectrometer data, for future use.
     #Need to test if figures can be saved too...
-    thisload = np.load(f'{filepath}.npy', allow_pickle=True)
-    loadeddict = thisload.item().get('data')
-    try:
-        loadedspec = thisload.item().get('Specdata')
-        return loadeddict, loadedspec
-    except:
-        pass
-        # print('Failed to load Spectrometer data - May not exist')
-    return loadeddict
+    """Load a trusted file written by Savenpy_Dict.
+
+    filepath may include or omit .npy. Return (plain_dictionary, spectra),
+    with spectra=None if absent. This format enables pickle loading."""
+    path = Path(filepath)
+    if path.suffix != '.npy':
+        path = Path(str(path) + '.npy')
+    saved = np.load(path, allow_pickle=True).item()
+    return saved.get('data'), saved.get('Specdata')

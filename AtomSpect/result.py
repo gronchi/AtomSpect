@@ -2,11 +2,11 @@
 
 # What each key of the result holds. Keys that only exist in some modes are marked.
 KEY_DESCRIPTIONS = {
-    'signal': 'Relative E1 strength of every eigenstate pair (sums to 1).',
+    'signal': 'Relative E1 strength per eigenstate pair (sums to 1, or zero for a dark observation).',
     'wave_air': 'Air wavelength of every pair [nm].',
     'wave_vac': 'Vacuum wavelength of every pair [nm].',
     'rad': 'Per pair [polarization factor, q label]; q = M_upper - M_lower, 3 = no E1 component.',
-    'SpecOut': 'Convolved exact spectrum, [wavelength nm, intensity] over plot_window.',
+    'SpecOut': 'Convolved exact spectrum, [wavelength nm, intensity per metre] over plot_window.',
     'reduced_sticks': 'Sticks kept for plotting, [wavelength, signal] within plot_window.',
     'bin_windows': 'Wavelength windows in which the convolution was evaluated.',
     'pi_sticks': '[wavelength, signal] of the pi components.',

@@ -55,7 +55,7 @@ def _signal_core(LevelG, LZG, LevelE, LZE, dipole, Bangle, gamma, Filter, T_Alph
     # Signal of each eigenpair: |column of the reduced dipole (afcf) matrix . coefficients|^2 (Isler1997).
     tsigout = np.abs(Signalcoeffa @ afcf)**2
     sigsum = np.sum(tsigout)
-    sigout = tsigout/sigsum  # Make it so that sum of intensities is 1.
+    sigout = tsigout/sigsum if sigsum > 0 else np.zeros_like(tsigout)
 
     wave_vac, wave_air = _wavelengths(LZG, LZE)
     return [sigout, wave_air, rad, pairs, afcf, Signalcoeffa, wave_vac, sigsum, tsigout]
@@ -85,7 +85,8 @@ def Zeeman_sig_norad(LevelG, LZG, LevelE, LZE):
     Signalcoeffa = np.array([dipolestr(lower, upper) for lower, upper in pairs])
     afcf = np.kron(np.array(LZE[1]), np.array(LZG[1]))  # Tensor product after the magnetic field is taken into account.
     tsigout = np.sum(afcf*Signalcoeffa[:, None], axis=0)**2
-    return tsigout/np.sum(tsigout)  # Make it so that sum of intensities is 1.
+    total = np.sum(tsigout)
+    return tsigout/total if total > 0 else np.zeros_like(tsigout)
 
 
 def Zeeman_signal_HFS(LevelG, LZG, LevelE, LZE, Bangle=90, gamma=0, Filter=False,T_Alpha = 1, T_Beta = 1):
