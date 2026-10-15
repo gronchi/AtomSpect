@@ -89,16 +89,22 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
     polvary add observation and analyzer angles in degrees. Tmax is the
     maximum temperature in eV and Bmax the maximum field in T.
     
-    The GUI starts at hard-coded B=2.5 T and width=0.002 nm. Temperature
-    starts from TempeV or Temp in the input deck, defaulting to 0.05 eV.
+    The GUI starts at B=min(2.5, Bmax) T and width=0.002 nm. Temperature
+    starts from TempeV or Temp in the input deck, defaulting to 0.05 eV,
+    clipped to the slider range [0.01, Tmax].
     It needs an interactive Matplotlib backend; manual-value dialogs use Tk.
     block=None blocks until the window is closed when run as a plain script and
     returns at once in IPython/Spyder; block=False always returns at once, so several
     windows can be opened and then shown together with plt.show(block=True).
     Returns the figure; its `sliders` attribute keeps the slider widgets alive."""
 
-    init_B = 2.5  # Initial B field (T)
+    if not np.isfinite(Bmax) or Bmax <= 0:
+        raise ValueError('Bmax must be finite and positive')
+    if not np.isfinite(Tmax) or Tmax <= .01:
+        raise ValueError('Tmax must be finite and greater than 0.01 eV')
+    init_B = min(2.5, Bmax)
     init_Temp = Inputdict.get('TempeV', Inputdict.get('Temp', 0.05 * EV_TO_K) / EV_TO_K)
+    init_Temp = float(np.clip(init_Temp, .01, Tmax))
     init_Res = 0.002  # Initial pixel size (nm)
     init_bang = 90  # Initially LoS is perpendicular to B
     init_polang = 90  # Initially block all circular light
@@ -160,36 +166,34 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
             print('Something went wrong, setting plotwind range as min/max of spectra')
             axs.set_xlim(np.min(Mycalc0['SpecOut'][0]), np.max(Mycalc0['SpecOut'][0]))
 
-    vstem = None
-    vstem = None
+    stem_artists = []
     if do_Polplot:
         do_sticks = True
-    if do_sticks and not do_Polplot:
-        vmarks, vstem, vbase = axs.stem(Mycalc0['reduced_sticks'][0], Mycalc0['reduced_sticks'][1], linefmt='C0', basefmt=" ")
-
-    elif do_sticks and do_Polplot:
-
-        vmarksp, vstemsp, vbasesp = axs.stem(Mycalc0['pi_sticks'][0], Mycalc0['pi_sticks'][1], linefmt='C0', markerfmt='o', basefmt=" ", label=r'$\pi$ component')
-        vmarkpi, vstempi, vbasepi = axs.stem(Mycalc0['sigmaminus_sticks'][0], Mycalc0['sigmaminus_sticks'][1], linefmt='C2', markerfmt='_', basefmt=" ", label=r'$\sigma^-$ component')
-        vmarksm, vstemsm, vbasesm = axs.stem(Mycalc0['sigmaplus_sticks'][0], Mycalc0['sigmaplus_sticks'][1], linefmt='C3', markerfmt='+', basefmt=" ",  label=r'$\sigma^+$ component')
-
-        propspi = vmarkpi.properties()
-        propssp = vmarksp.properties()
-        propssm = vmarksm.properties()
-
+        components = [('pi_sticks', 'C0', 'o', r'$\pi$ component'),
+                      ('sigmaminus_sticks', 'C2', '_', r'$\sigma^-$ component'),
+                      ('sigmaplus_sticks', 'C3', '+', r'$\sigma^+$ component')]
         if do_other:
-            vmarko, vstemo, vbaseo = axs.stem(Mycalc0['other_sticks'][0], Mycalc0['other_sticks'][1], linefmt='C4', markerfmt='D', basefmt=" ",  label='other component')
-            propso = vmarko.properties()
-
+            components.append(('other_sticks', 'C4', 'D', 'other component'))
+    else:
+        components = [('reduced_sticks', 'C0', 'o', None)]
+    if do_sticks:
+        for key, color, marker, label in components:
+            # An empty component can gain transitions when the field changes.
+            marks, stems, _ = axs.stem([0.], [0.], linefmt=color,
+                                      markerfmt=color + marker, basefmt=' ', label=label)
+            x, y = Mycalc0[key]
+            marks.set_data(x, y)
+            stems.set_segments([[(xx, 0), (xx, yy)] for xx, yy in zip(x, y)])
+            stem_artists.append((key, marks, stems))
 
     figs.legend(bbox_to_anchor=(.5, .125), loc='upper center', ncol=numcols)  # Excluding highfield and lowfield.
 
     axampB = figs.add_axes([0.025, 0.25, 0.0225, 0.63])
-    B_Slider = Slider(axampB, "B (T)", 0, 5, valinit=init_B,
-                      orientation="vertical", valstep=0.01)
+    B_Slider = Slider(axampB, "B (T)", 0, Bmax, valinit=init_B,
+                      orientation="vertical")
 
     axampT = figs.add_axes([0.075, 0.25, 0.0225, 0.63])
-    Te_Slider = Slider(axampT, "T (eV)", 0.01, 30, valstep = 0.01, valinit=init_Temp,
+    Te_Slider = Slider(axampT, "T (eV)", 0.01, Tmax, valinit=init_Temp,
                        orientation="vertical")
 
     axampR = figs.add_axes([0.125, 0.25, 0.0225, 0.63])
@@ -197,13 +201,6 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
                         orientation="vertical")
 
     plt.ion()
-
-    artists = [line]
-    if line2:
-        artists.append(line2)
-
-    if vstem:
-        artists.append(vstem)
 
     def update(val):
         if polvary and not banglevary:
@@ -223,56 +220,12 @@ def MakeSlider(Inputdict, Spectra, plotwind=None, do_sticks=True, do_Polplot=Tru
             line3.set_xdata(Mycalc['SpecOutHigh'][0])
             line3.set_ydata(Normalize(Mycalc['SpecOutHigh'][1]))
 
-        if do_sticks and not do_Polplot:
-            x_new = Mycalc['reduced_sticks'][0]
-            y_new = Mycalc['reduced_sticks'][1]
+        for key, marks, stems in stem_artists:
+            x, y = Mycalc[key]
+            marks.set_data(x, y)
+            stems.set_segments([[(xx, 0), (xx, yy)] for xx, yy in zip(x, y)])
 
-            vstem.set_paths([np.array([[xx, 0],
-                                       [xx, yy]]) for (xx, yy) in zip(x_new, y_new)])
-
-            vmarks.set_xdata(x_new)
-            vmarks.set_ydata(y_new)
-
-        elif do_sticks and do_Polplot:
-            if do_other:
-                for (vlstem, vlmarks, props, key, colorfmt, markers) in [
-                    (vstempi, vmarkpi, propspi, "pi_sticks", "C0", 'o'),
-                    (vstemsp, vmarksp, propssp, "sigmaplus_sticks", "C3", '+'),
-                    (vstemsm, vmarksm, propssm, "sigmaminus_sticks", "C2", '_'),
-                    (vstemo, vmarko, propso, "other_sticks", "C4", 'D'),
-                ]:
-
-                    x_new = Mycalc[key][0]
-                    y_new = Mycalc[key][1]
-
-                    vlstem.set_paths([np.array([[xx, 0],
-                                                [xx, yy]]) for (xx, yy) in zip(x_new, y_new)])
-
-                    vlstem.set_color(colorfmt)
-                    vlmarks.set_xdata(x_new)
-                    vlmarks.set_ydata(y_new)
-                    vlmarks.set_marker(markers)
-                    vlmarks.set_color(colorfmt)
-            else:
-                for (vlstem, vlmarks, props, key, colorfmt, markers) in [
-                    (vstempi, vmarkpi, propspi, "pi_sticks", "C0", 'o'),
-                    (vstemsp, vmarksp, propssp, "sigmaplus_sticks", "C3", '+'),
-                    (vstemsm, vmarksm, propssm, "sigmaminus_sticks", "C2", '_'),
-                ]:
-
-                    x_new = Mycalc[key][0]
-                    y_new = Mycalc[key][1]
-
-                    vlstem.set_paths([np.array([[xx, 0],
-                                                [xx, yy]]) for (xx, yy) in zip(x_new, y_new)])
-
-                    vlstem.set_color(colorfmt)
-                    vlmarks.set_xdata(x_new)
-                    vlmarks.set_ydata(y_new)
-                    vlmarks.set_marker(markers)
-                    vlmarks.set_color(colorfmt)
-
-        figs.canvas.blit(axs.bbox)
+        figs.canvas.draw_idle()
     axs.set_ylim(-.1, 1.1)
 
     B_Slider.on_changed(update)

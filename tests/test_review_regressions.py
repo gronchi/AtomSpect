@@ -223,7 +223,7 @@ def test_curve_is_not_forced_to_zero_at_a_window_edge_inside_a_line():
     assert w[0] == pytest.approx(599.99)
     # FWHM 0.01 nm, 0.01 nm from the centre: the Lorentzian is 1/(1+(0.01/0.005)^2) = 0.2 of the peak,
     # and the edge must carry (about) that value rather than 0.
-    assert s[0] == pytest.approx(s[1]) and 0.15*np.max(s) < s[0] < 0.4*np.max(s)
+    assert s[0] == pytest.approx(A.Lorrentzian(w[0]*1e-9, 600e-9, pixel_size=.01e-9)) and 0.15*np.max(s) < s[0] < 0.4*np.max(s)
     # An edge far from every line is still zero.
     (w2, s2), _, _ = A.Convol_Spect(waves, sig, [599, 601], [598.0, 602.0], 40, 0.01, functiontype="Lorrentzian",
                             wind_size=0.05, specres=5)
@@ -250,3 +250,59 @@ def test_nonblocking_slider_returns_a_responsive_figure(monkeypatch):
     after = np.array(curve.get_ydata(), dtype=float)
     assert np.sum(after > 0.5) > np.sum(before > 0.5)
     slider.plt.close(fig)
+
+
+def test_narrow_plot_window_retains_line_profile():
+    spectrum, _, _ = A.Convol_Spect([600.], [1.], [599, 601],
+                                   [599.99999, 600.00001], 40, .01, specres=1)
+    expected = A.Lorrentzian(spectrum[0]*1e-9, 600e-9, pixel_size=.01e-9)
+    np.testing.assert_allclose(spectrum[1], expected)
+
+
+@pytest.mark.parametrize('styles', [
+    [['C0', 1, '-', 'first'], ['C1', 2, '--', 'second', 'x']],
+    [(0.2, 0.3, 0.4, 1.), 1, (0, (3, 2))],
+])
+def test_plot_styles_allow_optional_fields_and_tuple_values(styles):
+    from matplotlib import pyplot as plt
+    try:
+        axes = A.PlotFunction([[[600, 601], [1, 2]], [[600, 601], [3, 4]]],
+                              styles, show=False)
+        assert len(axes[0, 0].lines) == 2
+    finally:
+        plt.close('all')
+
+
+@pytest.mark.parametrize('other', [False, True])
+def test_slider_preserves_polarization_labels_on_update(other, monkeypatch):
+    from matplotlib import pyplot as plt
+    raw = deck(TempeV=2, amu=40, specres=1)
+    fig = A.MakeSlider(raw, [[799, 801], [0, 1]], do_other=other, block=False)
+    try:
+        fig.sliders['B'].drawon = False
+        redraws = []
+        monkeypatch.setattr(fig.canvas, 'draw_idle', lambda: redraws.append(True))
+        fig.sliders['B'].set_val(1.)
+        expected = A.AtomSpect_Main(raw)
+        keys = ['pi_sticks', 'sigmaminus_sticks', 'sigmaplus_sticks']
+        if other:
+            keys.append('other_sticks')
+        for container, key in zip(fig.axes[0].containers, keys):
+            np.testing.assert_allclose(container.markerline.get_xdata(), expected[key][0])
+            np.testing.assert_allclose(container.markerline.get_ydata(), expected[key][1])
+        assert redraws
+    finally:
+        plt.close(fig)
+
+
+def test_slider_respects_limits_and_keeps_initial_temperature():
+    from matplotlib import pyplot as plt
+    raw = deck(TempeV=.054, amu=40, specres=1)
+    fig = A.MakeSlider(raw, [[799, 801], [0, 1]], Tmax=10, Bmax=1, block=False)
+    try:
+        assert fig.sliders['B'].valmax == 1
+        assert fig.sliders['T'].valmax == 10
+        assert raw['Bmag'] == fig.sliders['B'].val
+        assert raw['TempeV'] == fig.sliders['T'].val
+    finally:
+        plt.close(fig)

@@ -159,7 +159,7 @@ def PlotFunction(Plotobject, plot_vars, plottitle='', plotwind=None, SpectrumPlo
     spectrometer_scale = ScaleSpectrometer if ScaleSpectrometer is not None else 1
     marker_size_ = marker_size if marker_size is not None else 10
 
-    if len(np.shape(plot_vars)) == 1:
+    if len(plot_vars) >= 3 and np.isscalar(plot_vars[1]):
         working_vars = [plot_vars]
     else:
         working_vars = plot_vars
