@@ -2,6 +2,10 @@
 
 The [theory manual](AtomSpect_theory_manual.pdf) states the model as implemented: LS-term Zeeman structure, hyperfine structure, E1 strengths, polarization, line profiles and convolution. It also lists the checks that are run and the regimes in which the results should not be trusted. [REVIEW.md](../audit/REVIEW.md) records what the audit found and what changed.
 
+The manual now covers axial scalar/tensor dc Stark shifts, the revised Edlén vacuum/air conversion (dry air at 20 °C by default), and the separate calibrated atomic API. See the [DC field input example](../README.md#dc-electric-fields) and the [Rb-87 physics coverage review](../audit/STECK_RB87_REVIEW.md). With zero or omitted `Efield`, Stark code leaves the existing result unchanged. Nonzero electric fields require polarizability data and the exact solver; the field must follow the quantization axis.
+
+The Rb-87 benchmarks check hyperfine intervals, Breit–Rabi energies, branch factors, representative dipole components, lifetime/oscillator conversions, and emission patterns. Stark checks compare against an independent spin Hamiltonian, weak-field tensor expectations, and exact zero-electric-field output equality. These tests supplement the 11 figure-generation checks; they do not certify every signed dipole-table entry or establish experimental accuracy.
+
 The PDF follows EZSSS's visual style: a separate cover, a descriptive summary and Roman-numbered contents on page two, section headers, padded implementation and caveat boxes, a calculation-flow diagram and routine map, full-width tables, an input-options appendix, and numbered references. Numerical figures use its serif fonts, inward ticks, and line weights. Color meanings also follow EZSSS: blue for pi, orange for both sigma branches (distinguished by solid/dashed stems), grey dashed reference curves, and a blue sequence for broadened profiles.
 
 ## Start with a working example

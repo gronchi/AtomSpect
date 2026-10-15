@@ -1,5 +1,6 @@
 """Energy/wavelength unit conversions and vacuum<->air."""
 from .constants import c_light
+import numpy as _np
 
 
 def Hz_to_nm(Ediff):
@@ -41,33 +42,52 @@ def ev_to_cm(E_diff):
 # %%Wavelength
 
 
-def Vac_to_air(wavein):
+def _air_refractive_index(wave_vac_nm, pressure_pa, temperature_c,
+                          water_vapor_pressure_pa):
+    """1993 revised Edlen formula, Steck Rb-87 D Line Data, Eq. (3)."""
+    kappa_squared = (1000.0 / wave_vac_nm)**2
+    dispersion = (8342.54 + 2406147.0 / (130.0 - kappa_squared)
+                  + 15998.0 / (38.9 - kappa_squared))
+    pressure_temperature = (
+        pressure_pa / 96095.43
+        * (1.0 + 1e-8 * (0.601 - 0.00972 * temperature_c) * pressure_pa)
+        / (1.0 + 0.0036610 * temperature_c)
+    )
+    humidity = water_vapor_pressure_pa * (0.037345 - 0.000401 * kappa_squared)
+    return 1.0 + (dispersion * pressure_temperature - humidity) * 1e-8
+
+
+def Vac_to_air(wavein, *, pressure_pa=101325.0, temperature_c=20.0,
+               water_vapor_pressure_pa=0.0):
     """Convert vacuum wavelengths in nm to air wavelengths in nm.
     
-    Evaluate the implemented Morton refractive-index expression at the
-    vacuum wavelength. Inputs may be scalars or NumPy arrays. This empirical
-    relation is not validated over arbitrary wavelengths; avoid its poles."""
+    Use lambda_air = lambda_vac / n with the 1993 revised Edlen formula in
+    Steck, Rubidium 87 D Line Data, Eq. (3):
+    https://steck.us/alkalidata/rubidium87numbers.pdf
 
-    # Using Morton2000
-    wavevac_angs = wavein*10 #Convert to angstrom to match the paper
-    s = (1e4)/wavevac_angs
-    n_air = 1 + 8.34254e-5 + (2.406147e-2)/(130 - s**2) + (1.5998e-4)/(38.9 - s**2)
-    wavelengths = wavein / n_air
+    Pressure is in Pa, temperature in degrees Celsius, and water vapor
+    partial pressure in Pa (not relative humidity). Defaults describe dry
+    air at 1 atm and 20 C. Wavelengths may be scalars or arrays.
+    The reference quotes a 3-sigma index uncertainty of 3e-8 at 350-650 nm
+    under laboratory conditions; avoid the formula's poles elsewhere.
+    """
+    wave_vac = _np.asarray(wavein, dtype=float)
+    return wave_vac / _air_refractive_index(
+        wave_vac, pressure_pa, temperature_c, water_vapor_pressure_pa)
 
-    return wavelengths
 
+def air_to_vac(wavein, *, pressure_pa=101325.0, temperature_c=20.0,
+               water_vapor_pressure_pa=0.0):
+    """Convert air wavelengths in nm to vacuum wavelengths in nm.
 
-def air_to_vac(wavein):
-    """Approximately convert air wavelengths in nm to vacuum wavelengths in nm.
-    
-    Evaluate the same refractive-index expression as Vac_to_air at the air
-    wavelength, then multiply. This legacy approximation is not the exact
-    numerical inverse of Vac_to_air. Inputs may be scalars or NumPy arrays."""
-
-    # Using Morton2000
-    wavevac_angs = wavein*10 #Convert to angstrom to match the paper
-    s = (1e4)/wavevac_angs
-    n_air = 1 + 8.34254e-5 + (2.406147e-2)/(130 - s**2) + (1.5998e-4)/(38.9 - s**2)
-    wavelengths = wavein * n_air
-
-    return wavelengths
+    Invert Vac_to_air by fixed-point iteration, evaluating the refractive
+    index at the vacuum wavelength. Atmospheric parameters, defaults, and
+    validity limits are the same as Vac_to_air. Inputs may be scalars or
+    arrays. Iteration is intended for laboratory air conditions.
+    """
+    wave_air = _np.asarray(wavein, dtype=float)
+    wave_vac = wave_air
+    for _ in range(5):
+        wave_vac = wave_air * _air_refractive_index(
+            wave_vac, pressure_pa, temperature_c, water_vapor_pressure_pa)
+    return wave_vac

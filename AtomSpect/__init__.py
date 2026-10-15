@@ -8,6 +8,7 @@ modules; see doc/README.md for the manual, examples, and validity limits.
 
 from .constants import *  # noqa: F401,F403
 from .units import *  # noqa: F401,F403
+from .stark import stark_hamiltonian as stark_hamiltonian
 from .lineshapes import *  # noqa: F401,F403
 from .convolution import *  # noqa: F401,F403
 from .io import *  # noqa: F401,F403
@@ -52,6 +53,7 @@ from .atomic import (
     calculate_components as calculate_components,
     calculate_field_grid as calculate_field_grid,
     add_hyperfine as add_hyperfine,
+    add_dc_stark as add_dc_stark,
     rephase_model as rephase_model,
     components_from_inputdeck as components_from_inputdeck,
     synthesize_spectrum as synthesize_spectrum,

@@ -1,5 +1,17 @@
 # Review and repair record
 
+## Rb-87 comparison and dc Stark follow-up (2026-10-14)
+
+The [Steck coverage review](STECK_RB87_REVIEW.md) records the comparison with Rb-87 structure and radiative physics, excluding pumping. New Rb-87 benchmarks cover hyperfine intervals, Breit–Rabi energies, branch strengths, representative components, lifetime/oscillator conversions, and absolute radiation patterns. They distinguish algebraic consistency from precision atomic-data accuracy.
+
+Added axial scalar/tensor dc Stark matrices to exact fine/HFS spectra and energy fans, and `add_dc_stark` to the calibrated atomic API. Inputs are `Efield` in V/cm and `alpha0_G/E`, `alpha2_G/E` as absolute polarizabilities divided by h in Hz/(V/cm)^2, lowest J first. Tensor F mixing is included before diagonalization; cross-J Stark tensors and nonparallel fields remain unsupported. Nineteen Stark checks include independent spin-Hamiltonian comparisons and exact output equality for absent/zero electric field.
+
+Air conversion now implements the 1993 revised Edlén formula, accepts atmospheric parameters, and numerically inverts the same expression in `air_to_vac`. The user-selected default is dry air at 101325 Pa and 20 C. The spectrum driver uses these defaults. This supersedes the approximate-inverse limitation recorded in earlier reviews below.
+
+The frozen reference was updated selectively: 116 arrays that change between the 15 C and 20 C conversion paths, including air wavelengths and dependent profiles/sticks. Every other archived array was retained. This resolves the stale golden failure from the temperature change; zero-electric-field compatibility is checked independently. The theory manual and README now document the Stark model, atmospheric defaults, calibrated versus relative rates, missing natural-linewidth integration, and remaining octupole/recoil/vapor-pressure limitations.
+
+Validation for this update: all 429 tests pass, all 11 documentation-generator checks pass, and the minimal example runs successfully. The manual's data and four figures were regenerated for the current atmospheric default.
+
 Covers the earlier audit of upstream commit `879ff7b` and a repository review on 2026-10-13 starting from `aab00bb`. The latest review examined the packaged solver, profiles, convolution, input/result handling, persistence, plotting, tests, and documentation. This record distinguishes existing repairs from the changes made in the latest review. The documentation layout follows `EZSSS/doc`: a theory manual, generated numerical evidence and figures, runnable scripts, build targets, and review notes.
 
 ## Repairs from the 2026-10-13 review

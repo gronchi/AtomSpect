@@ -77,6 +77,37 @@ wavelength, intensity = result.SpecOut
 
 `AtomSpect_Main` returns a `SpectrumResult`. Entries support both dictionary access (`result["signal"]`) and attribute access (`result.signal`). Call `result.describe()` for descriptions of the available keys. The driver fills in a default `amu` when it is absent and retains a reference to the input dictionary.
 
+Air wavelengths use the 1993 revised Edlén formula from [Steck, Equation (3)](https://steck.us/alkalidata/rubidium87numbers.pdf), with dry air (101325 Pa, 20 °C) as the default. For other laboratory conditions, use `Vac_to_air(wave_vac_nm, pressure_pa=101325, temperature_c=23, water_vapor_pressure_pa=1123.6)`. The water-vapor parameter is partial pressure in Pa. `air_to_vac` accepts the same parameters and numerically inverts the conversion. These options apply to the conversion helpers; spectrum calculations use the defaults.
+
+## DC electric fields
+
+Scalar and tensor dc Stark shifts follow [Steck, Equations (30)-(32)](https://steck.us/alkalidata/rubidium87numbers.pdf). Set `Efield` in **V/cm**, along the quantization axis (parallel to the magnetic field). Omitting `Efield` or setting it to zero preserves the current magnetic-only result without requiring polarizability data.
+
+For a nonzero field, supply `alpha0_G` and `alpha0_E`, the **absolute scalar polarizabilities divided by Planck's constant**, in **Hz/(V/cm)²**. Optional `alpha2_G`/`alpha2_E` use the same units and default to zero. Each accepts a scalar or one value per electronic J, lowest J first; tensor entries must be zero for J < 1. The Hamiltonian contribution, expressed as a frequency, is
+
+```text
+H_dc / h = -Efield² / 2 * [alpha0 + alpha2 * (3 Jz² - J(J+1)) / (J(2J-1))]
+```
+
+The tensor contribution is zero for J < 1. Here Jz has eigenvalues mJ. The full matrix is diagonalized with the hyperfine and Zeeman terms, so the tensor interaction can mix different F states with the same mF. The retained polarizability operator is diagonal in electronic J; cross-J polarizabilities and nonparallel electric/magnetic fields are outside this model. Electric shifts must remain small enough for the supplied quadratic polarizabilities and retained electronic levels to apply. Nonzero `Efield` requires exact spectra/fans; disable `DoLowSig`/`DoHighSig` and omit fan approximation flags `L`/`H`.
+
+For an Rb-87 deck containing lower 5S1/2 and upper 5P1/2, 5P3/2 levels:
+
+```python
+deck.update(
+    Efield=1000.0,                   # V/cm
+    alpha0_G=0.0794,                 # alpha0 / h, Hz/(V/cm)^2
+    alpha0_E=[0.0794 + 0.122306,     # D1: add tabulated differential value
+              0.0794 + 0.1340],     # D2: add tabulated differential value
+    alpha2_E=[0.0, -0.0406],
+)
+result = AtomSpect.AtomSpect_Main(deck)
+```
+
+These polarizabilities are the central values in Steck's Table 6. They do not set the isotope, energies, or HFS constants; the rest of the deck must already describe Rb-87. The field affects wavelengths, eigenstate mixing, and transition strengths. `MakeSlider` retains these settings while changing its existing controls.
+
+Low-level callers can pass `Efield`, `alpha0`, and `alpha2` to `Zeeman_func` or `Zeeman_func_HFS`, or obtain the coupled-basis matrix from `stark_hamiltonian(level, Efield, alpha0, alpha2)`. The calibrated atomic API provides `add_dc_stark(model, electric_field_v_cm, polarizabilities)`, where `polarizabilities` maps every level ID to `(alpha0/h, alpha2/h)`. It returns a new model and can be used before or after `add_hyperfine`. `RadiativeData` also carries the input deck's Stark shifts into the attached `AtomicComponents` result.
+
 ## Plot the result
 
 Continue from the example above:
@@ -189,13 +220,14 @@ This runs the documentation checks, regenerates numerical data and figures, and 
 
 The repository includes regression tests and documentation checks for selected analytic limits. Their scope and measured errors are recorded in [REVIEW.md](audit/REVIEW.md) and the manual. They do not establish agreement with experiment across all supported inputs.
 
-- Strengths are relative. Radial matrix elements, populations, and photon-energy weighting are absent; opt-in `A_Ein`, `f_osc`, and `S_line` outputs are unvalidated placeholders.
-- Each LS term is isolated. Mixing between different terms, Stark interactions, and collisional effects are outside the implemented spectrum model.
+- Ordinary `SpecOut` uses relative angular strengths. The calibrated atomic API supports absolute E1 rates, explicit populations, and photon-energy weighting; attaching `RadiativeData` does not replace `SpecOut`. Legacy `A_Ein`, `f_osc`, and `S_line` outputs remain unvalidated placeholders.
+- The LS spectrum model treats each term separately. Axial scalar/tensor dc Stark interactions are included; cross-J Stark tensors, nonparallel electric/magnetic fields, and collision dynamics are omitted.
 - Convolution uses finite bins around rest wavelengths and removes weak components. Broad wings and large velocity shifts can leave the bins; check convergence with `fxnwindow`, the selection windows, and `specres`.
 - The Voigt wing warning estimates the Lorentzian contribution only. Gaussian-tail losses are not automatically reported.
-- The air-to-vacuum helper is approximate. The standalone hyperfine-constant estimator remains a research aid outside the validated workflow.
+- The air-to-vacuum helper numerically inverts the revised Edlén relation under laboratory conditions. Its validity does not extend to arbitrary wavelengths or atmospheric conditions. The standalone hyperfine-constant estimator remains a research aid outside the validated workflow.
+- Natural widths are not automatically derived from lifetimes. HFS includes A/B but not octupole C or cross-J HFS tensors. Vapor pressure, photon recoil, population kinetics, and radiative transfer are not calculated.
 
-Planned extensions include Stark interactions, validated hyperfine-constant estimation, atomic-data import, and a GUI for multiple lines or species.
+The [Rb-87 coverage review](audit/STECK_RB87_REVIEW.md) distinguishes verified cases from missing features and precision limitations. Planned extensions include broader Stark models, validated hyperfine-constant estimation, atomic-data import, and a GUI for multiple lines or species.
 
 ## Data, citation, and contact
 

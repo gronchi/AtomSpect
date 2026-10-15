@@ -1,5 +1,5 @@
 check,measured,tolerance
-weak_field_zeeman_3P2_cm-1,1.648e-10,1e-09
+weak_field_zeeman_3P2_cm-1,8.731e-11,1e-09
 rb85_5S_hyperfine_interval_relative,1.370e-16,1e-09
 strength_normalization,0.000e+00,1e-12
 no_forbidden_components,0.000e+00,1e-14

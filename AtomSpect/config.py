@@ -17,6 +17,7 @@ OPTIONAL_KEYS = (
     'DoLowSig', 'DoHighSig', 'ion_vel', 'Convfxn', 'Skewness', 'Temp', 'TempeV',
     'specstep', 'specres', 'fxnwindow', 'plottitle',
     'RadiativePlaceholders', 'RadiativeData',
+    'Efield', 'alpha0_G', 'alpha0_E', 'alpha2_G', 'alpha2_E',
 )
 KNOWN_KEYS = frozenset(REQUIRED_KEYS + OPTIONAL_KEYS)
 
@@ -108,6 +109,9 @@ class InputDeck:
     HFS_ConstsE: dict = field(default_factory=dict)
     PsiHFS: Any = False
     radiative_placeholders: bool = False
+    Efield: float = 0.
+    stark_ground: dict = field(default_factory=dict)
+    stark_excited: dict = field(default_factory=dict)
     convolution: Optional['ConvolutionSettings'] = None
 
     @classmethod
@@ -129,6 +133,20 @@ class InputDeck:
         do_low = _approximation_enabled(deck.get('DoLowSig', False))
         do_high = _approximation_enabled(deck.get('DoHighSig', False))
         is_hfs = 'I_spin' in deck
+        from .stark import _electric_field, _polarizabilities
+        electric = _electric_field(deck.get('Efield', 0.))
+        stark = {}
+        if electric != 0:
+            if do_low or do_high:
+                raise NotImplementedError('DC Stark shifts require exact spectra; disable DoLowSig/DoHighSig')
+            for side, suffix in (('ground', 'G'), ('excited', 'E')):
+                L, S = deck[f'l_{side}'], deck[f's_{side}']
+                js = np.arange(abs(L-S), L+S+1)
+                a0 = _polarizabilities(deck.get(f'alpha0_{suffix}'), js, f'alpha0_{suffix}')
+                a2 = _polarizabilities(deck.get(f'alpha2_{suffix}'), js, f'alpha2_{suffix}', default=0.)
+                if any(j < 1 and a2[j] != 0 for j in js):
+                    raise ValueError('Tensor polarizability must be zero for J < 1')
+                stark[side] = dict(Efield=electric, alpha0=[a0[j] for j in js], alpha2=[a2[j] for j in js])
         if is_hfs and (do_low or do_high):
             raise NotImplementedError('HFS approximation spectra are not implemented; omit or disable DoLowSig/DoHighSig')
 
@@ -157,6 +175,8 @@ class InputDeck:
             spec_window=deck.get('spec_window', data_range),
             plot_window=deck.get('plot_window', data_range),
             is_hfs=is_hfs,
+            Efield=electric, stark_ground=stark.get('ground', {}),
+            stark_excited=stark.get('excited', {}),
         )
         if is_hfs:
             out.I_spin = deck['I_spin']

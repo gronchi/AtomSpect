@@ -22,8 +22,8 @@ def _solve_hfs(deck):
     Ground_Level_HFS = stateprocess_HFS(deck.L_ground, deck.S_ground, deck.I_spin, deck.HFS_ConstsG, thisg_I, deck.E_ground, deck.Bfield)
     Excited_Level_HFS = stateprocess_HFS(deck.L_excited, deck.S_excited, deck.I_spin, deck.HFS_ConstsE, thisg_I, deck.E_excited, deck.Bfield)
 
-    Ground_Zeeman_HFS = Zeeman_func_HFS(Ground_Level_HFS, deck.Bfield, thisg_I, deck.PsiHFS)
-    Excited_Zeeman_HFS = Zeeman_func_HFS(Excited_Level_HFS, deck.Bfield, thisg_I, deck.PsiHFS)
+    Ground_Zeeman_HFS = Zeeman_func_HFS(Ground_Level_HFS, deck.Bfield, thisg_I, deck.PsiHFS, **deck.stark_ground)
+    Excited_Zeeman_HFS = Zeeman_func_HFS(Excited_Level_HFS, deck.Bfield, thisg_I, deck.PsiHFS, **deck.stark_excited)
     Z_sig_HFS = Zeeman_signal_HFS(Ground_Level_HFS, Ground_Zeeman_HFS, Excited_Level_HFS, Excited_Zeeman_HFS,
                                   Bangle=deck.Bangle, gamma=deck.Polangle, Filter=deck.Polfilter,
                                   T_Alpha=deck.Talpha, T_Beta=deck.Tbeta)
@@ -102,8 +102,8 @@ def _solve_fine(deck):
     Excited_Level = stateprocess(deck.L_excited, deck.S_excited, deck.E_excited, deck.Bfield)
     data = {}
 
-    Ground_Zeeman = Zeeman_func(Ground_Level, deck.Bfield)
-    Excited_Zeeman = Zeeman_func(Excited_Level, deck.Bfield)
+    Ground_Zeeman = Zeeman_func(Ground_Level, deck.Bfield, **deck.stark_ground)
+    Excited_Zeeman = Zeeman_func(Excited_Level, deck.Bfield, **deck.stark_excited)
     Z_sig = Zeeman_signal(Ground_Level, Ground_Zeeman, Excited_Level, Excited_Zeeman, Bangle=deck.Bangle,
                           gamma=deck.Polangle, Filter=deck.Polfilter, T_Alpha=deck.Talpha, T_Beta=deck.Tbeta)
     Z_sig_norad = Zeeman_sig_norad(Ground_Level, Ground_Zeeman, Excited_Level, Excited_Zeeman)
@@ -201,6 +201,16 @@ def AtomSpect_Main(Inputdeck):
         are optional B constants in Hz (default zero). PsiHFS is accepted
         for compatibility and does not change the Hamiltonian.
         Calc_HFS_Vals is reserved and ignored; constants are not estimated.
+
+        Efield is a dc electric field in V/cm along the quantization axis,
+        parallel to B (default zero, preserving the magnetic-only result).
+        With nonzero Efield, alpha0_G/E are required scalar polarizabilities
+        divided by h, in Hz/(V/cm)^2, scalar or one per J, lowest J first.
+        Optional alpha2_G/E are tensor polarizabilities divided by h in the
+        same units (default zero; must be zero for J < 1). Give absolute
+        level polarizabilities, not excited-minus-ground differences.
+        Tensor shifts include HFS mixing; cross-J Stark tensors are omitted.
+        Approximation spectra cannot be combined with nonzero Efield.
 
         DoLowSig/DoHighSig default False and accept Booleans or yes/no
         strings. Non-HFS DoHighSig requires EtermG/EtermE in cm^-1; zero

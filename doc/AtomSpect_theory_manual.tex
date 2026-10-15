@@ -88,7 +88,7 @@ Manual date & October 2026
 \begin{minipage}{0.88\linewidth}
 \raggedright\small
 This manual describes the physics and numerical methods implemented in
-AtomSpect: the within-term Zeeman Hamiltonian, hyperfine structure,
+AtomSpect: the within-term Zeeman Hamiltonian, hyperfine structure, axial dc Stark shifts,
 relative electric-dipole strengths, observation geometry, and continuous
 line profiles. It states the conventions of the inputs and outputs and
 cross-references the routines that implement each calculation. Numerical
@@ -115,7 +115,7 @@ implementation conventions and departures are identified here.
 
 AtomSpect computes relative electric-dipole (E1) spectra for a selected
 lower and upper LS term in a static magnetic field, optionally including
-hyperfine structure. The field splits and mixes the supplied levels;
+hyperfine structure and scalar/tensor dc Stark shifts along the quantization axis. The fields split and mix the supplied levels;
 every upper--lower eigenstate pair receives a wavelength, a relative
 strength, and a polarization label. Doppler and instrumental profiles
 turn the discrete (``stick'') spectrum into a continuous curve.
@@ -128,21 +128,20 @@ The model uses four principal steps:
         operators into the coupled basis (Sections~\ref{sec:zeeman}
         and~\ref{sec:hfs}).
   \item Each isolated term is diagonalized separately, including the
-        electronic and optional nuclear Zeeman interaction.
+        electronic and optional nuclear Zeeman interaction and supplied dc Stark terms.
   \item E1 amplitudes between dressed states are weighted by the
         observation geometry, normalized, and broadened
         (Sections~\ref{sec:transitions}--\ref{sec:profile}).
 \end{enumerate}
-Radial matrix elements, level populations, collisional and Stark effects,
-and absolute transition probabilities are outside this model. Strengths
+The ordinary spectrum uses angular strengths without radial matrix elements or level populations; collision dynamics are omitted. A separate calibrated API accepts external radiative data and explicit populations (Section~\ref{sec:absolute}). Ordinary strengths
 sum to one when the detected signal is nonzero; a dark observation
 returns zero strengths and a zero curve.
 
 \subsection{Read this before running}
 \begin{caveat}[Development version operating status]
 The exact solver describes relative E1 spectra within isolated LS terms,
-with optional hyperfine structure. Absolute rates and level populations
-are absent. Approximation spectra with HFS are unavailable. Finite
+with optional hyperfine structure and axial dc Stark terms. Absolute rates and explicit level populations
+are available through the separate atomic API, not ordinary \code{SpecOut}. Approximation spectra with HFS or nonzero electric field are unavailable. Finite
 convolution windows can lose broad wings or Doppler-shifted peaks;
 check window and sampling convergence. See Section~\ref{sec:limitations}
 for these restrictions and unvalidated research helpers.
@@ -315,6 +314,29 @@ Spectra with the low- or high-field approximation are not implemented with hyper
 \end{caveat}
 
 % ------------------------------------------------------------------------
+\section{Axial dc Stark shifts}\label{sec:stark}
+
+Following Steck's Rb-87 Eqs.~(30)--(32)~\cite{steck87}, take the electric field along the quantization axis, parallel to the magnetic field when present. With $a_0=\alpha_0/h$ and $a_2=\alpha_2/h$, the retained interaction is
+\begin{equation}
+\frac{H_{\mathrm{dc}}}{h}=-\frac{\mathcal E^2}{2}\left[a_0+a_2\frac{3J_z^2-J(J+1)}{J(2J-1)}\right].
+\end{equation}
+Here angular momenta are dimensionless, $\mathcal E$ is in V/cm, and the supplied $a_0,a_2$ are in Hz/(V/cm)$^2$. The tensor term is zero for $J<1$. These quantities are polarizabilities divided by Planck's constant, not polarizabilities in SI or atomic units; the symbol $a_0$ here is unrelated to the Bohr radius.
+
+\routine{stark\_hamiltonian} forms the diagonal electronic $\vert J,m_J\rangle$ operator. With HFS it transforms this operator to $\vert F,m_F\rangle$ with Clebsch--Gordan coefficients. The full Hamiltonian $H_0+H_{\mathrm{hfs}}+H_B+H_{\mathrm{dc}}$ is diagonalized before computing E1 amplitudes. The tensor term can mix $F$ states with the same $m_F$; it is not merely an additive weak-field correction to the final eigenvalues. At zero electric field the existing magnetic-only path is used unchanged.
+
+\begin{implnote}
+\opt{Efield} defaults to zero. At nonzero field, \opt{alpha0_G} and \opt{alpha0_E} are required; \opt{alpha2_G} and \opt{alpha2_E} default to zero. Each is a scalar or one value per electronic $J$, lowest $J$ first. Supply absolute level polarizabilities: differential values from a table must first be added to the lower-state scalar polarizability. Tensor entries must vanish for $J<1$. The exact spectrum and energy fans support these inputs; approximation flags must be disabled.
+\end{implnote}
+
+For a Rb-87 5S--5P deck, central Table~6 values give:
+\begin{verbatim}
+deck.update(Efield=1000.0, alpha0_G=0.0794,
+            alpha0_E=[0.0794+0.122306, 0.0794+0.1340],
+            alpha2_E=[0.0, -0.0406])
+\end{verbatim}
+The remainder of the deck must already specify Rb-87 energies, mass and HFS constants. Cross-$J$ Stark tensors and nonparallel electric/magnetic fields are not represented. The quadratic polarizabilities and retained electronic levels must remain appropriate at the applied field. Low-level \routine{Zeeman\_func} and \routine{Zeeman\_func\_HFS} accept \code{Efield}, \code{alpha0} and \code{alpha2}; the calibrated API provides \routine{add\_dc\_stark} with a level-ID mapping of $(a_0,a_2)$.
+
+% ------------------------------------------------------------------------
 \section{Transition strengths}\label{sec:transitions}
 
 \subsection{Basis-pair dipole factors}
@@ -335,6 +357,20 @@ Let $c^{u}$ and $c^{l}$ be the eigenvector matrices of the upper and lower level
 I_k=\Bigl\vert\sum_p \mathcal A_{pk}\,s_p\Bigr\vert^{2},\qquad \hat I_k=\frac{I_k}{\sum_{k'} I_{k'}},
 \end{equation}
 so that the reported \code{signal} sums to one if the denominator is nonzero. When both transmissions vanish, the strengths remain zero instead of dividing by zero. The wavelength follows from the eigenvalues, $\lambda_{\mathrm{vac}}=10^{7}/(E_u-E_l)$ nm, and the air wavelength from the standard vacuum-to-air relation.
+
+\subsection{Vacuum and air wavelengths}
+The air conversion uses the 1993 revised Edl\'en relation in Steck's Eq.~(3)~\cite{steck87}, evaluated at the vacuum wavelength. In \routine{Vac\_to\_air}, \code{pressure\_pa} is in Pa, \code{temperature\_c} is in degrees Celsius, and \code{water\_vapor\_pressure\_pa} is water-vapor partial pressure in Pa, not relative humidity. Defaults are dry air at 101325 Pa and 20 degrees Celsius. \routine{air\_to\_vac} numerically inverts the same relation with five fixed-point iterations under laboratory conditions. The spectrum driver uses the defaults; custom atmospheric parameters are exposed by the helpers. Air temperature is separate from the emitter kinetic temperature \opt{Temp}. The formula is empirical and is not validated at arbitrary wavelengths or near its poles.
+
+\subsection{Calibrated absolute E1 rates}\label{sec:absolute}
+The separate \code{atomic\_data}/\code{atomic} API accepts external level and radiative information. \routine{RadiativeReference} accepts $A$ in s$^{-1}$, absorption oscillator strength $f$, $gf$, $\log_{10}(gf)$, reduced strength, or a lifetime in seconds with an explicit branching fraction. For a branch $u\to l$, $A_{ul}=b_{ul}/\tau_u$; the total inverse lifetime is the sum over all decay channels. Degeneracy factors are included when converting level data to reduced strength.
+
+For magnetic-state dipoles $d_{ul,q}$ in SI units, the angle-integrated rate is
+\begin{equation}
+A_{ul}=\frac{\omega_{ul}^3}{3\pi\epsilon_0\hbar c^3}\sum_q|d_{ul,q}|^2.
+\end{equation}
+\routine{calculate\_components} exports these rates as \code{A\_s1}, using vacuum frequencies and a consistent SciPy constants set. \routine{directional\_rates} gives rates per solid angle; \routine{emission\_weights} accepts explicit incoherent populations and optional photon-energy weighting; \routine{synthesize\_spectrum} produces densities per nm on a vacuum-wavelength grid. A supplied \opt{RadiativeData} attaches \code{AtomicComponents} to the ordinary result; it does not replace \code{SpecOut}. Model A accepts measured level-specific $g_J$ and independent radiative branches, Model B uses complete strict-LS terms with one orbital norm, and Model C accepts explicit coherent E1 and magnetic tensors.
+
+The standard electronic reduced amplitude in this API is $\sqrt{2J_l+1}$ times Steck's lower-$J$-normalized dipole. For Rb D lines this is $\sqrt{2}$; the strength is twice the square of the tabulated amplitude. References supplied as lifetimes, $A$, or $f$ handle this convention automatically. Natural linewidths are not automatically derived from decay sums: for a stable lower state, the ordinary-frequency natural FWHM is $1/(2\pi\tau_u)$. The Lorentzian/Voigt width is currently supplied by the caller.
 
 \begin{caveat}
 Quantities such as \code{A\_Ein}, \code{f\_osc} and \code{S\_line} are not valid absolute radiative quantities: without a radial matrix element, a normalized angular strength cannot give a transition probability. They are therefore only returned on request (\code{RadiativePlaceholders}), together with a warning. Their $2J'+1$ normalization is also tied to the basis-state list, not to field-mixed states.
@@ -430,6 +466,8 @@ Module & Contents\\
 \code{angular} & $g$ factors, Clebsch--Gordan and $3j/6j$ wrappers, dipole factors\\
 \code{levels} & state lists and coupling matrices\\
 \code{hamiltonian}, \code{hfs} & Zeeman and hyperfine Hamiltonians, eigenvector resolution\\
+\code{stark} & axial scalar/tensor dc Stark matrices\\
+\code{atomic\_data}, \code{atomic} & radiative references; calibrated components and spectra\\
 \code{polarization}, \code{transitions} & polarization amplitudes and labels; strengths and wavelengths\\
 \code{fan} & energy fans versus $B$\\
 \code{lineshapes}, \code{convolution} & profiles; binning and convolution\\
@@ -454,15 +492,21 @@ The script \code{scripts/make\_figures.py} evaluates the checks in Table~\ref{ta
 
 The repository's test suite adds regression tests for the polarization labels (with and without hyperfine structure), the high-field and fan approximations, the Boolean approximation flags, the profiles and a set of golden outputs for refactoring.
 
+\code{test\_units.py} and \code{test\_steck\_rb87.py} additionally compare air indices, Rb-87 hyperfine intervals, Breit--Rabi energies, branch factors, representative dipole components, lifetime/oscillator conversions, and absolute radiation patterns. \code{test\_stark.py} checks scalar field-squared shifts, tensor eigenvalues and trace, weak-HFS tensor expectations, an independent spin Hamiltonian through strong HFS mixing, basis permutations, fan/driver consistency, the radiative bridge, and exact equality with the existing output when the electric field is omitted or zero. These cases do not certify every signed table entry or establish experimental accuracy.
+
 \section{Known limitations and implementation notes}\label{sec:limitations}
 \begin{itemize}\setlength\itemsep{0pt}
-\item Only relative strengths are meaningful. No radial matrix elements, populations or photon-energy weighting.
+\item Ordinary \code{SpecOut} uses relative angular strengths. Absolute rates, explicit populations and photon-energy weighting require the separate calibrated atomic API and supplied atomic data. Legacy radiative placeholders remain invalid absolute quantities.
 \item Each term is isolated. Mixing between terms of different $L$ or $S$ and configuration interaction are not modelled.
 \item Hyperfine constants and moments are user inputs. The estimator module \code{hfs\_estimate} (semi-empirical A and B constants) is a research aid. Its B-constant routines evaluate $B=eQV_{zz}$ in SI units; the underlying hydrogenic A-constant model is pinned by tests but not validated.
 \item The non-HFS high-field approximation neglects fine structure and uses $g_S=2$.
 \item \code{sortE} changes only the order in which basis states are listed, not the eigenvalues, and is slow.
 \item Without \code{Convfxn} the symmetric Lorentzian is used and \code{Temp} is ignored. \code{Skewness} is used only by \code{Skewed}.
-\item The inverse air-to-vacuum helper evaluates the refractive index at the air wavelength. It is an approximation, not an exact inverse; arbitrary wavelength ranges are not validated.
+\item Air/vacuum conversion numerically inverts the revised Edl\'en relation, with validity limited to its empirical domain. The driver uses dry air at 20 degrees Celsius.
+\item Dc Stark shifts retain scalar and tensor polarizabilities diagonal in electronic $J$, for parallel fields only. They require supplied data. No cross-$J$ Stark tensors, diamagnetism or collision dynamics are included.
+\item HFS includes $A/B$, but not octupole $C$ or cross-$J$ HFS tensors. Octupole shifts require both $I,J\geq3/2$; no nonzero Rb-87 $C$ is supplied by the cited Steck reference.
+\item Vapor pressure, recoil shifts, population kinetics and radiative transfer are not calculated. Density and optical depth matter for absolute intensity and self-absorption; recoil matters at precision/ultracold scales. The code does not infer these corrections from normalized sticks.
+\item Legacy magnetic constants and strict-LS $g_J$ limit precision. The newer API can accept measured $g_J$ or explicit magnetic operators. Partial decay sums represent inverse lifetimes only when all relevant channels are retained.
 \item \code{Calc\_HFS\_Vals} is a reserved input and does not estimate missing constants.
 \item The legacy \code{Zsig\_norad} helper retains raw eigenvectors; individual values can depend on the basis chosen in degenerate subspaces. Use the labelled spectrum for polarization-resolved results.
 \end{itemize}
@@ -495,6 +539,9 @@ Input & Default & Meaning (symbol, section)\\
 \opt{l_ground}/\opt{l_excited} & --- & orbital angular momentum $L$ (\S\ref{sec:zeeman})\\
 \opt{E_ground}/\opt{E_excited} & --- & one energy per $J$ in cm$^{-1}$, lowest $J$ first\\
 \opt{Bmag} & --- & scalar field [T]; field array for fans\\
+\opt{Efield} & 0 & axial dc electric field [V/cm], parallel to $B$ (\S\ref{sec:stark})\\
+\opt{alpha0_G}/\opt{alpha0_E} & required if $\mathcal E\ne0$ & absolute scalar $\alpha_0/h$ [Hz/(V/cm)$^2$], scalar or one per $J$\\
+\opt{alpha2_G}/\opt{alpha2_E} & 0 & tensor $\alpha_2/h$ in the same units; zero for $J<1$\\
 \opt{b_angle} & --- & angle between field and line of sight [degrees] (\S\ref{sec:pol})\\
 \opt{Pol_angle} & absent & linear analyzer angle [degrees]; zero enables the filter\\
 \opt{TAlpha}/\opt{TBeta} & 1 / 1 & nonnegative intensity transmissions\\
@@ -519,6 +566,7 @@ Input & Default & Meaning (symbol, section)\\
 \opt{EtermG}/\opt{EtermE} & absent & term energies [cm$^{-1}$] for non-HFS high-field solves; zero is valid\\
 \opt{sortE} & False & order approximation bases by weak-field energy\\
 \opt{RadiativePlaceholders} & False & opt-in unvalidated legacy radiative outputs (\S\ref{sec:limitations})\\
+\opt{RadiativeData} & absent & external radiative data; attaches calibrated \code{AtomicComponents} (\S\ref{sec:absolute})\\
 \opt{plottitle} & absent & plotting title\\
 \bottomrule
 \end{longtable}
@@ -533,6 +581,8 @@ Input & Default & Meaning (symbol, section)\\
   \emph{Laser Cooling and Trapping}, Eqs.\ 4.32--4.33 (dipole factors).
 \bibitem{steck} D.\,A.\ Steck, \emph{Rubidium 85 D Line Data},
   \url{https://steck.us/alkalidata/} (hyperfine constants and structure).
+\bibitem{steck87} D.\,A.\ Steck, \emph{Rubidium 87 D Line Data}, revision 2.3.4 (8 August 2025),
+  \url{https://steck.us/alkalidata/rubidium87numbers.pdf} (air index, dc Stark interaction and radiative benchmarks).
 \bibitem{stone} N.\,J.\ Stone, At.\ Data Nucl.\ Data Tables \textbf{90},
   75 (2005), \doiurl{10.1016/j.adt.2005.04.001} (nuclear moments).
 \bibitem{kopfermann} H.\ Kopfermann, \emph{Nuclear Moments}

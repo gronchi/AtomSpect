@@ -3,6 +3,7 @@ import numpy as np
 
 from .angular import lande_gj, lande_gj2
 from .constants import c_light, g_L, g_S, muBcm
+from .stark import _electric_field, stark_hamiltonian
 
 
 def _zeeman_operator(Psi, states, l_index, s_index, i_index=None, gI=0.0):
@@ -109,7 +110,8 @@ _magnetic_eigenvectors = _definite_m_eigenvectors
 _hfs_magnetic_eigenvectors = _definite_m_eigenvectors
 
 
-def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
+def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None,
+                *, Efield=0., alpha0=None, alpha2=None):
     """Solve a fine-structure LS term in a magnetic field.
 
     Level_in is returned by stateprocess; Binput is in T. With neither
@@ -118,8 +120,15 @@ def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
     Eterm in cm^-1 (zero is valid), with ideal g_L=1 and g_S=2.
     The flags are mutually exclusive.
 
+    Efield (V/cm), alpha0 and alpha2 (alpha/h, Hz/(V/cm)^2) add axial
+    scalar/tensor dc Stark shifts in the exact branch; see stark_hamiltonian.
+    The default Efield=0 preserves the magnetic-only calculation.
+
     Return [energies_cm, vectors], with ascending energies and eigenvectors
     in columns of the coupled |J,mJ> basis, including in the high-field case."""
+    electric = _electric_field(Efield)
+    if electric != 0 and (Lowfield or Highfield):
+        raise NotImplementedError('DC Stark shifts require the exact solver; disable Lowfield/Highfield')
     Psi = Level_in[0]  # Wavefunction basis matrix, comprised of CG coefficients.
 
     # Check for High and Low field approximations
@@ -142,6 +151,8 @@ def Zeeman_func(Level_in, Binput, Lowfield=False, Highfield=False, Eterm=None):
         tmJMat = np.diagflat([x[1] for x in Level_in[-1]])
         scaledMat = Level_in[1] + Binput*(gjmat*tmJMat)*muBcm
 
+    if electric != 0:
+        scaledMat = scaledMat + stark_hamiltonian(Level_in, electric, alpha0, alpha2)
     eigZ, eigvecZ = _eigh_about_mean(scaledMat)
 
     if Highfield:
@@ -159,19 +170,23 @@ def HZeeman(Level_in):
     return [Level_in[1], H_Zeeman]
 
 
-def Zeeman_func_HFS(Level_in, Binput, gI, PsiHFS=True):
+def Zeeman_func_HFS(Level_in, Binput, gI, PsiHFS=True, *, Efield=0., alpha0=None, alpha2=None):
     """Solve the exact within-term hyperfine Zeeman Hamiltonian.
 
     Level_in is returned by stateprocess_HFS, Binput is in T and gI follows
     lande_gi. PsiHFS is retained for compatibility; both values select the
     same Hamiltonian. Return [energies_cm, vectors] in ascending energy order,
-    with eigenvector columns in the coupled |F,mF> basis."""
+    with eigenvector columns in the coupled |F,mF> basis. Optional Efield
+    (V/cm), alpha0 and alpha2 (alpha/h, Hz/(V/cm)^2) add the axial dc Stark
+    Hamiltonian before diagonalization, including F mixing. See stark_hamiltonian."""
     H_Zeeman = _zeeman_operator(Level_in[0], Level_in[-1], l_index=7, s_index=9, i_index=5, gI=gI)
 
     # The HFS shifts are diagonal in the |F,mF> basis, the same basis as Level_in[1] and H_Zeeman.
     # PsiHFS is accepted for backwards compatibility; both of its settings gave this Hamiltonian.
     scaledMat = Level_in[1] + np.diagflat(Level_in[2]) + Binput*H_Zeeman*muBcm
 
+    if _electric_field(Efield) != 0:
+        scaledMat = scaledMat + stark_hamiltonian(Level_in, Efield, alpha0, alpha2)
     eigZ, eigvecZ = _eigh_about_mean(scaledMat)
     return [eigZ, eigvecZ]
 

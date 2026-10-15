@@ -13,7 +13,7 @@ from .atomic_data import (AtomicConstants, AtomicLevel, HyperfineData, LSTerm,
 
 __all__ = ['AtomicModel', 'AtomicComponents', 'build_model_a', 'build_model_b',
            'build_model_c', 'calculate_components', 'calculate_field_grid',
-           'add_hyperfine', 'rephase_model', 'components_from_inputdeck',
+           'add_hyperfine', 'add_dc_stark', 'rephase_model', 'components_from_inputdeck',
            'synthesize_spectrum', 'frequency_profile_to_wavelength', 'isolated_multipole_rates']
 
 
@@ -292,6 +292,44 @@ to T=-mu/muB. No off-diagonal information is inferred from unsigned rates.
                        {q: _tensor(basis, r, q) for q in (-1, 0, 1)}, known, k, _flags(), metadata).validate()
 
 
+def add_dc_stark(model, electric_field_v_cm=0., polarizabilities=None):
+    """Return a model with axial dc scalar/tensor Stark energy shifts.
+
+    polarizabilities maps every level ID to (alpha0/h, alpha2/h) in
+    Hz/(V/cm)^2. The field is along the quantization axis (parallel to B).
+    The tensor is diagonal in electronic J,mJ and can mix F when HFS is
+    present. Cross-J polarizabilities are omitted. Supply absolute level
+    polarizabilities, rather than excited-minus-ground differences.
+    Zero field returns the original model without requiring data. Apply
+    once to a model; repeated application would double-count its shifts.
+    """
+    from .stark import _electric_field, _stark_shifts
+    electric = _electric_field(electric_field_v_cm)
+    if electric == 0:
+        return model
+    model.validate()
+    if 'dc_stark' in model.metadata:
+        raise ValueError('DC Stark shifts have already been added to this model')
+    if polarizabilities is None or set(polarizabilities) != {x.level_id for x in model.levels}:
+        raise MissingAtomicData('DC Stark polarizabilities must cover every retained level')
+    records = {}
+    for level in model.levels:
+        values = np.asarray(polarizabilities[level.level_id], float)
+        if values.shape != (2,) or not np.all(np.isfinite(values)):
+            raise ValueError('Each polarizability record must contain finite (alpha0/h, alpha2/h)')
+        records[level.level_id] = tuple(values.tolist())
+    js = np.array([b['two_J']/2 for b in model.basis])
+    ms = np.array([b['two_mJ']/2 for b in model.basis])
+    a0, a2 = np.array([records[b['level_id']] for b in model.basis]).T
+    shift = _stark_shifts(js, ms, electric, a0, a2, model.constants.c)
+    metadata = dict(model.metadata, dc_stark=dict(electric_field_v_cm=electric,
+                    polarizabilities_Hz_per_V_cm_squared=records, axis='z'))
+    flags = tuple(x for x in model.validity_flags if x != 'STARK_NOT_INCLUDED')
+    flags += ('STARK_CROSS_J_NOT_INCLUDED',)
+    return replace(model, H0=model.H0+np.diag(shift), metadata=metadata,
+                   validity_flags=flags).validate()
+
+
 def add_hyperfine(model, data):
     """Enlarge an electronic model with one isotope and diagonal-J HFS.
 
@@ -555,6 +593,15 @@ uses the new consistent constants; old relative outputs remain unchanged.
         if not isotope:
             raise MissingAtomicData('RadiativeData with HFS requires isotope_id')
         model = add_hyperfine(model, HyperfineData(int(2*I), deck['mu_I'], constants, isotope))
+    if deck.get('Efield', 0.) != 0:
+        from .stark import _polarizabilities
+        polarizabilities = {}
+        for side, suffix in ((lower, 'G'), (upper, 'E')):
+            js = [j/2 for j in sorted(side.energies_cm)]
+            a0 = _polarizabilities(deck.get(f'alpha0_{suffix}'), js, f'alpha0_{suffix}')
+            a2 = _polarizabilities(deck.get(f'alpha2_{suffix}'), js, f'alpha2_{suffix}', default=0.)
+            polarizabilities.update({f'{side.term_id}:J{int(2*j)}': (a0[j], a2[j]) for j in js})
+        model = add_dc_stark(model, deck['Efield'], polarizabilities)
     return calculate_components(model, deck['Bmag'])
 
 

@@ -5,6 +5,7 @@ from .angular import lande_gf, lande_gi, lande_gj
 from .constants import muBcm
 from .hamiltonian import HZeeman, HZeeman_HFS, ZeemanHigh, ZeemanhighHFS, Zeemanlow
 from .levels import stateprocess, stateprocess_HFS
+from .stark import _electric_field, stark_hamiltonian
 
 
 def _constants_by_j(values, j_values):
@@ -76,8 +77,13 @@ def ZeemanFan(Inputdeck, flags=''):
     LowG/LowE and HighG/HighE arrays, shaped (states, field samples), in
     cm^-1. Exact rows follow energy rank; they do not track eigenstates
     through crossings. Non-HFS H requires the selected term's EtermG or
-    EtermE, including zero. HFS H uses supplied A/B constants and keeps J."""
+    EtermE, including zero. HFS H uses supplied A/B constants and keeps J.
+    Efield/alpha0_G/E/alpha2_G/E follow AtomSpect_Main's axial dc Stark
+    inputs; a nonzero Efield supports exact G/E fans only."""
     fields = np.atleast_1d(np.asarray(Inputdeck['Bmag'], dtype=float))
+    electric = _electric_field(Inputdeck.get('Efield', 0.))
+    if electric != 0 and ('L' in flags or 'H' in flags):
+        raise NotImplementedError('DC Stark fans require exact energies; omit L/H approximation flags')
     is_hfs = 'I_spin' in Inputdeck
     if not is_hfs and 'H' in flags:
         for flag, key in (('G', 'EtermG'), ('E', 'EtermE')):
@@ -104,6 +110,9 @@ def ZeemanFan(Inputdeck, flags=''):
             eterm = Inputdeck.get(eterm_key)
             approximation = dict(Eterm_=0 if eterm is None else eterm)
 
+        if electric != 0:
+            zero_field = zero_field + stark_hamiltonian(
+                level, electric, Inputdeck.get(f'alpha0_{key}'), Inputdeck.get(f'alpha2_{key}'))
         output[key] = _exact_fan(np.asarray(zero_field), np.asarray(zeeman), fields)
         if 'L' in flags or 'H' in flags:
             low, high = FastZfan(level, fields, **approximation)
