@@ -47,41 +47,29 @@ def Convol_Sticks(x0, xwind, Temp_in, amu_in, stepsize_nm, function="", Skew_con
     Return [wavelength_nm, profile_per_m]. Integrate against wavelength in
     metres for unit area; finite windows truncate the analytic tails."""
     _validate_sampling(stepsize_nm, specres)
-    hstep = (1/specres)*stepsize_nm
+    xmin, xmax = np.min(xwind), np.max(xwind)
+    waveout = np.linspace(xmin, xmax, max(2, int(round((xmax - xmin)/(stepsize_nm/specres)))))
+    return [waveout, _profile(function, waveout, x0, Temp_in, amu_in, stepsize_nm,
+                              Skew_consts, vel_ion, bidirect)]
 
-    xmin = np.min(xwind)
-    xmax = np.max(xwind)
 
-    numwavesteps = max(2, int(round((xmax-xmin)/hstep)))
-    waveout = np.linspace(xmin, xmax, numwavesteps)
+# Profile name -> function of (wavelength_m, centre_m, temperature_K, mass_amu, width_m, skewness,
+# velocity, bidir). Unknown names fall back to the symmetric Lorentzian.
+_PROFILES = {
+    'Gaussian': lambda x, x0, T, M, w, skew, v, bi: Gaussian(x, x0, T, M, v_ion=v, bidir=bi),
+    'GaussianInstrum': lambda x, x0, T, M, w, skew, v, bi: GaussianInstrum(x, x0, T, M, pixel_size=w, v_ion=v, bidir=bi),
+    'Voigt': lambda x, x0, T, M, w, skew, v, bi: Voigt(x, x0, T, M, pixel_size=w, v_ion=v, bidir=bi),
+    'Skewed': lambda x, x0, T, M, w, skew, v, bi: Lorrentzian(x, x0, pixel_size=w, Skewness=skew, v_ion=v, bidir=bi),
+    'Lorrentzian': lambda x, x0, T, M, w, skew, v, bi: Lorrentzian(x, x0, pixel_size=w, Skewness=[1, 1], v_ion=v, bidir=bi),
+}
 
-    match function:
-        case 'Skewed':
-            # This one just does convolution over the entire range, should be fine because the range is fed by the binned stick windows.
-            tlorry = Lorrentzian(1e-9*waveout, 1e-9*x0, pixel_size=1e-9*stepsize_nm, Skewness=Skew_consts, v_ion=vel_ion, bidir=bidirect)
-            specout = tlorry
-        case 'Lorrentzian':
-            # This uses the skewed lorrentzian but sets to skewness such that the result is a normal lorrentzian function.
-            tlorry = Lorrentzian(1e-9*waveout, 1e-9*x0, pixel_size=1e-9*stepsize_nm, Skewness=[1, 1], v_ion=vel_ion, bidir=bidirect)
-            specout = tlorry
-        case 'Gaussian':
-            tlorry = Gaussian(1e-9*waveout, 1e-9*x0, Temp_in, amu_in, v_ion=vel_ion, bidir=bidirect)
-            specout = tlorry
-        case 'GaussianInstrum':
-            tlorry = GaussianInstrum(1e-9*waveout, 1e-9*x0, Temp_in, amu_in, pixel_size=1e-9*stepsize_nm, v_ion=vel_ion, bidir=bidirect)
-            specout = tlorry
-        case 'Voigt':
 
-            tlorry = Voigt(1e-9*waveout, 1e-9*x0, Temp_in, amu_in, pixel_size=1e-9*stepsize_nm, v_ion=vel_ion, bidir=bidirect)
-            specout = tlorry
+def _profile(function, wave_nm, centre_nm, temperature, mass, width_nm, skewness, v_ion, bidir):
+    """Evaluate a named unit-area profile (per metre) with nm inputs; arguments broadcast."""
+    profile = _PROFILES.get(function, _PROFILES['Lorrentzian'])
+    return np.asarray(profile(1e-9*np.asarray(wave_nm), 1e-9*np.asarray(centre_nm), temperature, mass,
+                              1e-9*width_nm, skewness, v_ion, bidir))
 
-        case _:
-            # If no function is otherwise given, default to Lorrentzian
-            # This uses the skewed lorrentzian but sets to skewness such that the result is a normal lorrentzian function.
-            tlorry = Lorrentzian(1e-9*waveout, 1e-9*x0, pixel_size=1e-9*stepsize_nm, Skewness=[1, 1], v_ion=vel_ion, bidir=bidirect)
-            specout = tlorry
-
-    return [waveout, np.array(specout)]
 
 def make_stickbins(sticks_in, *data_arrays, windsize=.1):
     #This function does the dynamical windowing that allows for the fast optimization. It makes the bins of "nearby" signal sticks
@@ -192,13 +180,10 @@ def Convol_Spect(waves_in, signal_in, spec_wind, plot_wind, atomic_weight_amu, r
 
         sigs, temps, amus = data_list
         twav = np.linspace(winds[0], winds[1], max(2, int(round(specres*(winds[1] - winds[0])/resolution_nm))))
-        tsig = np.zeros_like(twav)
-
-        for w, s, t, a in zip(sticks, sigs, temps, amus):
-            tspec = Convol_Sticks(w, [winds[0], winds[1]], t, a, resolution_nm,
-                                 function=functiontype, Skew_consts=Skewness_consts,
-                                 vel_ion=ionvel, specres=specres, bidirect=bidir)
-            tsig += s * tspec[1]
+        # All lines of the bin at once: rows are wavelengths, columns are lines.
+        profiles = _profile(functiontype, twav[:, None], sticks[None, :], temps[None, :], amus[None, :],
+                            resolution_nm, Skewness_consts, ionvel, bidir)
+        tsig = profiles @ sigs
 
         tempwavs.extend(twav)
         tempsigs.extend(tsig)

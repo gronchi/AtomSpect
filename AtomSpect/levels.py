@@ -41,6 +41,22 @@ def _cg_matrix(states, match, coupled, target):
     return out
 
 
+def _m_values(j, descending=False):
+    """Magnetic quantum numbers -j..j as Python floats (ascending unless descending=True)."""
+    m = [float(x) for x in np.arange(-j, j + 0.5)]
+    return m[::-1] if descending else m
+
+
+def _j_values(a, b):
+    """Couplings |a-b|..a+b as Python floats."""
+    return [float(x) for x in np.arange(abs(a - b), a + b + 0.1)]
+
+
+def _sorted_by_low_field(states, energies, low_energies):
+    """Basis order by weak-field energy; ties fall back to zero-field energy, then quantum numbers."""
+    return sorted(range(len(states)), key=lambda i: (low_energies[i], energies[i], states[i]))
+
+
 def stateprocess(L_state, S_state, E_level, thisB, sortE=False):
     """Build the coupled and uncoupled bases for one LS term.
 
@@ -62,51 +78,30 @@ def stateprocess(L_state, S_state, E_level, thisB, sortE=False):
         [Psi, E0_matrix, low_energies, E0_flat, states]. Psi transforms
         uncoupled columns to coupled rows; states are [J,mJ,L,mL,S,mS].
         low_energies is empty unless sortE=True. Energies are in cm^-1."""
-
     E_level = _level_inputs(L_state, S_state, E_level)
-    # Create an array that contains [L,ml,S,ms] for the given L,S values. Starts with highest ml,mS values and itereates through ms first.
-    LS0 = [[float(L_state), float(x), float(S_state), float(y)] for x in np.linspace(L_state, -L_state, int(2*L_state+1), dtype=float) for y in np.linspace(S_state, -S_state, int(2*S_state+1), dtype=float)]
-    Jvals = np.arange(np.abs(L_state-S_state), (L_state+S_state+.1))  # ,dtype=float)
+    L, S = float(L_state), float(S_state)
+    J_values = _j_values(L, S)
+    # Coupled |J,mJ> labels (lowest J and mJ first) are paired index by index with the
+    # uncoupled |mL,mS> labels (highest mL, then mS, first); Psi relates the two bases.
+    coupled = make_Jmj(J_values)
+    uncoupled = [(mL, mS) for mL in _m_values(L, descending=True) for mS in _m_values(S, descending=True)]
+    states = [[J, mJ, L, mL, S, mS] for (J, mJ), (mL, mS) in zip(coupled, uncoupled)]
+    energies = np.repeat(E_level, [int(2*J + 1) for J in J_values]).tolist()
 
-    # Use those J values to make all possible mJ values and starts with Lowest J, and lowest mJ
-    Jmjs0 = make_Jmj(Jvals)
+    low_energies = []
+    if sortE:
+        low = [Zeemanlow(lande_gj(st[0], st[2], st[4]), st[1], thisB) + E for st, E in zip(states, energies)]
+        order = _sorted_by_low_field(states, energies, low)
+        states = [states[i] for i in order]
+        energies = [energies[i] for i in order]
+        low_energies = [low[i] for i in order]
 
-    # Combine both lists together to be a single large [J,mJ,L,mL,S,mS] list. The dimensions should match for LS0 and Jmjs0.
-    bigstatelist = [[x[0], x[1], y[0], y[1], y[2], y[3]] for x, y in zip(Jmjs0, LS0)]
-
-    # Expand the input energies which were given for each J to correspond to the number of mJs
-    E_cm0 = [[E_level[x]]*int(2*Jvals[x] + 1) for x in range(len(E_level))]
-    E_cm0_flat = [item for row in E_cm0 for item in row]
-    # This step uses a low field approximation in order to sort the state-list based on the given magnetic field such that the relative state function order is known.
-    # This is used for signal strength calculation as otherwise we may not know what order the functions are after they get diagonalized. This step might not be needed.
-    LowE = []
-
-    if sortE == True:
-        biglist = []
-        for i, x in enumerate(E_cm0_flat):
-            thislandegJ = lande_gj(bigstatelist[i][0], bigstatelist[i][2], bigstatelist[i][4])  # caluclate lande gj factor for a given state
-            if thisB == 0:
-                thisZeemanEnergy = x  # This is to prevent issues with attempting to sort for B=0
-            else:
-                thisZeemanEnergy = Zeemanlow(thislandegJ, bigstatelist[i][1], thisB) + x  # This is the low zeeman approximation total energy
-            biglist.append([thisZeemanEnergy, x, Jmjs0[i], LS0[i], bigstatelist[i]])
-
-        sortedlist = sorted(biglist)  # Soted in ascending energy
-        LowE = [x[0] for x in sortedlist]
-        states = [x[-1] for x in sortedlist]
-        E_flat = [x[1] for x in sortedlist]  # This is the sorted energies, and is in cm^-1
-    else:
-        states = bigstatelist
-        E_flat = E_cm0_flat
-
-    # States are [J,mJ,L,mL,S,mS]: couple (L,mL,S,mS) into (J,mJ) within each J manifold.
-    w3mat = _cg_matrix(states, match=2, coupled=(2, 3, 4, 5), target=(0, 1))
-    E_mat = np.diagflat(E_flat)  # Despite the old name, these energies are in cm^-1
-    return [w3mat, E_mat, LowE, E_flat, states]
+    # Couple (L,mL,S,mS) into (J,mJ) within each J manifold.
+    Psi = _cg_matrix(states, match=2, coupled=(2, 3, 4, 5), target=(0, 1))
+    return [Psi, np.diagflat(energies), low_energies, energies, states]
 
 
 def stateprocess_HFS(L_state, S_state, I_state, HFS_Const, g_I, E_level, thisB, sortE=False):
-
     """Build the |F,mF> basis and coupling matrix for one hyperfine LS term.
 
     L_state, S_state and I_state are nonnegative angular momenta. E_level
@@ -121,71 +116,37 @@ def stateprocess_HFS(L_state, S_state, I_state, HFS_Const, g_I, E_level, thisB, 
     E_level = _level_inputs(L_state, S_state, E_level)
     if not np.isscalar(I_state) or not np.isfinite(I_state) or I_state < 0 or 2*I_state != round(2*I_state):
         raise ValueError('I_state must be a nonnegative integer or half integer')
-    # Create an array that contains [L,ml,S,ms,I,mI] for the given L,S,I values. Starts with Highest mL,mS values and itereates through mI first, then mS, then mL
-    # Extra type-casting is required due to new numpy.float64 objects interaction with sympy wigner functions
-    LSI0 = [[float(L_state), float(x), float(S_state), float(y), float(I_state), float(z)] for x in np.linspace(-L_state, L_state, int(2*L_state+1)) for y in np.linspace(-S_state, S_state, int(2*S_state+1))for z in np.linspace(I_state, -I_state, int(2*I_state+1))]
+    L, S, I = float(L_state), float(S_state), float(I_state)
+    J_values = _j_values(L, S)
+    # Three label lists are paired index by index: |F,mF> (lowest F and mF first),
+    # |J,mJ,I,mI> (mI ascending), and |mL,mS> repeated once per mI value (mL, mS ascending).
+    coupled = make_Jmj([F for J in J_values for F in _j_values(J, I)])
+    intermediate = [(J, mJ, mI) for J, mJ in make_Jmj(J_values) for mI in _m_values(I)]
+    uncoupled = [(mL, mS) for mL in _m_values(L) for mS in _m_values(S) for _ in _m_values(I)]
+    states = [[F, mF, J, mJ, I, mI, L, mL, S, mS]
+              for (F, mF), (J, mJ, mI), (mL, mS) in zip(coupled, intermediate, uncoupled)]
 
+    degeneracy = [int(2*J + 1)*int(2*I + 1) for J in J_values]
+    energies = np.repeat(E_level, degeneracy).tolist()
+    A_constants = np.repeat(_hfs_constants(HFS_Const['HFSA'], len(J_values), 'HFSA'), degeneracy).tolist()
+    B_constants = np.repeat(_hfs_constants(HFS_Const.get('HFSB', 0), len(J_values), 'HFSB'), degeneracy).tolist()
 
-    Jvals = np.arange(np.abs(L_state-S_state), (L_state+S_state+.1))
-
-    Jmjs0 = make_Jmj(Jvals)
-
-    # Make a list of J,mJ,I,mI states
-    JI0 = [[float(x[0]), float(x[1]), float(I_state), float(y)] for x in Jmjs0 for y in np.linspace(-I_state, I_state, int(2*I_state+1))]
-
-    # Combine J and Is to make possible Fs
-    Fvals = [np.arange(np.abs(-x + I_state), (x + I_state+.1)) for x in Jvals]
-    Fvals = [float(item) for row in Fvals for item in row]
-    # Make the possible mFs for all Fs
-    Fmfs0 = make_Jmj(Fvals)
-
-    E_cm0 = [[E_level[x]]*int(2*Jvals[x] + 1)*int(2*I_state + 1) for x in range(len(E_level))]
-    E0_cm_flat = [item for row in E_cm0 for item in row]
-
-    HFS_A_In = _hfs_constants(HFS_Const['HFSA'], len(Jvals), 'HFSA')
-    HFS_B_In = _hfs_constants(HFS_Const.get('HFSB', 0), len(Jvals), 'HFSB')
-    degeneracy = [int(2*j + 1)*int(2*I_state + 1) for j in Jvals]
-    HFS_Flat = np.repeat(HFS_A_In, degeneracy).tolist()
-    HFS_FlatB = np.repeat(HFS_B_In, degeneracy).tolist()
-    # Duplicate energies based on degeneracy and flatten the results
-
-    # Duplicate HFS constants to match F levels based on degeneracy and flatten the results
-
-    # Make a large list of [F,mF,J,mJ,I,mI,L,mL,S,mS]
-    bigstatelist = [[x[0], x[1], y[0], y[1], y[2], y[3], z[0], z[1], z[2], z[3]] for x, y, z, in zip(Fmfs0, JI0, LSI0)]
-
-    # This step uses a low field approximation in order to sort the state-list based on the given magnetic field such that the relative state function order is known.
-    # This is used for signal strength calculation as otherwise we may not know what order the functions are after they get diagonalized. This step might not be needed.
-
+    fourth = A_constants
     if sortE:
-        biglist = []
-        for i, x in enumerate(E0_cm_flat):
-            thislandegF = lande_gf(bigstatelist[i][0], bigstatelist[i][4], bigstatelist[i][2], bigstatelist[i][6], bigstatelist[i][8], g_I)  # Calculate lande gf factor for the given transition
+        low = [Zeemanlow(lande_gf(st[0], st[4], st[2], st[6], st[8], g_I), st[1], thisB) + E
+               + Delta_E_HFS(I, st[2], st[0], A, B)
+               for st, E, A, B in zip(states, energies, A_constants, B_constants)]
+        order = _sorted_by_low_field(states, energies, low)
+        states = [states[i] for i in order]
+        energies = [energies[i] for i in order]
+        A_constants = [A_constants[i] for i in order]
+        B_constants = [B_constants[i] for i in order]
+        # The legacy fourth entry is the sorted weak-field energies here, the A constants otherwise.
+        fourth = [low[i] for i in order]
 
-            thisZeemanEnergy = Zeemanlow(thislandegF, bigstatelist[i][1], thisB) + x + Delta_E_HFS(I_state, bigstatelist[i][2], bigstatelist[i][0], HFS_Flat[i], HFS_FlatB[i])
-
-            biglist.append([thisZeemanEnergy, x, bigstatelist[i], HFS_Flat[i], HFS_FlatB[i]])
-        sortedlist = sorted(biglist)
-        states = [x[2] for x in sortedlist]
-        sortedHFC = [x[3] for x in sortedlist]  # Sorted hyperfine constants
-        sortedHFCB = [x[4] for x in sortedlist]  # Sorted hyperfine constants
-        E_cm = [x[1] for x in sortedlist]
-        # The fourth entry is the sorted low-field energies here, but the unsorted
-        # constants below (kept as the original returned them).
-        fourth = [x[0] for x in sortedlist]
-    else:
-        states = bigstatelist
-        sortedHFC, sortedHFCB = HFS_Flat, HFS_FlatB
-        E_cm = E0_cm_flat
-        fourth = HFS_Flat
-
-    E_HFSFlat = [Delta_E_HFS(st[4], st[2], st[0], sortedHFC[i], sortedHFCB[i]) for i, st in enumerate(states)]  # Hyperfine + E0 (spin orbital, Nist)
-    E0_cm_Mat = np.diagflat(E_cm)  # Make the diagonal energy matrix
-
-    # States are [F,mF,J,mJ,I,mI,L,mL,S,mS]: couple (J,mJ) with (I,mI) into (F,mF) within a J manifold,
-    # and (L,mL) with (S,mS) into (J,mJ) at fixed mI.
-    w3cg1 = _cg_matrix(states, match=2, coupled=(2, 3, 4, 5), target=(0, 1))
-    w3cg2 = _cg_matrix(states, match=5, coupled=(6, 7, 8, 9), target=(2, 3))
-    w3cgprod = np.matmul(w3cg1, w3cg2)
-
-    return [w3cgprod, E0_cm_Mat, E_HFSFlat, fourth, states]
+    hfs_shifts = [Delta_E_HFS(st[4], st[2], st[0], A, B) for st, A, B in zip(states, A_constants, B_constants)]
+    # Couple (J,mJ) with (I,mI) into (F,mF) within each J manifold, and (L,mL) with (S,mS)
+    # into (J,mJ) at fixed mI.
+    Psi = (_cg_matrix(states, match=2, coupled=(2, 3, 4, 5), target=(0, 1))
+           @ _cg_matrix(states, match=5, coupled=(6, 7, 8, 9), target=(2, 3)))
+    return [Psi, np.diagflat(energies), hfs_shifts, fourth, states]

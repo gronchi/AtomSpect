@@ -7,55 +7,65 @@ from .hamiltonian import HZeeman, HZeeman_HFS, ZeemanHigh, ZeemanhighHFS, Zeeman
 from .levels import stateprocess, stateprocess_HFS
 
 
-def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=None, B_HFS=0):
+def _constants_by_j(values, j_values):
+    """Map one hyperfine constant per J (or one scalar for all J) onto the J values."""
+    values = np.asarray(values, dtype=float).reshape(-1)
+    if values.size == 1:
+        values = np.repeat(values, len(j_values))
+    if values.size != len(j_values):
+        raise ValueError('HFS fan constants need one value per J, lowest J first')
+    return dict(zip(j_values, values))
 
-    # This is a supporting function which is for streamlining the diagonalization process which makes it much faster
-    # Only the required calculation steps are taken for each magnetic field as the E0 and wavefunctions for zero-field don't change.
-    # So make the wavefunctions once only before diagonalization.
-    # Make a large list of [F,mF,J,mJ,I,mI,L,mL,S,mS] HFS or [J,mJ,L,mL,S,mS] no HFS
+
+def FastZfan(States_in, Bfield, Eterm_=0, g_I=0, A_HFS=None, B_HFS=0):
     """Return [weak_field_energies, high_field_energies] in cm^-1 at Bfield (T).
 
-    States_in comes from stateprocess or stateprocess_HFS. Without HFS,
-    Eterm_ sets the high-field term energy in cm^-1. With HFS, supply g_I
-    from lande_gi and A_HFS/B_HFS in Hz (scalars or one value per J).
-    The HFS high-field branch keeps J coupled and decouples J from I;
-    it does not model the electronic Paschen-Back limit."""
-    ZfansLow = []
-    ZfansHigh = []
-    is_hfs = len(States_in[-1][0]) == 10
+    The approximations are diagonal, so each state's energy is evaluated directly
+    instead of diagonalizing. Bfield may be a scalar or an array of fields; each
+    returned entry then has the shape of Bfield.
+
+    States_in comes from stateprocess or stateprocess_HFS. Without HFS, Eterm_
+    sets the high-field term energy in cm^-1. With HFS, supply g_I from lande_gi
+    and A_HFS/B_HFS in Hz (scalars or one value per J). The HFS high-field branch
+    keeps J coupled and decouples J from I; it does not model the electronic
+    Paschen-Back limit.
+    """
+    states = States_in[-1]
+    zero_field = np.diag(States_in[1])
+    is_hfs = len(states[0]) == 10
     if is_hfs:
         if A_HFS is None:
             raise ValueError('HFS fan approximations require A_HFS in Hz')
-        j_values = sorted({state[2] for state in States_in[-1]})
-        def constants_by_j(values):
-            values = np.asarray(values, dtype=float).reshape(-1)
-            if values.size == 1:
-                values = np.repeat(values, len(j_values))
-            if values.size != len(j_values):
-                raise ValueError('HFS fan constants need one value per J, lowest J first')
-            return dict(zip(j_values, values))
-        a_by_j = constants_by_j(A_HFS)
-        b_by_j = constants_by_j(B_HFS)
-    for i, states in enumerate(States_in[-1]):
-        if not is_hfs:
-            thislandegF = lande_gj(states[0], states[2], states[4])
-            thisZeemanEnergyL = Zeemanlow(thislandegF, states[1], Bfield) + States_in[1][i][i]
-            thisZeemanEnergyH = ZeemanHigh(states[5], states[3], Bfield) + Eterm_
+        j_values = sorted({state[2] for state in states})
+        a_by_j = _constants_by_j(A_HFS, j_values)
+        b_by_j = _constants_by_j(B_HFS, j_values)
 
+    low, high = [], []
+    for i, state in enumerate(states):
+        if is_hfs:
+            g_f = lande_gf(state[0], state[4], state[2], state[6], state[8], g_I)
+            low.append(Zeemanlow(g_f, state[1], Bfield) + States_in[2][i] + zero_field[i])
+            # The Paschen-Back expression already contains the diagonal HFS term,
+            # so the F-dependent zero-field shift is not added again.
+            high.append(ZeemanhighHFS(state, a_by_j[state[2]], g_I, Bfield, b_by_j[state[2]])
+                        + zero_field[i])
         else:
+            g_j = lande_gj(state[0], state[2], state[4])
+            low.append(Zeemanlow(g_j, state[1], Bfield) + zero_field[i])
+            high.append(ZeemanHigh(state[5], state[3], Bfield) + Eterm_)
+    return [low, high]
 
-            thislandegF = lande_gf(states[0], states[4], states[2], states[6], states[8], g_I)  # Calculate lande gf factor for the given transition
-            thisZeemanEnergyL = Zeemanlow(thislandegF, states[1], Bfield) + States_in[2][i] + States_in[1][i][i]
-            # Do not add the F-dependent zero-field HFS shift again: the
-            # Paschen-Back expression already contains its diagonal HFS term.
-            thisZeemanEnergyH = (ZeemanhighHFS(states, a_by_j[states[2]], g_I,
-                                             Bfield, b_by_j[states[2]])
-                                + States_in[1][i][i])
 
-        ZfansLow.append(thisZeemanEnergyL)
-        ZfansHigh.append(thisZeemanEnergyH)
+def _exact_fan(zero_field, zeeman, fields):
+    """Sorted eigenvalues of zero_field + B*muBcm*zeeman for every field, shape (states, fields).
 
-    return [ZfansLow, ZfansHigh]
+    All fields are diagonalized in one batched call, about the mean energy so that
+    small splittings on a large level energy keep full precision.
+    """
+    origin = float(np.mean(np.diag(zero_field)))
+    shifted = zero_field - origin*np.eye(len(zero_field))
+    stack = shifted[None, :, :] + fields[:, None, None]*(muBcm*zeeman)[None, :, :]
+    return np.linalg.eigvalsh(stack).T + origin
 
 
 def ZeemanFan(Inputdeck, flags=''):
@@ -67,151 +77,38 @@ def ZeemanFan(Inputdeck, flags=''):
     cm^-1. Exact rows follow energy rank; they do not track eigenstates
     through crossings. Non-HFS H requires the selected term's EtermG or
     EtermE, including zero. HFS H uses supplied A/B constants and keeps J."""
-
-    S_ground = Inputdeck['s_ground']
-    S_excited = Inputdeck['s_excited']
-    L_ground = Inputdeck['l_ground']
-    L_excited = Inputdeck['l_excited']
-    E_ground = Inputdeck['E_ground']
-    E_excited = Inputdeck['E_excited']
-    Bfield_ext = Inputdeck['Bmag']
-    EtermE = Inputdeck.get('EtermE')
-    EtermG = Inputdeck.get('EtermG')
-    if 'I_spin' not in Inputdeck and 'H' in flags:
+    fields = np.atleast_1d(np.asarray(Inputdeck['Bmag'], dtype=float))
+    is_hfs = 'I_spin' in Inputdeck
+    if not is_hfs and 'H' in flags:
         for flag, key in (('G', 'EtermG'), ('E', 'EtermE')):
             if flag in flags and Inputdeck.get(key) is None:
                 raise ValueError(f'Non-HFS high-field {flag} fan requires {key} in cm^-1')
+    g_I = lande_gi(Inputdeck['I_spin'], Inputdeck['mu_I']) if is_hfs else 0
 
-    if 'I_spin' in Inputdeck:
-        HFSConstsG = {}
-        HFSConstsG['HFSA'] = Inputdeck['HFS_G']
-        HFSConstsE = {}
-        HFSConstsE['HFSA'] = Inputdeck['HFS_E']
-
-        if 'HFSB_G' in Inputdeck:  # Check if either of the B HFS constants are in the input deck, otherwise make a copy of the A coefficients as zeros.
-            HFSConstsG['HFSB'] = Inputdeck['HFSB_G']
+    terms = (('G', 'ground', 'HFS_G', 'HFSB_G', 'EtermG'),
+             ('E', 'excited', 'HFS_E', 'HFSB_E', 'EtermE'))
+    output = {}
+    for key, term, a_key, b_key, eterm_key in terms:
+        if key not in flags:
+            continue
+        L, S, E = Inputdeck[f'l_{term}'], Inputdeck[f's_{term}'], Inputdeck[f'E_{term}']
+        if is_hfs:
+            constants = {'HFSA': Inputdeck[a_key], 'HFSB': Inputdeck.get(b_key, np.zeros_like(E))}
+            level = stateprocess_HFS(L, S, Inputdeck['I_spin'], constants, g_I, E, 0)
+            parts = HZeeman_HFS(level, g_I)
+            zero_field, zeeman = parts['E0'] + np.diagflat(parts['EHF0']), parts['H_Z']
+            approximation = dict(g_I=g_I, A_HFS=constants['HFSA'], B_HFS=constants['HFSB'])
         else:
-            HFSConstsG['HFSB'] = np.zeros_like(E_ground)
+            level = stateprocess(L, S, E, 0)
+            zero_field, zeeman = HZeeman(level)
+            eterm = Inputdeck.get(eterm_key)
+            approximation = dict(Eterm_=0 if eterm is None else eterm)
 
-        if 'HFSB_E' in Inputdeck:  # Check if either of the B HFS constants are in the input deck, otherwise make a copy of the A coefficients as zeros.
-            HFSConstsE['HFSB'] = Inputdeck['HFSB_E']
-        else:
-            HFSConstsE['HFSB'] = np.zeros_like(E_excited)
-
-        I_spin = Inputdeck['I_spin']
-        mu_I = Inputdeck['mu_I']
-        thisg_I = lande_gi(I_spin, mu_I)
-
-        output = {}
-        if 'G' in flags:
-
-            Ground_Level_HFS = stateprocess_HFS(L_ground, S_ground, I_spin, HFSConstsG, thisg_I, E_ground, 0)
-            Ground_Zeeman_HFS = HZeeman_HFS(Ground_Level_HFS, thisg_I)
-
-            EigG = []
-            for Bvals in Bfield_ext:
-
-                if 'PsiHFS' in Inputdeck:
-                    tmat = np.asmatrix(Ground_Zeeman_HFS['E0'] + Ground_Zeeman_HFS['PsiHFS'] + Bvals*Ground_Zeeman_HFS['H_Z']*muBcm)
-                else:
-                    G_HFS0 = np.diagflat([x for x in Ground_Zeeman_HFS['EHF0']])
-                    tmat = np.asmatrix(Ground_Zeeman_HFS['E0'] + G_HFS0 + Bvals*Ground_Zeeman_HFS['H_Z']*muBcm)
-
-                EigG.append(np.linalg.eigh(tmat)[0])
-            output['G'] = np.array(EigG).T
-
+        output[key] = _exact_fan(np.asarray(zero_field), np.asarray(zeeman), fields)
+        if 'L' in flags or 'H' in flags:
+            low, high = FastZfan(level, fields, **approximation)
             if 'L' in flags:
-                LowG = []
-                for Bvals in Bfield_ext:
-                    LowG.append(FastZfan(Ground_Level_HFS, Bvals, g_I=thisg_I,
-                                        A_HFS=HFSConstsG['HFSA'], B_HFS=HFSConstsG['HFSB'])[0])
-
-                output['LowG'] = np.array(LowG).T
+                output['Low' + key] = np.array(low, dtype=float)
             if 'H' in flags:
-                HighG = []
-                for Bvals in Bfield_ext:
-                    HighG.append(FastZfan(Ground_Level_HFS, Bvals, g_I=thisg_I,
-                                         A_HFS=HFSConstsG['HFSA'], B_HFS=HFSConstsG['HFSB'])[1])
-
-                output['HighG'] = np.array(HighG).T
-        if 'E' in flags:
-            Excited_Level_HFS = stateprocess_HFS(L_excited, S_excited,  I_spin, HFSConstsE, thisg_I, E_excited, 0)
-            Excited_Zeeman_HFS = HZeeman_HFS(Excited_Level_HFS, thisg_I)
-
-            EigE = []
-            for Bvals in Bfield_ext:
-
-                if 'PsiHFS' in Inputdeck:
-                    tmat = np.asmatrix(Excited_Zeeman_HFS['E0'] + Excited_Zeeman_HFS['PsiHFS'] + Bvals*Excited_Zeeman_HFS['H_Z']*muBcm)
-                else:
-                    E_HFS0 = np.diagflat([x for x in Excited_Zeeman_HFS['EHF0']])
-                    tmat = np.asmatrix(Excited_Zeeman_HFS['E0'] + E_HFS0 + Bvals*Excited_Zeeman_HFS['H_Z']*muBcm)
-
-                EigE.append(np.linalg.eigh(tmat)[0])
-            output['E'] = np.array(EigE).T
-            if 'L' in flags:
-                LowE = []
-                for Bvals in Bfield_ext:
-                    LowE.append(FastZfan(Excited_Level_HFS, Bvals, g_I=thisg_I,
-                                        A_HFS=HFSConstsE['HFSA'], B_HFS=HFSConstsE['HFSB'])[0])
-
-                output['LowE'] = np.array(LowE).T
-            if 'H' in flags:
-                HighE = []
-                for Bvals in Bfield_ext:
-                    HighE.append(FastZfan(Excited_Level_HFS, Bvals, g_I=thisg_I,
-                                         A_HFS=HFSConstsE['HFSA'], B_HFS=HFSConstsE['HFSB'])[1])
-
-                output['HighE'] = np.array(HighE).T
-
-    else:
-        output = {}
-        if 'G' in flags:
-            Ground_Level = stateprocess(L_ground, S_ground, E_ground, 0)
-            Ground_Zeeman = HZeeman(Ground_Level)
-
-            EigG = []
-            for Bvals in Bfield_ext:
-
-                tmat = np.asmatrix(Ground_Zeeman[0] + Bvals*Ground_Zeeman[1]*muBcm)
-
-                EigG.append(np.linalg.eigh(tmat)[0])
-            output['G'] = np.array(EigG).T
-
-            if 'L' in flags:
-                LowG = []
-                for Bvals in Bfield_ext:
-                    LowG.append(FastZfan(Ground_Level, Bvals)[0])
-
-                output['LowG'] = np.array(LowG).T
-            if 'H' in flags:
-                HighG = []
-                for Bvals in Bfield_ext:
-                    HighG.append(FastZfan(Ground_Level, Bvals,Eterm_=EtermG)[1])
-
-                output['HighG'] = np.array(HighG).T
-        if 'E' in flags:
-            Excited_Level = stateprocess(L_excited, S_excited, E_excited, 0)
-            Excited_Zeeman = HZeeman(Excited_Level)
-
-            EigE = []
-            for Bvals in Bfield_ext:
-
-                tmat = np.asmatrix(Excited_Zeeman[0] + Bvals*Excited_Zeeman[1]*muBcm)
-
-                EigE.append(np.linalg.eigh(tmat)[0])
-            output['E'] = np.array(EigE).T
-
-            if 'L' in flags:
-                LowE = []
-                for Bvals in Bfield_ext:
-                    LowE.append(FastZfan(Excited_Level, Bvals)[0])
-
-                output['LowE'] = np.array(LowE).T
-            if 'H' in flags:
-                HighE = []
-                for Bvals in Bfield_ext:
-                    HighE.append(FastZfan(Excited_Level, Bvals,Eterm_=EtermE)[1])
-
-                output['HighE'] = np.array(HighE).T
+                output['High' + key] = np.array(high, dtype=float)
     return output

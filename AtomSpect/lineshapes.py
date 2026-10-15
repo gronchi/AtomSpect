@@ -11,79 +11,47 @@ import scipy.special  # noqa: F401  (older SciPy does not load submodules on att
 from .constants import amu_kg, c_light, kboltz
 
 
+def _doppler_sigma(x0, Temp_in, amu):
+    """Doppler standard deviation in metres for rest wavelength x0 (m), Temp_in (K) and mass number amu."""
+    return x0*np.sqrt(kboltz*Temp_in/(amu*amu_kg*c_light*c_light))
+
+
+def _centres(x0, v_ion, bidir):
+    """Doppler-shifted line centres and their weights.
+
+    Without bidir, one centre shifted by v_ion (m/s). With bidir, two equal halves:
+    a scalar v gives +v and -v; a pair [v1, v2] gives +v1 and -v2.
+    """
+    if not bidir:
+        return [(x0*(1 + v_ion/c_light), 1.0)]
+    v = np.atleast_1d(np.asarray(v_ion, dtype=float))
+    v_plus, v_minus = (v[0], v[1]) if v.size > 1 else (v[0], v[0])
+    return [(x0*(1 + v_plus/c_light), 0.5), (x0*(1 - v_minus/c_light), 0.5)]
+
+
 def Gaussian(x, x0, Temp_in, amu, v_ion=0, bidir=False):
-    # Dickhauer, but added the ion velocity shift to the mean calculation
-    # Gradic2022 including velocity addition+-
     """Return a unit-area Doppler Gaussian, evaluated at x in metres.
 
     x0 is the rest wavelength in metres, Temp_in is a positive temperature
     in K and amu is a positive mass number. v_ion is in m/s; with bidir=True,
     a scalar gives +/-v, or [v1,v2] gives +v1 and -v2, with equal weights.
-    The returned density is per metre. Motion uses the first-order shift."""
-    tdop = x0*np.sqrt(kboltz*Temp_in/(amu*amu_kg*c_light*c_light))
-    if bidir == True:  # First try having v_ion be an array, so that the counter-streaming velocities can be different.
-        try:
-            mean1 = x0*(1 + v_ion[0]/c_light)
-            mean2 = x0*(1 - v_ion[1]/c_light)
-
-            xx1 = (x-mean1)/tdop
-            xx2 = (x-mean2)/tdop
-            G1 = (1/(np.sqrt(2*np.pi)*tdop))*np.exp(-0.5*xx1**2)
-            G2 = (1/(np.sqrt(2*np.pi)*tdop))*np.exp(-0.5*xx2**2)
-            G = (G1+G2)/2
-
-        except:  # If not an array, just do plus and minus the same velocity
-            mean1 = x0*(1 + v_ion/c_light)
-            mean2 = x0*(1 - v_ion/c_light)
-
-            xx1 = (x-mean1)/tdop
-            xx2 = (x-mean2)/tdop
-            G1 = (1/(np.sqrt(2*np.pi)*tdop))*np.exp(-0.5*xx1**2)
-            G2 = (1/(np.sqrt(2*np.pi)*tdop))*np.exp(-0.5*xx2**2)
-            G = (G1+G2)/2
-    else:  # If bidir is False, do normal doppler shifted.
-        mean = x0*(1 + v_ion/c_light)
-        xx = (x-mean)/tdop
-        G = (1/(np.sqrt(2*np.pi)*tdop))*np.exp(-0.5*xx**2)
-    return G
+    The returned density is per metre. Motion uses the first-order shift.
+    All arguments broadcast, so several lines can be evaluated at once."""
+    sigma = _doppler_sigma(x0, Temp_in, amu)
+    return sum(weight*np.exp(-0.5*((x - mean)/sigma)**2)/(np.sqrt(2*np.pi)*sigma)
+               for mean, weight in _centres(x0, v_ion, bidir))
 
 
 def GaussianInstrum(x, x0, Temp_in, amu, pixel_size=0, v_ion=0, bidir=False):
-    # Hey1996 for including instrum as W, but added the ion velocity shift to the mean calculation
-    # Gradic2022 including velocity addition+-
-
     """Return a unit-area Gaussian with Doppler and instrument widths.
 
     x, x0 and pixel_size are in metres; pixel_size is the instrument FWHM.
     Temp_in (K) and amu set the Doppler variance, added in quadrature to
     the instrument variance. v_ion (m/s) and bidir follow Gaussian.
     The returned density is per metre."""
-    tdop = (x0*np.sqrt(kboltz*Temp_in/(amu*amu_kg*c_light*c_light)))**2
-    W = np.sqrt((pixel_size)**2 + 8*np.log(2)*tdop)
-    if bidir == True:
-        try:  # First try having v_ion be an array, so that the counter-streaming velocities can be different.
-            mean1 = x0*(1 + v_ion[0]/c_light)
-            mean2 = x0*(1 - v_ion[1]/c_light)
-            xx1 = (x-mean1)/W
-            xx2 = (x-mean2)/W
-
-            G1 = (2*np.sqrt(np.log(2))/(np.sqrt(np.pi)*W))*np.exp(-4*np.log(2)*xx1**2)
-            G2 = (2*np.sqrt(np.log(2))/(np.sqrt(np.pi)*W))*np.exp(-4*np.log(2)*xx2**2)
-            G = (G1 + G2)/2
-        except:  # If not an array, just do plus and minus the same velocity
-            mean1 = x0*(1 + v_ion/c_light)
-            mean2 = x0*(1 - v_ion/c_light)
-            xx1 = (x-mean1)/W
-            xx2 = (x-mean2)/W
-
-            G1 = (2*np.sqrt(np.log(2))/(np.sqrt(np.pi)*W))*np.exp(-4*np.log(2)*xx1**2)
-            G2 = (2*np.sqrt(np.log(2))/(np.sqrt(np.pi)*W))*np.exp(-4*np.log(2)*xx2**2)
-            G = (G1 + G2)/2
-    else:  # If bidir is False, do normal doppler shifted.
-        mean = x0*(1 + v_ion/c_light)
-        xx = (x-mean)/W
-        G = (2*np.sqrt(np.log(2))/(np.sqrt(np.pi)*W))*np.exp(-4*np.log(2)*xx**2)
-    return G
+    W = np.sqrt(pixel_size**2 + 8*np.log(2)*_doppler_sigma(x0, Temp_in, amu)**2)  # FWHM
+    return sum(weight*2*np.sqrt(np.log(2)/np.pi)/W*np.exp(-4*np.log(2)*((x - mean)/W)**2)
+               for mean, weight in _centres(x0, v_ion, bidir))
 
 
 def Voigt(x, x0, Temp_in, amu, pixel_size=1, v_ion=0, bidir=False):
@@ -93,24 +61,9 @@ def Voigt(x, x0, Temp_in, amu, pixel_size=1, v_ion=0, bidir=False):
     Doppler standard deviation; pixel_size is the Lorentzian FWHM,
     passed to SciPy as HWHM=pixel_size/2. v_ion (m/s) and bidir follow
     Gaussian. A finite evaluation window omits the remaining wings."""
-    tdop = (x0*np.sqrt(kboltz*Temp_in/(amu*amu_kg*c_light*c_light)))
-
-    # Calculate a Voigt profile using the dopler broadening as the sigma and pixel size as the gamma for the lorrentzian
-    if bidir == True:
-        try:  # First try having v_ion be an array, so that the counter-streaming velocities can be different.
-            mean1 = x0*(1 + v_ion[0]/c_light)
-            mean2 = x0*(1 - v_ion[1]/c_light)
-        except:  # If not an array, just do plus and minus the same velocity
-            mean1 = x0*(1 + v_ion/c_light)
-            mean2 = x0*(1 - v_ion/c_light)
-        V1 = scp.special.voigt_profile(x-mean1, tdop, pixel_size/2)
-        V2 = scp.special.voigt_profile(x-mean2, tdop, pixel_size/2)
-        V = (V1 + V2)/2
-    else:  # If bidir is False, do normal doppler shifted.
-        mean = x0*(1 + v_ion/c_light)
-        V = scp.special.voigt_profile(x-mean, tdop, pixel_size/2)
-    # pixel_size is the Lorentzian FWHM; scipy takes the HWHM. Area-normalized like Gaussian.
-    return V
+    sigma = _doppler_sigma(x0, Temp_in, amu)
+    return sum(weight*scp.special.voigt_profile(x - mean, sigma, pixel_size/2)
+               for mean, weight in _centres(x0, v_ion, bidir))
 
 
 def Lorrentzian(xrange, peak, pixel_size=0.002222, Skewness=[1, 1], v_ion=0, bidir=False):
@@ -122,29 +75,15 @@ def Lorrentzian(xrange, peak, pixel_size=0.002222, Skewness=[1, 1], v_ion=0, bid
     v_ion is in m/s; bidir averages scalar +/-v or the pair [+v1,-v2].
     The profile has a single continuous peak and integrates to one on the
     infinite wavelength axis."""
+    left, right = Skewness[0]*pixel_size/2, Skewness[1]*pixel_size/2  # half widths
 
-    # pixel_size is the FWHM; the half-widths on each side are therefore half of it.
-    l_w = Skewness[0]*pixel_size/2
-    r_w = Skewness[1]*pixel_size/2
-
-    def _lorentz(mean):
+    def split_lorentzian(mean):
         dx = xrange - mean
-        # Unit-area (split) Lorentzian: the area is pi*(l_w + r_w)/2 at unit peak.
-        w = np.where(dx < 0, l_w, r_w)
-        return w**2/(dx**2 + w**2)*2/(np.pi*(l_w + r_w))
+        w = np.where(dx < 0, left, right)
+        return w**2/(dx**2 + w**2)*2/(np.pi*(left + right))
 
-    if bidir == True:
-        try:  # First try having v_ion be an array, so that the counter-streaming velocities can be different.
-            mean1 = peak*(1 + v_ion[0]/c_light)
-            mean2 = peak*(1 - v_ion[1]/c_light)
-        except:  # If not an array, just do plus and minus the same velocity
-            mean1 = peak*(1 + v_ion/c_light)
-            mean2 = peak*(1 - v_ion/c_light)
-        SL = (_lorentz(mean1) + _lorentz(mean2))/2
-    else:  # If bidir is False, do normal doppler shifted.
-        mean = peak*(1 + v_ion/c_light)  # Doppler shift to peak
-        SL = _lorentz(mean)
-    return SL
+    return sum(weight*split_lorentzian(mean) for mean, weight in _centres(peak, v_ion, bidir))
+
 
 def Normalize(list_in, scaling=1.0):
     """Scale an array to peak scaling; return zeros and empty arrays unchanged."""

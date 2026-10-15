@@ -17,7 +17,8 @@ def _transition_pairs(LevelG, LevelE):
 
 def _wavelengths(LZG, LZE):
     """Vacuum and air wavelengths (nm) for the eigenpairs, upper-then-lower order."""
-    wave_vac = np.array([1e7/(y-x) for y in LZE[0] for x in LZG[0]])
+    # Rows are upper levels and columns lower levels, flattened upper-major like kron(upper, lower).
+    wave_vac = 1e7/np.subtract.outer(np.asarray(LZE[0]), np.asarray(LZG[0])).ravel()
     return wave_vac, Vac_to_air(wave_vac)
 
 

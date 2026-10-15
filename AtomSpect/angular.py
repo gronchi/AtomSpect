@@ -1,4 +1,6 @@
 """Angular-momentum helpers: Lande factors, Clebsch-Gordan/3j wrappers, E1 dipole strengths."""
+from functools import lru_cache
+
 import numpy as np
 from sympy.physics.quantum.cg import CG
 from sympy.physics.wigner import wigner_3j as w3j
@@ -60,6 +62,37 @@ def make_Jmj(J_am):
     return Jtmp
 
 
+def _triangle(a, b, c):
+    """True when a, b, c can couple: |a-b| <= c <= a+b with an integer sum."""
+    return abs(a - b) <= c <= a + b and float(a + b + c).is_integer()
+
+
+@lru_cache(maxsize=None)
+def _wigner3j(j1, j2, j3, m1, m2, m3):
+    if (m1 + m2 + m3 != 0 or not _triangle(j1, j2, j3)
+            or abs(m1) > j1 or abs(m2) > j2 or abs(m3) > j3):
+        return 0.0
+    return float(w3j(j1, j2, j3, m1, m2, m3))
+
+
+@lru_cache(maxsize=None)
+def _wigner6j(j1, j2, j3, j4, j5, j6):
+    if not (_triangle(j1, j2, j3) and _triangle(j1, j5, j6)
+            and _triangle(j4, j2, j6) and _triangle(j4, j5, j3)):
+        return 0.0
+    return float(w6j(j1, j2, j3, j4, j5, j6))
+
+
+def wigner3j(j1, j2, j3, m1, m2, m3):
+    """Wigner 3j symbol as a float, exact (SymPy) and cached; zero when a selection rule fails."""
+    return _wigner3j(*(float(x) for x in (j1, j2, j3, m1, m2, m3)))
+
+
+def wigner6j(j1, j2, j3, j4, j5, j6):
+    """Wigner 6j symbol as a float, exact (SymPy) and cached; zero when a triangle rule fails."""
+    return _wigner6j(*(float(x) for x in (j1, j2, j3, j4, j5, j6)))
+
+
 def CGCoeff(j1, m1, j2, m2, j3, m3):
     """Return the real Clebsch-Gordan coefficient <j1,m1;j2,m2|j3,m3> as a float."""
     thisCG = float(CG(j1, m1, j2, m2, j3, m3).doit())
@@ -68,7 +101,7 @@ def CGCoeff(j1, m1, j2, m2, j3, m3):
 
 def CGw3(j1, m1, j2, m2, j3, m3):
     """Return <j1,m1;j2,m2|j3,m3> as a float using a Wigner 3j symbol."""
-    return ((-1)**(-j1 + j2 - m3))*np.sqrt(2*j3 + 1)*float(w3j(float(j1), float(j2), float(j3), float(m1), float(m2), -float(m3)))
+    return (-1)**(-j1 + j2 - m3)*np.sqrt(2*j3 + 1)*wigner3j(j1, j2, j3, m1, m2, -m3)
 
 
 def dipolestr(LG, LE):
@@ -76,12 +109,11 @@ def dipolestr(LG, LE):
 
     LG and LE each contain [J,mJ,L,mL,S,mS]. The radial reduced matrix
     element is omitted; square the amplitude to obtain an angular strength."""
-    thisq = LE[1] - LG[1]
-
-    tw3 = float(w3j(LG[0], 1, LE[0], LG[1], thisq, -LE[1]))
-    tdp3 = ((-1)**(LE[2] + LG[4] - LE[1])) * np.sqrt((2*LE[0]+1)*(2*LG[0]+1))*tw3*float(w6j(LE[2], LE[0], LG[4], LG[0], LG[2], 1))
-
-    return tdp3
+    q = LE[1] - LG[1]
+    phase = (-1)**(LE[2] + LG[4] - LE[1])
+    return (phase*np.sqrt((2*LE[0] + 1)*(2*LG[0] + 1))
+            * wigner3j(LG[0], 1, LE[0], LG[1], q, -LE[1])
+            * wigner6j(LE[2], LE[0], LG[4], LG[0], LG[2], 1))
 
 
 def dipolestr_HFS(LG, LE):
@@ -89,17 +121,10 @@ def dipolestr_HFS(LG, LE):
 
     LG and LE each contain [F,mF,J,mJ,I,mI,L,mL,S,mS]. The radial reduced
     matrix element is omitted. The expression uses one 3j and two 6j symbols."""
-
-    thisq = LE[1] - LG[1]
-
-    # This is Metcalf 4.33
-    tw3 = float(w3j(LG[0], 1, LE[0], LG[1], thisq, -LE[1]))
-    tw61 = float(w6j(LE[6], LE[2], LG[8], LG[2], LG[6], 1))
-    tw62 = float(w6j(LE[2], LE[0], LG[4], LG[0], LG[2], 1))
-
-    tphase = (-1)**(1 + LE[6] + LG[8] + LG[2] + LE[2] + LG[4] - LE[1])
-    troot = np.sqrt((2*LG[0] + 1)*(2*LE[0]+1) * (2*LG[2] + 1)*(2*LE[2] + 1))
-
-    tdp3 = tphase * troot*tw3*tw61*tw62
-
-    return tdp3
+    # Metcalf 4.33
+    q = LE[1] - LG[1]
+    phase = (-1)**(1 + LE[6] + LG[8] + LG[2] + LE[2] + LG[4] - LE[1])
+    root = np.sqrt((2*LG[0] + 1)*(2*LE[0] + 1)*(2*LG[2] + 1)*(2*LE[2] + 1))
+    return (phase*root*wigner3j(LG[0], 1, LE[0], LG[1], q, -LE[1])
+            * wigner6j(LE[6], LE[2], LG[8], LG[2], LG[6], 1)
+            * wigner6j(LE[2], LE[0], LG[4], LG[0], LG[2], 1))
