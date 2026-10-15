@@ -1,8 +1,8 @@
 # AtomSpect documentation
 
-The [theory manual](AtomSpect_theory_manual.pdf) states the model as implemented: LS-term Zeeman structure, hyperfine structure, E1 strengths, polarization, line profiles and convolution. It also lists the checks that are run and the regimes in which the results should not be trusted. [REVIEW.md](../audit/REVIEW.md) records what the audit found and what changed.
+The [theory manual](AtomSpect_theory_manual.pdf) states the model as implemented: LS-term Zeeman structure, hyperfine structure, E1 strengths, polarization, line profiles and convolution. It also lists the checks that are run and the regimes in which the results should not be trusted.
 
-The manual now covers axial scalar/tensor dc Stark shifts, the revised Edlén vacuum/air conversion (dry air at 20 °C by default), and the separate calibrated atomic API. See the [DC field input example](../README.md#dc-electric-fields) and the [Rb-87 physics coverage review](../audit/STECK_RB87_REVIEW.md). With zero or omitted `Efield`, Stark code leaves the existing result unchanged. Nonzero electric fields require polarizability data and the exact solver; the field must follow the quantization axis.
+The manual now covers axial scalar/tensor dc Stark shifts, the revised Edlén vacuum/air conversion (dry air at 20 °C by default), and the separate calibrated atomic API. See the [DC field input example](../README.md#dc-electric-fields) and the [Rb-87 benchmarks](../tests/test_steck_rb87.py). With zero or omitted `Efield`, Stark code leaves the existing result unchanged. Nonzero electric fields require polarizability data and the exact solver; the field must follow the quantization axis.
 
 The Rb-87 benchmarks check hyperfine intervals, Breit–Rabi energies, branch factors, representative dipole components, lifetime/oscillator conversions, and emission patterns. Stark checks compare against an independent spin Hamiltonian, weak-field tensor expectations, and exact zero-electric-field output equality. These tests supplement the 11 figure-generation checks; they do not certify every signed dipole-table entry or establish experimental accuracy.
 
@@ -32,7 +32,6 @@ It computes a He I 447 nm Zeeman pattern at 0.5 T, with polarization labels, and
 | `scripts/plot_figures.py` | Redraws all four figures from the CSV files without solving again |
 | `scripts/build_manual.py` | Builds the PDF with Python on Windows or Unix |
 | `scripts/example_minimal.py` | Runnable minimal example |
-| `../audit/REVIEW.md` | Audit findings, repairs and validation scope |
 
 ## Build and regenerate
 
@@ -71,7 +70,7 @@ The figures illustrate the implemented model. The energies and hyperfine constan
 
 `signal` sums to one for a nonzero observation and is zero for a dark observation. `SpecOut` stores wavelengths in nm and intensities per metre; multiply intensities by `1e-9` for a density per nm. Finite windows and coarse sampling can lose area. Bins now merge when their padded windows overlap. The symmetric `Lorrentzian` ignores `Skewness`; use `Skewed` for unequal half widths. Large Doppler shifts can move peaks outside the rest-wavelength bins, so enlarge `fxnwindow` and check convergence. The Voigt warning estimates Lorentzian-tail loss only.
 
-The review also corrects `ZeemanSplits_G` to a ground-energy vector in cm^-1. It previously contained eigenvectors. See [REVIEW.md](../audit/REVIEW.md) for compatibility changes and remaining limitations. On this Windows installation, a broken Anaconda `gmpy2` DLL required `MPMATH_NOGMPY=1` and `SYMPY_GROUND_TYPES=python` for tests; documentation scripts select this backend by default. This is a local runtime workaround.
+`ZeemanSplits_G` is a ground-energy vector in cm^-1; it previously contained eigenvectors. See the manual for compatibility conventions and remaining limitations. On this Windows installation, a broken Anaconda `gmpy2` DLL required `MPMATH_NOGMPY=1` and `SYMPY_GROUND_TYPES=python` for tests; documentation scripts select this backend by default. This is a local runtime workaround.
 
 ## Plotting behavior
 

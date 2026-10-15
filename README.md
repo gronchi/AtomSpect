@@ -4,7 +4,7 @@ AtomSpect is a Python package for Zeeman and hyperfine spectra in plasma diagnos
 
 The model treats one lower and one upper LS term in a static magnetic field, with optional nuclear spin and hyperfine constants. Calculations use NumPy, SciPy, and SymPy; plotting uses Matplotlib. The code is distributed under GPL-3.0-or-later.
 
-See the [theory manual](doc/AtomSpect_theory_manual.pdf), [documentation guide](doc/README.md), and [review record](audit/REVIEW.md) for the equations, conventions, validation, and known limitations.
+See the [theory manual](doc/AtomSpect_theory_manual.pdf) and [documentation guide](doc/README.md) for the equations, conventions, validation, and known limitations.
 
 ## Workflow
 
@@ -218,7 +218,7 @@ This runs the documentation checks, regenerates numerical data and figures, and 
 
 ## Validation and limitations
 
-The repository includes regression tests and documentation checks for selected analytic limits. Their scope and measured errors are recorded in [REVIEW.md](audit/REVIEW.md) and the manual. They do not establish agreement with experiment across all supported inputs.
+The repository includes regression tests and documentation checks for selected analytic limits. Their scope and measured errors are recorded in the manual. They do not establish agreement with experiment across all supported inputs.
 
 - Ordinary `SpecOut` uses relative angular strengths. The calibrated atomic API supports absolute E1 rates, explicit populations, and photon-energy weighting; attaching `RadiativeData` does not replace `SpecOut`. Legacy `A_Ein`, `f_osc`, and `S_line` outputs remain unvalidated placeholders.
 - The LS spectrum model treats each term separately. Axial scalar/tensor dc Stark interactions are included; cross-J Stark tensors, nonparallel electric/magnetic fields, and collision dynamics are omitted.
@@ -227,7 +227,7 @@ The repository includes regression tests and documentation checks for selected a
 - The air-to-vacuum helper numerically inverts the revised Edlén relation under laboratory conditions. Its validity does not extend to arbitrary wavelengths or atmospheric conditions. The standalone hyperfine-constant estimator remains a research aid outside the validated workflow.
 - Natural widths are not automatically derived from lifetimes. HFS includes A/B but not octupole C or cross-J HFS tensors. Vapor pressure, photon recoil, population kinetics, and radiative transfer are not calculated.
 
-The [Rb-87 coverage review](audit/STECK_RB87_REVIEW.md) distinguishes verified cases from missing features and precision limitations. Planned extensions include broader Stark models, validated hyperfine-constant estimation, atomic-data import, and a GUI for multiple lines or species.
+The [Rb-87 benchmarks](tests/test_steck_rb87.py) check selected structure and radiative relations; the manual distinguishes supported features from missing physics and precision limitations. Planned extensions include broader Stark models, validated hyperfine-constant estimation, atomic-data import, and a GUI for multiple lines or species.
 
 ## Data, citation, and contact
 
