@@ -25,7 +25,8 @@ env/
 Thumbs.db
 
 # Local scratch work, audit notes and temporary outputs
-audit/
+audit/*
+!audit/REVIEW.md
 CurrentWork
 Spect_split_ext_field.py
 LZ_*

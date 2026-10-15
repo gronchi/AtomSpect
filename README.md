@@ -4,7 +4,7 @@ AtomSpect is a Python package for Zeeman and hyperfine spectra in plasma diagnos
 
 The model treats one lower and one upper LS term in a static magnetic field, with optional nuclear spin and hyperfine constants. Calculations use NumPy, SciPy, and SymPy; plotting uses Matplotlib. The code is distributed under GPL-3.0-or-later.
 
-See the [theory manual](doc/AtomSpect_theory_manual.pdf), [documentation guide](doc/README.md), and [review record](doc/REVIEW.md) for the equations, conventions, validation, and known limitations.
+See the [theory manual](doc/AtomSpect_theory_manual.pdf), [documentation guide](doc/README.md), and [review record](audit/REVIEW.md) for the equations, conventions, validation, and known limitations.
 
 ## Workflow
 
@@ -44,7 +44,7 @@ python -m pip install -e ".[test]"
 python -m pytest -q
 ```
 
-The package imports Tkinter for its slider interface. Use a Python installation with Tk support. The slider and manual-entry dialogs require an interactive plotting environment. The documentation example runs without opening a window; add `--plot` to display its spectrum.
+Calculation imports work without a GUI. Sliders require an interactive Matplotlib backend; Tkinter is loaded only when a manual-value dialog opens, so those dialogs require a Python installation with Tk support. The documentation example runs without opening a window; add `--plot` to display its spectrum.
 
 ## Calculate a spectrum
 
@@ -95,7 +95,7 @@ plt.show()
 
 A plot style contains `[color, linewidth, linestyle, optional label, optional marker]`. `PlotFunction` returns a two-dimensional array of axes. To add a curve to an existing plot, pass `makefig=False`, `axsin=axes`, and `position=[row, column]`. `NormalizeSig=True` scales the displayed peak and leaves the calculated result unchanged.
 
-`MakeSlider(deck, [measured_wavelengths, measured_intensities])` opens the interactive interface. It varies magnetic field, temperature in eV, and instrument width. `banglevary=True` adds a viewing-angle slider; `polvary=True` adds a linear-analyzer slider. The interface starts from its own fixed settings and changes the input dictionary during updates. See its docstring for the remaining options.
+`MakeSlider(deck, [measured_wavelengths, measured_intensities])` opens the interactive interface. It varies magnetic field, temperature in eV, and instrument width. `banglevary=True` adds a viewing-angle slider; `polvary=True` adds a linear-analyzer slider. The interface starts at `B=min(2.5, Bmax)` T and width 0.002 nm. Temperature comes from `TempeV` or `Temp` (default 0.05 eV), clipped to `[0.01, Tmax]`. `Bmax=5` T and `Tmax=30` eV set the slider limits. Updates change the input dictionary. Use `block=False` to return immediately and retain the figure; its `sliders` attribute holds the controls. See its docstring for the remaining options.
 
 ## Inputs and units
 
@@ -148,7 +148,7 @@ fan = AtomSpect.ZeemanFan(fan_deck, flags="GL")
 print(fan["G"].shape)         # states × field samples
 ```
 
-Fan flags select `G` (lower term), `E` (upper term), `L` (weak-field approximation), and `H` (high-field approximation). Include G or E. `plotZfan` plots the selected fans and returns the energy arrays. Exact rows follow energy rank at each field sample; they do not track states through crossings.
+Fan flags select `G` (lower term), `E` (upper term), `L` (weak-field approximation), and `H` (high-field approximation). Include G or E. `plotZfan` plots the selected fans and returns the energy arrays. With `savefig=True`, it saves each selected term as `<figname>_Ground.png` or `<figname>_Excited.png`. Each figure has its own labels and legend; `markercount=0` hides markers. Exact rows follow energy rank at each field sample; they do not track states through crossings.
 
 Non-HFS high-field fans require the selected term's `EtermG` or `EtermE`. The electronic Paschen–Back approximation neglects fine structure and uses gL = 1 and gS = 2. HFS high-field fans use the hyperfine Paschen–Back approximation, which keeps J coupled and decouples it from I. They use the supplied fine-structure energies and A/B constants; term-energy inputs are unnecessary.
 
@@ -187,7 +187,7 @@ This runs the documentation checks, regenerates numerical data and figures, and 
 
 ## Validation and limitations
 
-The repository includes regression tests and documentation checks for selected analytic limits. Their scope and measured errors are recorded in [REVIEW.md](doc/REVIEW.md) and the manual. They do not establish agreement with experiment across all supported inputs.
+The repository includes regression tests and documentation checks for selected analytic limits. Their scope and measured errors are recorded in [REVIEW.md](audit/REVIEW.md) and the manual. They do not establish agreement with experiment across all supported inputs.
 
 - Strengths are relative. Radial matrix elements, populations, and photon-energy weighting are absent; opt-in `A_Ein`, `f_osc`, and `S_line` outputs are unvalidated placeholders.
 - Each LS term is isolated. Mixing between different terms, Stark interactions, and collisional effects are outside the implemented spectrum model.

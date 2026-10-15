@@ -45,10 +45,22 @@ These cases are covered by [test_review_regressions.py](../tests/test_review_reg
 | Slider treated a 0 degree filter angle as "no filter" | Fixed |
 | `fxnwindow` truncates Lorentzian and Voigt wings | A warning appears above 2% area loss; the default is unchanged |
 
-## Still open
+## Follow-up review on 2026-10-14
+
+Moved this record from `doc/REVIEW.md` to `audit/REVIEW.md`; documentation links and the Git ignore exception preserve access to the tracked record.
+
+- Nearly degenerate helium levels: diagonalization about the mean energy reduces numerical variation in transition strengths. Commit `4643dd9` repaired the golden-test failure; subsequent GitHub runs passed.
+- Slider updates: polarization artists retain their labels, empty components are supported, redraws are requested, custom B/T limits are honored, and the initial calculated temperature matches the widget. These fixes are in `34487a0`.
+- Convolution: plot-window edges inside a bin are evaluated exactly, including windows narrower than the sample spacing. Valid plotting styles may mix optional fields and tuple-valued colors or line styles (`34487a0`).
+- Missed fan-plot repair: each selected term now receives axis labels and a legend and is saved to its own `_Ground.png` or `_Excited.png` file. Ground-only output previously had the excited filename; requesting both terms saved and labeled only the last figure.
+- The fan-plot regression also exposed `markercount=2` producing a zero slice step for weak-field markers. The weak-field marker spacing now stays at least one; zero still hides markers.
+
+The full suite passed 393 tests after these repairs. The follow-up tests render ground-only, excited-only and combined fans with marker counts 0, 2 and 15, and capture each save request. They avoid allocating the legacy 2000-dpi image during testing. The model limitations below remain explicit; this review does not establish experimental accuracy or validate interactive mouse/dialog behavior.
+
+## Remaining limitations
 
 - The hyperfine-constant estimator (now `AtomSpect/hfs_estimate.py`, formerly the root script `HFS_Const_Calcs.py`) was moved into the package with its duplicated constants and unit helpers removed. Its numbers are pinned by `tests/test_hfs_estimate.py`. The quadrupole routines were repaired: the elementary charge was 1.602e-16 instead of 1.602e-19 and a missing 1/(4 pi eps0) and a J-to-Hz conversion were absorbed into odd factors, so `Bhfsconst` was about 11 times too large and `Bhfs_kopf` carried a spurious factor of 1.0546; both now evaluate the SI expression B = e Q V_zz, `qe` is gone, and the misapplied `gI_kopf` was removed. The A-constant model itself (hydrogenic with corrections) is unchanged and not validated beyond its table.
-- Absolute radiative quantities need a reduced radial matrix element as input.
+- Legacy radiative placeholders remain invalid absolute quantities. The newer atomic API supports absolute rates when supplied with radiative references or orbital strength; `RadiativeData` attaches these results separately to `AtomSpect_Main`. Missing atomic data are not inferred.
 - Approximation spectra (`DoLowSig`, `DoHighSig`) are not implemented with hyperfine structure.
 - Equal-energy eigenvectors receive a reconstructed basis, so only summed strength at coincident lines is meaningful.
 - The non-HFS high-field approximation neglects fine structure and its polarization labels are not resolved by eigenpair.
@@ -56,7 +68,7 @@ These cases are covered by [test_review_regressions.py](../tests/test_review_reg
 - `air_to_vac` evaluates the refractive index at the air wavelength rather than solving the inverse relation. Rounded legacy eV conversion constants also limit precision.
 - `Zsig_norad` retains raw eigensystem bases; individual strengths at degeneracies are not guaranteed to be basis independent.
 - `Calc_HFS_Vals` is reserved and ignored. Direct low-level profile calls require physically valid widths, temperatures, and velocity shapes; they are less thoroughly validated than the main input deck.
-- The plotting GUI still starts from hard-coded settings, changes the input dictionary, and needs an interactive Tk/Matplotlib environment. `plotZfan` saves only the last figure when both terms are plotted.
+- The plotting GUI starts at B=min(2.5, Bmax) T and width=0.002 nm, takes temperature from the input deck (clipped to the slider range), and changes the input dictionary. Interactive use requires a Matplotlib GUI backend; manual-entry dialogs require Tk.
 
 ## Changes that alter outputs
 
@@ -89,8 +101,8 @@ Rewrote the main README in consistent technical English, with current installati
 
 ## Validation scope
 
-Analytic checks run by `scripts/make_figures.py` (see the manual) and the repository test suite (polarization, high field, hyperfine, flags, profiles, golden outputs). Continuous integration runs the tests on Python 3.11 and 3.13. None of this validates the model against experiment, and none of it covers the regimes in the manual's list of known limits.
+Analytic checks run by `doc/scripts/make_figures.py` (see the manual) and the repository test suite (polarization, high field, hyperfine, flags, profiles, golden outputs). Continuous integration runs the tests on Python 3.11 and 3.13. None of this validates the model against experiment, and none of it covers the regimes in the manual's list of known limits.
 
-The 2026-10-13 local verification passed 311 tests, including 29 new regression cases, and all 11 documentation checks. The minimal example returned 135 eigenstate pairs and 330 continuous samples. Data-only regeneration, plotting from CSV, complete generation, and two-pass PDF compilation were exercised. After the style revision, the rebuilt manual has 14 pages including the cover and contents. Its rendered pages were visually reviewed against EZSSS, including equations, tables, the flowchart and all four numerical figures. It compiles with no LaTeX warnings, overfull boxes or underfull boxes. The style revision regenerated all figures and reran the 11 documentation checks. Consult `figures/data/validation_checks.csv` and `provenance.txt` for measured residuals and runtime versions.
+The 2026-10-13 local verification passed 311 tests, including 29 new regression cases, and all 11 documentation checks. The minimal example returned 135 eigenstate pairs and 330 continuous samples. Data-only regeneration, plotting from CSV, complete generation, and two-pass PDF compilation were exercised. After the style revision, the rebuilt manual has 14 pages including the cover and contents. Its rendered pages were visually reviewed against EZSSS, including equations, tables, the flowchart and all four numerical figures. It compiles with no LaTeX warnings, overfull boxes or underfull boxes. The style revision regenerated all figures and reran the 11 documentation checks. Consult `doc/figures/data/validation_checks.csv` and `doc/figures/data/provenance.txt` for measured residuals and runtime versions.
 
 Tests used the Python SymPy arithmetic backend because the local Anaconda `gmpy2` DLL failed during import. The remaining test warnings concern intentional wing truncation and opt-in radiative placeholders. Linux CI, other interpreters, interactive GUI events, full experimental example fitting, research notebooks, and the hyperfine estimator were not validated in this review.

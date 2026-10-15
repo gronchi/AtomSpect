@@ -47,4 +47,4 @@ The bulk example finds its input CSV beside the script and writes `HFSOutput2.cs
 
 These scripts illustrate calculations and plotting; they are not a general validation against experiment. `other_sticks` denotes pairs without an E1 component and does not identify non-dipole emission. Some examples write plot files when run.
 
-See the [main README](../README.md) for installation and units, the [theory manual](../doc/AtomSpect_theory_manual.pdf) for the model, and the [review record](../doc/REVIEW.md) for known limitations.
+See the [main README](../README.md) for installation and units, the [theory manual](../doc/AtomSpect_theory_manual.pdf) for the model, and the [review record](../audit/REVIEW.md) for known limitations.

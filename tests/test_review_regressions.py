@@ -306,3 +306,28 @@ def test_slider_respects_limits_and_keeps_initial_temperature():
         assert raw['TempeV'] == fig.sliders['T'].val
     finally:
         plt.close(fig)
+
+
+@pytest.mark.parametrize('flags', ['G', 'E', 'GE'])
+@pytest.mark.parametrize('spacing', [0, 2, 15])
+def test_fan_labels_and_saves_each_selected_term(flags, spacing, monkeypatch, tmp_path):
+    from matplotlib import pyplot as plt
+    from matplotlib.figure import Figure
+    saved = []
+    def capture(fig, filename, **kwargs):
+        fig.canvas.draw()
+        saved.append((fig, str(filename)))
+    monkeypatch.setattr(Figure, 'savefig', capture)
+    try:
+        A.plotZfan(deck(Bmag=np.array([0., .1, .2]), EtermG=0., EtermE=12500.),
+                   flags=flags+'LH', savefig=True, figname=tmp_path/'fan', markercount=spacing)
+        names = [name for key, name in [('G', 'Ground'), ('E', 'Excited')] if key in flags]
+        assert len(saved) == len(names)
+        for (fig, filename), name in zip(saved, names):
+            assert filename == str(tmp_path/f'fan_{name}.png')
+            ax = fig.axes[0]
+            assert ax.get_xlabel() == 'Magnetic Field (T)'
+            assert ax.get_ylabel() == 'Energy (cm^-1)'
+            assert ax.get_legend() is not None
+    finally:
+        plt.close('all')

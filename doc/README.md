@@ -1,6 +1,6 @@
 # AtomSpect documentation
 
-The [theory manual](AtomSpect_theory_manual.pdf) states the model as implemented: LS-term Zeeman structure, hyperfine structure, E1 strengths, polarization, line profiles and convolution. It also lists the checks that are run and the regimes in which the results should not be trusted. [REVIEW.md](REVIEW.md) records what the audit found and what changed.
+The [theory manual](AtomSpect_theory_manual.pdf) states the model as implemented: LS-term Zeeman structure, hyperfine structure, E1 strengths, polarization, line profiles and convolution. It also lists the checks that are run and the regimes in which the results should not be trusted. [REVIEW.md](../audit/REVIEW.md) records what the audit found and what changed.
 
 The PDF follows EZSSS's visual style: a separate cover, a descriptive summary and Roman-numbered contents on page two, section headers, padded implementation and caveat boxes, a calculation-flow diagram and routine map, full-width tables, an input-options appendix, and numbered references. Numerical figures use its serif fonts, inward ticks, and line weights. Color meanings also follow EZSSS: blue for pi, orange for both sigma branches (distinguished by solid/dashed stems), grey dashed reference curves, and a blue sequence for broadened profiles.
 
@@ -28,7 +28,7 @@ It computes a He I 447 nm Zeeman pattern at 0.5 T, with polarization labels, and
 | `scripts/plot_figures.py` | Redraws all four figures from the CSV files without solving again |
 | `scripts/build_manual.py` | Builds the PDF with Python on Windows or Unix |
 | `scripts/example_minimal.py` | Runnable minimal example |
-| `REVIEW.md` | Audit findings, repairs and validation scope |
+| `../audit/REVIEW.md` | Audit findings, repairs and validation scope |
 
 ## Build and regenerate
 
@@ -67,4 +67,12 @@ The figures illustrate the implemented model. The energies and hyperfine constan
 
 `signal` sums to one for a nonzero observation and is zero for a dark observation. `SpecOut` stores wavelengths in nm and intensities per metre; multiply intensities by `1e-9` for a density per nm. Finite windows and coarse sampling can lose area. Bins now merge when their padded windows overlap. The symmetric `Lorrentzian` ignores `Skewness`; use `Skewed` for unequal half widths. Large Doppler shifts can move peaks outside the rest-wavelength bins, so enlarge `fxnwindow` and check convergence. The Voigt warning estimates Lorentzian-tail loss only.
 
-The review also corrects `ZeemanSplits_G` to a ground-energy vector in cm^-1. It previously contained eigenvectors. See [REVIEW.md](REVIEW.md) for compatibility changes and remaining limitations. On this Windows installation, a broken Anaconda `gmpy2` DLL required `MPMATH_NOGMPY=1` and `SYMPY_GROUND_TYPES=python` for tests; documentation scripts select this backend by default. This is a local runtime workaround.
+The review also corrects `ZeemanSplits_G` to a ground-energy vector in cm^-1. It previously contained eigenvectors. See [REVIEW.md](../audit/REVIEW.md) for compatibility changes and remaining limitations. On this Windows installation, a broken Anaconda `gmpy2` DLL required `MPMATH_NOGMPY=1` and `SYMPY_GROUND_TYPES=python` for tests; documentation scripts select this backend by default. This is a local runtime workaround.
+
+## Plotting behavior
+
+`plotZfan(..., flags="GE", savefig=True, figname="fan")` saves both `fan_Ground.png` and `fan_Excited.png`, each with axis labels and a legend. Ground-only requests use the ground filename. `markercount=0` hides markers; `markercount=2` also works with weak-field curves.
+
+`MakeSlider` honors `Bmax` and `Tmax`, starts from the input temperature within its allowed range, and retains polarization labels when updating. An empty component may gain transitions as the field changes. See the [main README](../README.md) for initial settings and backend requirements.
+
+Convolution evaluates plot-window edges inside a bin directly, even when the window is narrower than the sample spacing. Edges outside all evaluated bins remain zero; finite-bin and sampling limitations still apply.

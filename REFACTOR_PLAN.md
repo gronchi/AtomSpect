@@ -61,7 +61,7 @@ with many string-keyed options parsed inline). Consequences seen in the audit:
   absolute radiative quantities (needs a reduced radial matrix element as input).
 - Phase 7 (documentation) done: `doc/` mirrors the EZSSS layout (LaTeX manual with PDF, README,
   REVIEW, Makefile, `scripts/{make_figures,plot_figures,build_manual,example_minimal}.py`, figure data
-  and 11 analytic checks). A repository review after phase 6 (see `doc/REVIEW.md`) added
+  and 11 analytic checks). A repository review after phase 6 (see `audit/REVIEW.md`) added
   `tests/test_review_regressions.py`. The audit working files stay in the git-ignored `audit/`.
 - Follow-up (October 2026): `import AtomSpect` no longer loads matplotlib or tkinter; the plotting
   names load on first use and tkinter only when a slider value dialog opens (`tests/test_imports.py`).
