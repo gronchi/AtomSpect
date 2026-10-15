@@ -34,11 +34,13 @@ def test_overlapping_bins_use_each_stick_once_and_grid_is_ordered():
     result = A.make_stickbins(waves, np.arange(3), windsize=.1)
     assert sum(map(len, result['binned_waves'])) == len(waves)
     assert len(result['bin_windows']) == 1
-    spectrum, _, _ = A.Convol_Spect(waves, np.ones(3), [599, 601], [599, 601], 40, .002)
+    spectrum, _, bins = A.Convol_Spect(waves, np.ones(3), [599, 601], [599, 601], 40, .002)
     assert np.all(np.diff(spectrum[0]) >= 0)
-    expected = sum(A.Lorrentzian(spectrum[0][1:-1]*1e-9, w*1e-9, pixel_size=.002e-9)
+    inside = (spectrum[0] >= bins[0][0]) & (spectrum[0] <= bins[0][1])
+    expected = sum(A.Lorrentzian(spectrum[0][inside]*1e-9, w*1e-9, pixel_size=.002e-9)
                    for w in waves)
-    np.testing.assert_allclose(spectrum[1][1:-1], expected)
+    np.testing.assert_allclose(spectrum[1][inside], expected)
+    assert np.all(spectrum[1][~inside] == 0)
 
 
 def test_integer_wavelengths_preserve_fractional_metadata():

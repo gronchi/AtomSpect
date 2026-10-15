@@ -99,10 +99,11 @@ def run_checks():
 
     # 8. Bins with overlapping padding must not duplicate component profiles.
     waves = np.array([600., 600.15, 600.16])
-    spectrum, _, _ = AtomSpect.Convol_Spect(waves, np.ones(3), [599, 601], [599, 601], 40, .002)
-    grid = spectrum[0][1:-1]*1e-9
+    spectrum, _, bins = AtomSpect.Convol_Spect(waves, np.ones(3), [599, 601], [599, 601], 40, .002)
+    inside = (spectrum[0] >= bins[0][0]) & (spectrum[0] <= bins[0][1])
+    grid = spectrum[0][inside]*1e-9
     expected = sum(AtomSpect.Lorrentzian(grid, wave*1e-9, pixel_size=.002e-9) for wave in waves)
-    residual = np.max(np.abs(spectrum[1][1:-1] - expected))/np.max(expected)
+    residual = np.max(np.abs(spectrum[1][inside] - expected))/np.max(expected)
     checks.append(('overlapping_bin_profile_sum', residual, 1e-12))
 
     # 9. An analyzer with zero transmission yields a dark spectrum, not NaN.

@@ -151,7 +151,8 @@ Common optional settings are listed below. The manual's options appendix and the
 | `Convfxn` | `Gaussian`, `GaussianInstrum`, `Voigt`, `Skewed`, or `Lorrentzian` |
 | `specstep`, `specres` | Instrument FWHM in nm and nominal samples per pixel; default width 0.002222 nm, or 0.002 nm when `Convfxn` is supplied; default sampling factor 10 |
 | `Skewness` | Left/right half-width multipliers for `Skewed`; default `[1, 1]` |
-| `fxnwindow` | Padding around rest-wavelength bins in nm; default 0.1 |
+| `fxnwindow` | Padding around Doppler-shifted component bins in nm; default 0.1 |
+| `relative_cutoff` | Optional strength cutoff as a fraction of the largest input strength; default 0 keeps all positive components |
 | `ion_vel`, `bidir` | Velocity in m/s; `bidir=True` averages ±v, or +v1 and −v2 for a velocity pair |
 | `spec_window`, `plot_window` | Physics-selection and plotting bounds in nm; defaults follow `SpectrumData` or `[1, 1000]` |
 | `SpectrumData` | Measured `[wavelengths_nm, intensities]` used by plotting and window defaults |
@@ -222,7 +223,7 @@ The repository includes regression tests and documentation checks for selected a
 
 - Ordinary `SpecOut` uses relative angular strengths. The calibrated atomic API supports absolute E1 rates, explicit populations, and photon-energy weighting; attaching `RadiativeData` does not replace `SpecOut`. Legacy `A_Ein`, `f_osc`, and `S_line` outputs remain unvalidated placeholders.
 - The LS spectrum model treats each term separately. Axial scalar/tensor dc Stark interactions are included; cross-J Stark tensors, nonparallel electric/magnetic fields, and collision dynamics are omitted.
-- Convolution uses finite bins around rest wavelengths and removes weak components. Broad wings and large velocity shifts can leave the bins; check convergence with `fxnwindow`, the selection windows, and `specres`.
+- Convolution evaluates finite bins around Doppler-shifted centres. It keeps all positive strengths by default; `relative_cutoff` enables optional pruning without renormalization. Zeros immediately outside the bins prevent interpolation from adding artificial area across gaps. Broad wings still extend beyond finite bins; check convergence with `fxnwindow` and `specres`. `spec_window` and displayed sticks use rest wavelengths, so the selection window must include every contributing rest centre.
 - The Voigt wing warning estimates the Lorentzian contribution only. Gaussian-tail losses are not automatically reported.
 - The air-to-vacuum helper numerically inverts the revised Edlén relation under laboratory conditions. Its validity does not extend to arbitrary wavelengths or atmospheric conditions. The standalone hyperfine-constant estimator remains a research aid outside the validated workflow.
 - Natural widths are not automatically derived from lifetimes. HFS includes A/B but not octupole C or cross-J HFS tensors. Vapor pressure, photon recoil, population kinetics, and radiative transfer are not calculated.

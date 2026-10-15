@@ -142,7 +142,7 @@ returns zero strengths and a zero curve.
 The exact solver describes relative E1 spectra within isolated LS terms,
 with optional hyperfine structure and axial dc Stark terms. Absolute rates and explicit level populations
 are available through the separate atomic API, not ordinary \code{SpecOut}. Approximation spectra with HFS or nonzero electric field are unavailable. Finite
-convolution windows can lose broad wings or Doppler-shifted peaks;
+convolution windows can lose broad wings and narrow peaks can be undersampled;
 check window and sampling convergence. See Section~\ref{sec:limitations}
 for these restrictions and unvalidated research helpers.
 \end{caveat}
@@ -434,12 +434,14 @@ Ion motion shifts the mean by $\lambda_0 v/c$; with \code{bidir} the profile is 
 \caption{Unit-area profiles at 600\,nm for a 3000\,K, mass-40 emitter and a 10\,pm instrument width.}\label{fig:shapes}
 \end{figure}
 
-\paragraph{Binning and truncation.} For speed, neighbouring sticks separated by at most $2\,\code{fxnwindow}$ (nm) share a bin, merging overlapping padded windows, and each bin is evaluated only within \code{fxnwindow} of its outermost sticks, at \code{specres} points per pixel. Components at or below $0.05\,\max/N$ are dropped. The grid includes the bin endpoints and uses at least two samples; its spacing is approximately \code{specstep}/\code{specres}. The Lorentzian tail beyond $\pm w$ carries the fraction $1-\tfrac{2}{\pi}\arctan(w/\gamma)$ of a symmetric line's area ($\gamma$ the HWHM); the input check warns when this exceeds 2\%. For Voigt this reports only the Lorentzian-tail estimate, not the total finite-window loss.
+\paragraph{Binning and truncation.} For speed, Doppler-shifted centres separated by at most $2\,\code{fxnwindow}$ (nm) share a bin, merging overlapping padded windows. Both counterstream centres participate in binning; a line is evaluated once at any point, even when its two streams share a bin. Each bin is evaluated within \code{fxnwindow} of its outermost shifted centres, at approximately \code{specres} points per pixel. All positive strengths are retained by default. Optional \opt{relative_cutoff} drops components at or below that fraction of the largest input strength, without renormalization. The grid includes the bin endpoints and uses at least two samples; its spacing is approximately \code{specstep}/\code{specres}. Explicit zero samples immediately outside bin boundaries prevent interpolation and trapezoidal integration from creating artificial intensity across gaps. Profiles are summed in bounded chunks rather than one arbitrarily large matrix.
+
+The Lorentzian tail beyond $\pm w$ carries the fraction $1-\tfrac{2}{\pi}\arctan(w/\gamma)$ of a symmetric line's area ($\gamma$ the HWHM); the input check warns when this exceeds 2\%. For Voigt this reports only the Lorentzian-tail estimate, not the total finite-window loss. Binning remains a finite-support approximation: omitted tails are not redistributed or renormalized, and increasing the padding is needed to assess their contribution.
 
 \paragraph{Density units.} \code{SpecOut} has a wavelength axis in nm but retains profile values per metre. Its integral against the nm axis is therefore $10^9$ times its integral against metres. For a density per nm, multiply the vertical values by $10^{-9}$. Sampling, filtering and finite windows can reduce the captured area; the plotted curve is not renormalized.
 
 \begin{caveat}
-Binning and the \code{spec\_window} filter use rest wavelengths. Large ion velocities can move a profile centre beyond its padded bin, so increase \code{fxnwindow} and the physics window for such cases. The code does not adapt windows to the Doppler shift or enforce convergence. Gaussian tails can also be truncated without a warning. The first-order Doppler shift assumes $|v|\ll c$.
+Binning follows shifted centres, but the \code{spec\_window} filter and displayed sticks use rest wavelengths. Include all contributing rest centres in that selection window, including lines whose observed peaks move into the plot window. Gaussian tails can be truncated without a warning; a narrow thermal Gaussian may require more samples than the nominal instrument-based spacing. The first-order Doppler shift assumes $|v|\ll c$. These are optically thin sums of supplied line weights; collision dynamics, transfer, natural-width inference and detector pixel integration are not performed by the convolution routine.
 \end{caveat}
 
 % ------------------------------------------------------------------------
@@ -550,7 +552,8 @@ Input & Default & Meaning (symbol, section)\\
 \opt{Temp}/\opt{TempeV} & profile-dependent & temperature [K]/[eV]; eV takes precedence; required for thermal profiles\\
 \opt{specstep} & 0.002222 nm & instrument FWHM and sampling pixel width; 0.002 nm if \opt{Convfxn} is supplied\\
 \opt{specres} & 10 & nominal samples per pixel\\
-\opt{fxnwindow} & 0.1 nm & padding of rest-wavelength bins (\S\ref{sec:profile})\\
+\opt{fxnwindow} & 0.1 nm & padding of Doppler-shifted component bins (\S\ref{sec:profile})\\
+\opt{relative_cutoff} & 0 & optional cutoff as a fraction of maximum input strength; no renormalization\\
 \opt{Skewness} & [1,1] & left/right half-width multipliers, only for Skewed\\
 \opt{ion_vel} & 0 & velocity [m/s]; scalar or counterstreaming pair\\
 \opt{bidir} & False & average $+v$ and $-v$, or $+v_1$ and $-v_2$\\

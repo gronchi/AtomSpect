@@ -18,6 +18,7 @@ OPTIONAL_KEYS = (
     'specstep', 'specres', 'fxnwindow', 'plottitle',
     'RadiativePlaceholders', 'RadiativeData',
     'Efield', 'alpha0_G', 'alpha0_E', 'alpha2_G', 'alpha2_E',
+    'relative_cutoff',
 )
 KNOWN_KEYS = frozenset(REQUIRED_KEYS + OPTIONAL_KEYS)
 
@@ -52,6 +53,7 @@ class ConvolutionSettings:
     window: float
     ion_vel: Any
     specres: float
+    relative_cutoff: float = 0.
 
 
 def lorentzian_wing_loss(window, stepsize, skewness=(1, 1)):
@@ -190,6 +192,9 @@ class InputDeck:
         # Resolve the convolution now so that a missing temperature fails before the solve.
         out.convolution = out.convolution_settings()
         settings = out.convolution
+        if (not np.isscalar(settings.relative_cutoff) or not np.isfinite(settings.relative_cutoff)
+                or not 0 <= settings.relative_cutoff <= 1):
+            raise ValueError('relative_cutoff must be between zero and one')
         for name, value in (('specstep', settings.stepsize), ('specres', settings.specres),
                             ('fxnwindow', settings.window), ('amu', deck['amu'])):
             if not np.all(np.isfinite(value)) or np.any(np.asarray(value) <= 0):
@@ -229,4 +234,5 @@ class InputDeck:
         default_step = 0.002 if 'Convfxn' in deck else 0.002222
         return ConvolutionSettings(function=function, temperature=temperature, skewness=skewness,
                                    stepsize=deck.get('specstep', default_step), window=deck.get('fxnwindow', 0.1),
-                                   ion_vel=deck.get('ion_vel', 0), specres=deck.get('specres', 10))
+                                   ion_vel=deck.get('ion_vel', 0), specres=deck.get('specres', 10),
+                                   relative_cutoff=deck.get('relative_cutoff', 0.))

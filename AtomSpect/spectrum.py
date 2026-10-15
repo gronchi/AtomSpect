@@ -140,7 +140,8 @@ def _convolve(deck, data, settings):
         return Convol_Spect(waves, signals, deck.spec_window, deck.plot_window, deck.raw['amu'], settings.stepsize,
                             Temperature_in=settings.temperature, functiontype=settings.function,
                             wind_size=settings.window, Skewness_consts=settings.skewness,
-                            ionvel=settings.ion_vel, specres=settings.specres, bidir=deck.bidir)
+                            ionvel=settings.ion_vel, specres=settings.specres, bidir=deck.bidir,
+                            relative_cutoff=settings.relative_cutoff)
 
     ConvolvedSpect, redsticks, binwinds = spectrum(data['wave_air'], data['signal'])
     data['SpecOut'] = ConvolvedSpect
@@ -195,6 +196,10 @@ def AtomSpect_Main(Inputdeck):
         samples per pixel. fxnwindow pads bins by 0.1 nm. Skewness=[1,1]
         scales half widths only for Skewed. ion_vel is in m/s (default 0);
         bidir=False, or True to average +/-v or [+v1,-v2].
+        Bins follow the Doppler-shifted centres; spec_window and displayed
+        sticks still use rest wavelengths. All positive strengths are kept
+        by default. relative_cutoff (0..1) optionally drops components at
+        or below that fraction of the largest input strength.
 
         I_spin enables HFS and requires mu_I (nuclear magnetons) and
         HFS_G/HFS_E (A constants in Hz, one per J or scalar). HFSB_G/E
@@ -235,7 +240,7 @@ def AtomSpect_Main(Inputdeck):
     -----
     Only relative strengths are physical: radial matrix elements and level
     populations are absent. Finite bins truncate profiles; large Doppler
-    shifts may leave the evaluation windows. Degenerate transitions have
+    shifts can originate outside the selected rest-wavelength window. Degenerate transitions have
     meaningful summed strengths, but no unique individual identity."""
 
     deck = InputDeck.from_dict(Inputdeck)
